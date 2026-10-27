@@ -1,0 +1,36 @@
+
+# Dependências do Composer
+/vendor/
+
+# Configurações locais e credenciais
+.env
+.env.*
+!.env.example
+
+# Arquivos do macOS
+.DS_Store
+.AppleDouble
+._*
+
+# IDEs e editores
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs e arquivos temporários
+*.log
+*.tmp
+*.cache
+*.bak
+
+# Armazenamento gerado pela aplicação
+/storage/*
+!/storage/.gitkeep
+
+# Testes
+.phpunit.cache/
+.phpunit.result.cache
+
+# Arquivos locais de configuração
+/config.local.php
