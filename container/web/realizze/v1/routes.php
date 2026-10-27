@@ -31,6 +31,26 @@ return [
                 $render($template);
             }, $name);
         }
+        $router->get('/confirmar-email', static function () use ($render): void {
+            $token = $_GET['token'] ?? '';
+
+            $render('email-confirmation', [
+                'confirmed' => null,
+                'token' => is_string($token) && preg_match('/^[a-f0-9]{64}$/D', $token)
+                    ? $token
+                    : '',
+            ]);
+        }, 'web.email.confirm');
+
+        $router->post('/confirmar-email', static function () use ($render): void {
+            $confirmed = (new \Moves\App\EmailConfirmation())->confirm();
+
+            $render('email-confirmation', [
+                'confirmed' => $confirmed,
+                'token' => '',
+            ]);
+        }, 'web.email.confirm.submit');
+
         $router->get('/blog/{slug}', static function (array $params) use ($render): void {
             $posts = require __DIR__ . '/components/posts-data.php';
             $slug = $params['slug'] ?? '';
