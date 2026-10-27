@@ -24,16 +24,18 @@ final class Login
             return false;
         }
 
-        $attempts = $_SESSION['login_attempts'] ?? [];
-        if (!is_array($attempts)) {
-            $attempts = [];
-        }
-        $attempts = array_values(array_filter(
-            $attempts,
-            static fn ($at): bool => is_int($at) && $at > time() - 900
-        ));
-        if (count($attempts) >= 10) {
-            $_SESSION['login_attempts'] = $attempts;
+        // Limite por IP e por conta, independente da sessão/cookie.
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+        $limiter = new \Moves\Services\AuthRateLimiter();
+        try {
+            $ipAllowed = $limiter->hit('login-ip', $ip, 30, 900);
+            $accountAllowed = $limiter->hit('login-account', strtolower(trim($email)), 10, 900);
+            if (!$ipAllowed || !$accountAllowed) {
+                error_log('Realizze auth: login rate limited.');
+                return false;
+            }
+        } catch (Throwable $exception) {
+            error_log('Realizze auth: rate limiter unavailable.');
             return false;
         }
 
@@ -45,8 +47,7 @@ final class Login
         }
 
         if ($user === null) {
-            $attempts[] = time();
-            $_SESSION['login_attempts'] = $attempts;
+            error_log('Realizze auth: login rejected.');
             return false;
         }
 
