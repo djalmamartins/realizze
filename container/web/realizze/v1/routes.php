@@ -21,7 +21,6 @@ return [
             '/blog' => ['blog', 'web.blog'],
             '/contato' => ['contact', 'web.contact'],
             '/cadastrar' => ['register', 'web.register'],
-            '/recuperar-senha' => ['forgot', 'web.forgot'],
             '/termos' => ['terms', 'web.terms'],
             '/privacidade' => ['privacy', 'web.privacy'],
         ];
@@ -30,6 +29,76 @@ return [
                 $render($template);
             }, $name);
         }
+        $router->get('/recuperar-senha', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            $render('forgot', ['requested' => false]);
+        }, 'web.password.forgot');
+
+        $router->post('/recuperar-senha', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                http_response_code(403);
+                return;
+            }
+            $email = $_POST['email'] ?? '';
+            if (is_string($email) && strlen($email) <= 254) {
+                try {
+                    $reset = new \Moves\Services\PasswordReset();
+                    $token = $reset->issue($email);
+                    if ($token !== null) {
+                        (new \Moves\Services\PasswordResetMailer())->send($email, $token);
+                    }
+                } catch (\Throwable $exception) {
+                    error_log('Realizze: falha ao solicitar recuperação de senha.');
+                }
+            }
+            $render('forgot', ['requested' => true]);
+        }, 'web.password.forgot.submit');
+
+        $router->get('/redefinir-senha', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            header('Referrer-Policy: no-referrer');
+            $token = $_GET['token'] ?? '';
+            $token = is_string($token) ? $token : '';
+            $render('password-reset', [
+                'token' => $token,
+                'tokenValid' => (new \Moves\Services\PasswordReset())->valid($token),
+                'resetDone' => false,
+                'resetError' => false,
+            ]);
+        }, 'web.password.reset');
+
+        $router->post('/redefinir-senha', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            header('Referrer-Policy: no-referrer');
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                http_response_code(403);
+                return;
+            }
+            $token = $_POST['token'] ?? '';
+            $password = $_POST['password'] ?? '';
+            $confirmation = $_POST['password_confirmation'] ?? '';
+            $token = is_string($token) ? $token : '';
+            $done = false;
+            if (is_string($password) && is_string($confirmation) &&
+                hash_equals($password, $confirmation)) {
+                try {
+                    $done = (new \Moves\Services\PasswordReset())->consume($token, $password);
+                } catch (\Throwable $exception) {
+                    error_log('Realizze: falha ao redefinir senha.');
+                }
+            }
+            if (!$done) {
+                http_response_code(422);
+            }
+            $render('password-reset', [
+                'token' => $token,
+                'tokenValid' => !$done && (new \Moves\Services\PasswordReset())->valid($token),
+                'resetDone' => $done,
+                'resetError' => !$done,
+            ]);
+        }, 'web.password.reset.submit');
+
         $router->get('/entrar', static function () use ($render): void {
             if (\Moves\Services\SessionAuth::current() !== null) {
                 header('Location: /minha-conta', true, 302);
