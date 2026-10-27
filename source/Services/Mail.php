@@ -12,7 +12,9 @@ final class Mail
         string $to,
         string $subject,
         string $html,
-        string $plainText = ''
+        string $plainText = '',
+        string $recipientName = '',
+        array $attachments = []
     ): void {
         $required = [
             'MAIL_HOST',
@@ -52,7 +54,15 @@ final class Mail
             (string) getenv('MAIL_FROM_NAME')
         );
 
-        $mailer->addAddress($to);
+        $mailer->addAddress($to, $recipientName);
+        foreach ($attachments as $attachment) {
+            if (!is_array($attachment) || !isset($attachment['path'], $attachment['name']) ||
+                !is_string($attachment['path']) || !is_string($attachment['name']) ||
+                !is_file($attachment['path']) || !is_readable($attachment['path'])) {
+                throw new RuntimeException('Anexo inválido ou inacessível.');
+            }
+            $mailer->addAttachment($attachment['path'], basename($attachment['name']));
+        }
         $mailer->isHTML(true);
         $mailer->Subject = $subject;
         $mailer->Body = $html;
