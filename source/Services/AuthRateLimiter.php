@@ -17,13 +17,16 @@ final class AuthRateLimiter
             return false;
         }
 
+        // Arquivos do limitador devem pertencer ao usuário do servidor web.
+        // Execute testes CLI com o mesmo usuário (www-data), nunca como root.
         $directory = sys_get_temp_dir() . '/realizze-auth-limits';
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
             throw new RuntimeException('Não foi possível preparar o limitador.');
         }
 
         $path = $directory . '/' . hash('sha256', $scope . "\0" . $identity) . '.json';
-        $file = fopen($path, 'c+');
+        // Evita warnings/stack traces com caminhos internos em produção.
+        $file = @fopen($path, 'c+');
         if ($file === false) {
             throw new RuntimeException('Não foi possível abrir o limitador.');
         }
