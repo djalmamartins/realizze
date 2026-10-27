@@ -43,10 +43,18 @@ return [
             $email = $_POST['email'] ?? '';
             if (is_string($email) && strlen($email) <= 254) {
                 try {
-                    $reset = new \Moves\Services\PasswordReset();
-                    $token = $reset->issue($email);
-                    if ($token !== null) {
-                        (new \Moves\Services\PasswordResetMailer())->send($email, $token);
+                    $limiter = new \Moves\Services\AuthRateLimiter();
+                    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+                    $ipAllowed = $limiter->hit('reset-ip', $ip, 15, 1800);
+                    $emailAllowed = $limiter->hit('reset-account', strtolower(trim($email)), 3, 1800);
+                    if ($ipAllowed && $emailAllowed) {
+                        $reset = new \Moves\Services\PasswordReset();
+                        $token = $reset->issue($email);
+                        if ($token !== null) {
+                            (new \Moves\Services\PasswordResetMailer())->send($email, $token);
+                        }
+                    } else {
+                        error_log('Realizze auth: password reset rate limited.');
                     }
                 } catch (\Throwable $exception) {
                     error_log('Realizze: falha ao solicitar recuperação de senha.');
