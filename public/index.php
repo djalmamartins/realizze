@@ -1,20 +1,23 @@
-
 <?php
 
 use MovesCode\Router\Router;
 
-define('BASE_PATH', dirname(__DIR__));
+// Inicialização do Realizze 2.0
+require_once dirname(__DIR__) . '/source/Boot/app.php';
 
-require BASE_PATH . '/vendor/autoload.php';
+// Configuração do roteador
+$router = new Router(
+    getenv('APP_URL') ?: 'https://www.realizze.lab'
+);
 
-$router = new Router('https://realizze.lab');
-
+// Carregar as rotas do tema Web
 $theme = require BASE_PATH . '/container/web/realizze/v1/routes.php';
 
+// Registrar as rotas
 $theme['routes']($router);
 
+// Executar o roteador
 if (!$router->dispatch()) {
     http_response_code($router->error() ?? 500);
-
     echo 'Erro: ' . ($router->error() ?? 500);
 }

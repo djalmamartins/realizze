@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Preservar arquivos e diretórios existentes
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Encaminhar as demais URLs ao roteador PHP
+    RewriteRule ^ index.php [L]
+</IfModule>
