@@ -11,7 +11,7 @@ function check(bool $condition, string $description): void
     if (!$condition) {
         throw new RuntimeException('FALHOU: ' . $description);
     }
-    echo 'OK - ', $description, PHP_EOL;
+    $GLOBALS['core004_results'][] = 'OK - ' . $description;
 }
 
 $session = new Session(); // Antes de qualquer echo
@@ -32,4 +32,7 @@ check($session->flash() === null, 'Flash consumido uma única vez');
 $before = session_id();
 $session->regenerate();
 check(session_id() !== $before, 'Identificador regenerado');
+foreach ($GLOBALS['core004_results'] as $result) {
+    echo $result, PHP_EOL;
+}
 echo "TESTE CORE-004: APROVADO\n";
