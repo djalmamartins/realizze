@@ -31,7 +31,7 @@ return [
             }, $name);
         }
         $router->get('/entrar', static function () use ($render): void {
-            if (\Moves\Services\\SessionAuth::current() !== null) {
+            if (\Moves\Services\SessionAuth::current() !== null) {
                 header('Location: /minha-conta', true, 302);
                 return;
             }
@@ -39,7 +39,7 @@ return [
         }, 'web.login');
 
         $router->post('/entrar', static function () use ($render): void {
-            if ((new \Moves\App\\Login())->submit()) {
+            if ((new \Moves\App\Login())->submit()) {
                 header('Location: /minha-conta', true, 302);
                 return;
             }
@@ -48,7 +48,7 @@ return [
         }, 'web.login.submit');
 
         $router->get('/minha-conta', static function (): void {
-            $user = \Moves\Services\\SessionAuth::current();
+            $user = \Moves\Services\SessionAuth::current();
             if ($user === null) {
                 header('Location: /entrar', true, 302);
                 return;
@@ -57,11 +57,11 @@ return [
         }, 'app.account');
 
         $router->post('/sair', static function (): void {
-            if (!\Moves\Services\\Csrf::validate($_POST['csrf_token'] ?? null)) {
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
                 http_response_code(403);
                 return;
             }
-            \Moves\Services\\SessionAuth::signOut();
+            \Moves\Services\SessionAuth::signOut();
             header('Location: /entrar', true, 302);
         }, 'web.logout');
 
