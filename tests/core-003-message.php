@@ -5,6 +5,13 @@ require dirname(__DIR__) . '/source/Boot/app.php';
 
 use Moves\Support\Message;
 
+// Iniciar a sessão antes de qualquer saída produzida pelos testes.
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    if (!session_start()) {
+        throw new RuntimeException('Não foi possível iniciar sessão de teste.');
+    }
+}
+
 function check(bool $value, string $label): void
 {
     if (!$value) {
@@ -24,11 +31,6 @@ foreach (['info', 'success', 'warning', 'error'] as $type) {
     check((new Message())->{$type}('Teste')->getType() === $type, 'Tipo ' . $type);
 }
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    if (!session_start()) {
-        throw new RuntimeException('Não foi possível iniciar sessão de teste.');
-    }
-}
 (new Message())->error('Falha de teste')->flash();
 $flash = Message::consumeFlash();
 check($flash !== null && $flash->getType() === 'error' && $flash->getText() === 'Falha de teste',
