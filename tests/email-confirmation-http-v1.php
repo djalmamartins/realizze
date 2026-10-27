@@ -27,12 +27,17 @@ function request(
     string $cookieFile,
     ?array $post = null
 ): array {
-    $ch = curl_init($url);
+    static $ch = null;
+    if ($ch === null) {
+        $ch = curl_init();
+        // Mantém os cookies na memória entre GET e POST, inclusive cookies de sessão.
+        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
+    }
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_HTTPGET, $post === null);
 
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_COOKIEJAR => $cookieFile,
-        CURLOPT_COOKIEFILE => $cookieFile,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => 0,
         CURLOPT_TIMEOUT => 15,
@@ -51,8 +56,6 @@ function request(
     }
 
     $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
     return [$status, $html];
 }
 
@@ -99,16 +102,11 @@ try {
 
     check(strlen($csrf) === 64, 'CSRF gerado no formulário');
 
-    $cookies = is_file($cookieFile)
-        ? file_get_contents($cookieFile)
-        : '';
-
-    echo 'DIAGNÓSTICO - Cookie de sessão: '
-        . (str_contains($cookies, 'PHPSESSID')
-            ? 'PRESENTE'
-            : 'AUSENTE')
-        . PHP_EOL;
-
+    // Um segundo GET deve recuperar o mesmo CSRF da mesma sessão.
+    [$secondStatus, $secondHtml] = request($url . '?token=' . urlencode($token), $cookieFile);
+    preg_match('/name="csrf_token"\\s+value="([^"]+)"/', $secondHtml, $secondMatches);
+    check($secondStatus === 200 && hash_equals($csrf, $secondMatches[1] ?? ''),
+        'Sessão e CSRF persistem entre requisições');
 
     [$status, $html] = request($url, $cookieFile, [
         'token' => $token,
@@ -124,32 +122,11 @@ try {
 
     check($status === 200, 'POST de confirmação acessível');
 
-    $currentStatus = userStatus($pdo, $userId);
-
-    echo 'DIAGNÓSTICO - Status após POST: '
-        . $currentStatus . PHP_EOL;
-
-    echo 'DIAGNÓSTICO - Resposta: '
-        . (str_contains($html, 'E-mail confirmado!')
-            ? 'SUCESSO'
-            : (str_contains($html, 'Não foi possível confirmar o e-mail')
-                ? 'RECUSADA'
-                : 'DESCONHECIDA'))
-        . PHP_EOL;
-
-    if ($currentStatus !== 'active') {
-        $direct = (new \Moves\Services\EmailVerification())->confirm($token);
-
-        echo 'DIAGNÓSTICO - Confirmação direta: '
-            . ($direct ? 'ACEITA' : 'RECUSADA')
-            . PHP_EOL;
-
-        echo 'DIAGNÓSTICO - Status após confirmação direta: '
-            . userStatus($pdo, $userId)
-            . PHP_EOL;
-    }
-
-    check($currentStatus === 'active', 'Conta ativada');
+    check(
+        str_contains($html, 'E-mail confirmado!'),
+        'POST apresenta confirmação de sucesso'
+    );
+    check(userStatus($pdo, $userId) === 'active', 'Conta ativada');
 
     [$status, $html] = request($url, $cookieFile, [
         'token' => $token,
