@@ -4,6 +4,7 @@ use MovesCode\Router\Router;
 
 // Inicialização do Realizze 2.0
 require_once dirname(__DIR__) . '/source/Boot/app.php';
+require_once dirname(__DIR__) . '/source/Boot/database.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', '1');
