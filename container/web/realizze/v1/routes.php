@@ -20,7 +20,6 @@ return [
             '/solucoes' => ['solutions', 'web.solutions'],
             '/blog' => ['blog', 'web.blog'],
             '/contato' => ['contact', 'web.contact'],
-            '/entrar' => ['login', 'web.login'],
             '/cadastrar' => ['register', 'web.register'],
             '/recuperar-senha' => ['forgot', 'web.forgot'],
             '/termos' => ['terms', 'web.terms'],
@@ -31,6 +30,41 @@ return [
                 $render($template);
             }, $name);
         }
+        $router->get('/entrar', static function () use ($render): void {
+            if (\Moves\Services\SessionAuth::current() !== null) {
+                header('Location: /minha-conta', true, 302);
+                return;
+            }
+            $render('login', ['loginError' => false]);
+        }, 'web.login');
+
+        $router->post('/entrar', static function () use ($render): void {
+            if ((new \Moves\App\Login())->submit()) {
+                header('Location: /minha-conta', true, 302);
+                return;
+            }
+            http_response_code(401);
+            $render('login', ['loginError' => true]);
+        }, 'web.login.submit');
+
+        $router->get('/minha-conta', static function (): void {
+            $user = \Moves\Services\SessionAuth::current();
+            if ($user === null) {
+                header('Location: /entrar', true, 302);
+                return;
+            }
+            require BASE_PATH . '/container/app/realizze/v1/pages/dashboard.php';
+        }, 'app.account');
+
+        $router->post('/sair', static function (): void {
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                http_response_code(403);
+                return;
+            }
+            \Moves\Services\SessionAuth::signOut();
+            header('Location: /entrar', true, 302);
+        }, 'web.logout');
+
         $router->get('/confirmar-email', static function () use ($render): void {
             $token = $_GET['token'] ?? '';
 
