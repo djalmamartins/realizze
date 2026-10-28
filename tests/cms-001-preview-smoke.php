@@ -72,6 +72,9 @@ $routes = file_get_contents($root . '/routes.php');
 if (!is_string($routes)
     || !str_contains($routes, "getenv('REALIZZE_CMS_LOCAL_PREVIEW') === '1'")
     || !str_contains($routes, "getenv('APP_ENV') === 'local'")
+    || !str_contains($routes, 'REMOTE_ADDR')
+    || !str_contains($routes, 'REALIZZE_CMS_PREVIEW_ALLOWED_IPS')
+    || !str_contains($routes, 'in_array($clientIp, $allowedIps, true)')
     || !str_contains($routes, 'http_response_code(503)')) {
     throw new RuntimeException('Bloqueio de prévia local do CMS não identificado (checagem estática).');
 }
