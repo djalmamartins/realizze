@@ -24,7 +24,14 @@
       if (event.target.closest('a')) close();
     });
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && sidebar.classList.contains('cms-menu-open')) close(true);
+      if (event.key === 'Escape' && sidebar.classList.contains('cms-menu-open')) {
+        event.preventDefault();
+        close(true);
+      }
+    });
+    // Disclosure menu: close on outside interaction without trapping focus in the page.
+    document.addEventListener('pointerdown', (event) => {
+      if (sidebar.classList.contains('cms-menu-open') && !sidebar.contains(event.target)) close();
     });
     const desktop = window.matchMedia('(min-width: 721px)');
     if (typeof desktop.addEventListener === 'function') {
