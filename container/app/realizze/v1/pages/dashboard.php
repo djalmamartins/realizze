@@ -6,8 +6,8 @@ if ($user === null) {
     http_response_code(403);
     exit('Acesso negado.');
 }
-$name = htmlspecialchars((string) ($user['first_name'] ?? 'Cliente'), ENT_QUOTES, 'UTF-8');
-$csrf = htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8');
+$name = (string) ($user['first_name'] ?? 'Cliente');
+$csrf = \Moves\Services\Csrf::token();
 $publishedAssets = BASE_PATH . '/public/assets/realizze-app/v1';
 $publishedCss = $publishedAssets . '/css/dashboard.min.css';
 $publishedJs = $publishedAssets . '/js/dashboard.min.js';
