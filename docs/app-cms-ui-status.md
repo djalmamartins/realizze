@@ -75,3 +75,13 @@ php scripts/publish-app-assets.php
 ```
 
 **Ainda não realizados:** teste visual real em desktop/mobile no Docker do Mac, teste HTTP de bloqueio do CMS, inspeção MySQL em homologação, testes end-to-end de sessão/CSRF e auditoria de acessibilidade com leitor de tela. Nenhuma migração ou cobrança foi executada.
+
+## APP-UI-033–035 / CMS-UI-037–039 — navegação e componentes (28/10/2026)
+
+- App Empresarial: pesquisa **somente no navegador** para localizar os onze módulos existentes por título e descrição, com normalização de acentos, botão de limpar, contagem anunciada por `role="status"` e ocultação sincronizada de cartões, grupos e atalhos. Não consulta dados financeiros, não usa parâmetros GET para selecionar empresa e não altera o contexto PF/PJ.
+- A busca foi adicionada a `pages/empresarial.php`, `assets/js/dashboard.js` e `assets/css/dashboard.css`. Sem JavaScript, os onze módulos e os atalhos continuam visíveis.
+- CMS: criado `components/page-heading.php`, usado nas oito seções (visão geral, páginas, conteúdos, mídia, usuários, planos, logs e configurações). Metadados são escapados com `htmlspecialchars` e cada página recebe um único título `h1` com identificador consistente.
+- Testes atualizados: `tests/ui-002-view-smoke.php` valida a marcação acessível do filtro PJ sem submissão; `tests/cms-001-preview-smoke.php` valida o cabeçalho nas oito seções e rejeita HTML injetado nos metadados.
+- Não foram adicionadas rotas, operações administrativas, uploads, cobranças, integrações WhatsApp ou migrações. A prévia do CMS continua restrita pelo gate local e não substitui autenticação administrativa real.
+
+**Ainda faltam no App PF:** dados autorizados e operações nas dez páginas existentes; filtros de dados, exportações e homologação visual. **No App Empresarial:** serviços e operações isoladas por organização para clientes/fornecedores, equipes, contas a receber/pagar, bancos/cartões, fluxo de caixa, custos, DRE, conciliação OFX/CSV e obrigações MEI/PJ. **No CMS:** as oito páginas de prévia existem; faltam autenticação administrativa, CSRF nas mutações, RBAC, auditoria persistente e operações de conteúdo/mídia/usuários/configurações. Testes HTTP, inspeção MySQL de homologação e testes visuais no Docker seguem pendentes.
