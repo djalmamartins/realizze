@@ -11,7 +11,7 @@ declare(strict_types=1);
 <style><?php require __DIR__ . '/assets/css/cms.css'; ?></style>
 <style><?php require __DIR__ . '/assets/css/responsive-fixes.css'; ?></style>
 </head>
-<body><div class="cms-shell"><?php require __DIR__ . '/components/sidebar.php'; ?><div class="cms-main"><header class="cms-topbar"><strong>Gerenciamento de conteúdo</strong><span>Ambiente administrativo · Indisponível</span></header><main class="cms-content"><?php
+<body><a class="cms-skip-link" href="#cms-content">Ir para o conteúdo principal</a><div class="cms-shell"><?php require __DIR__ . '/components/sidebar.php'; ?><div class="cms-main"><header class="cms-topbar"><strong>Gerenciamento de conteúdo</strong><span>Ambiente administrativo · Indisponível</span></header><main class="cms-content" id="cms-content" tabindex="-1"><?php
 // UI preview selection is deliberately local: no routes, authentication or data access.
 $cmsPreviews = ['overview' => 'Visão geral', 'pages' => 'Páginas', 'contents' => 'Conteúdos', 'media' => 'Mídia', 'users' => 'Usuários', 'plans' => 'Planos e assinaturas', 'logs' => 'Logs e auditoria', 'settings' => 'Configurações'];
 $cmsSection = isset($cmsSection) && is_string($cmsSection) && array_key_exists($cmsSection, $cmsPreviews) ? $cmsSection : 'overview';
