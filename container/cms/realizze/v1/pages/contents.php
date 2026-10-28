@@ -1,7 +1,7 @@
 <?php
 /** CMS content editor layout preview. No persistence, uploads or publishing. */
 ?>
-<div class="cms-heading"><div><span class="cms-eyebrow">Gerenciamento / Editorial</span><h1>Conteúdos</h1><p>Planeje artigos, comunicados e páginas editoriais.</p></div><span class="cms-chip">Prévia visual · sem edição</span></div>
+<?php $cmsHeading = ['eyebrow' => 'Gerenciamento / Editorial', 'title' => 'Conteúdos', 'description' => 'Planeje artigos, comunicados e páginas editoriais.', 'badge' => 'Prévia visual · sem edição']; require __DIR__ . '/../components/page-heading.php'; ?>
 <div class="cms-editor-layout">
  <section class="cms-card cms-editor-main" aria-label="Prévia do editor de conteúdo">
   <div class="cms-module-head"><div><h2>Editor de conteúdo</h2><p>Estrutura visual para uma futura edição segura.</p></div><span class="cms-status">Rascunho demonstrativo</span></div>
