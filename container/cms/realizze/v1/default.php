@@ -9,6 +9,7 @@ declare(strict_types=1);
 <meta name="robots" content="noindex, nofollow"><meta name="color-scheme" content="light">
 <title>Realizze CMS — Layout em desenvolvimento</title>
 <style><?php require __DIR__ . '/assets/css/cms.css'; ?></style>
+<style><?php require __DIR__ . '/assets/css/responsive-fixes.css'; ?></style>
 </head>
 <body><div class="cms-shell"><?php require __DIR__ . '/components/sidebar.php'; ?><div class="cms-main"><header class="cms-topbar"><strong>Gerenciamento de conteúdo</strong><span>Ambiente administrativo · Indisponível</span></header><main class="cms-content"><?php
 // UI preview selection is deliberately local: no routes, authentication or data access.

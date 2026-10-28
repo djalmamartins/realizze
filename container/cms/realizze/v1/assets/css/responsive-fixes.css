@@ -1,0 +1,27 @@
+/* Prevent long administrative labels from widening the mobile preview. */
+@media (max-width: 720px) {
+    html,
+    body,
+    .cms-shell,
+    .cms-sidebar,
+    .cms-main,
+    .cms-content {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .cms-nav a {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .cms-topbar,
+    .cms-topbar span {
+        min-width: 0;
+    }
+
+    .cms-topbar span {
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+}

@@ -1,0 +1,18 @@
+/* Keep authentication forms inside narrow mobile viewports. */
+@media (max-width: 560px) {
+    html,
+    body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .auth-card,
+    .demo-form,
+    .demo-form input {
+        min-width: 0;
+    }
+
+    .auth-card {
+        width: 100%;
+    }
+}

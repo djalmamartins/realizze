@@ -11,7 +11,7 @@ $this->stop();
 <?php if (($loginError ?? false) === true): ?>
 <p class="form-feedback" role="alert">Não foi possível entrar. Confira suas credenciais e a confirmação do e-mail.</p>
 <?php endif; ?>
-<form method="post" action="/entrar">
+<form class="demo-form" method="post" action="/entrar">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
 <label for="login-email">E-mail</label>
 <input id="login-email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="voce@exemplo.com">
