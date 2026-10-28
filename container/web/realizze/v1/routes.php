@@ -124,6 +124,15 @@ return [
             $render('login', ['loginError' => true]);
         }, 'web.login.submit');
 
+        // Prévia protegida do onboarding; sem persistência ou operações bancárias.
+        $router->get('/configuracao-inicial', static function () use ($render): void {
+            if (!\\Moves\\Services\\AccessPolicy::requireAccess('app')) {
+                return;
+            }
+            header('Cache-Control: no-store');
+            $render('onboarding');
+        }, 'app.onboarding.preview');
+
         $router->get('/minha-conta', static function (): void {
             if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
