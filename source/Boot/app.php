@@ -12,6 +12,7 @@ if (!defined('BASE_PATH')) {
 
 // Carregar dependências do Composer
 require_once BASE_PATH . '/vendor/autoload.php';
+require_once BASE_PATH . '/source/Support/helpers.php';
 
 // Carregar variáveis de ambiente
 require_once __DIR__ . '/environment.php';
