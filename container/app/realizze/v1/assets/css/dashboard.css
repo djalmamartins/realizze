@@ -168,3 +168,7 @@
 .enterprise-search-empty p{margin:0;color:#536d5c;line-height:1.55;font-size:12px}
 .enterprise-search-empty[hidden]{display:none!important}
 @media(max-width:650px){.enterprise-search-empty{margin:0 18px 20px;padding:16px}}
+
+/* APP-UI-044: captions on responsive PF financial tables. */
+.finance-workspace .finance-table-caption{caption-side:top;text-align:left;padding:12px 14px 8px;color:#52695a;font-size:12px;font-weight:700}
+.finance-workspace .finance-table-wrap{overscroll-behavior-inline:contain}
