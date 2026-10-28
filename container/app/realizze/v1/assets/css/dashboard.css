@@ -146,3 +146,18 @@
 .enterprise-module:focus{outline:3px solid #087d49;outline-offset:3px}
 .enterprise-jump a:focus-visible{outline:3px solid #087d49;outline-offset:2px}
 @media(max-width:650px){.enterprise-module{scroll-margin-top:16px}}
+
+/* APP-UI-035: accessible, client-side search for the eleven PJ preview modules. */
+.enterprise-module-filter{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 14px;align-items:end;margin:8px 28px 14px;padding:16px 18px;border:1px solid #dfece3;border-radius:13px;background:#f8fbf9}
+.enterprise-filter-field{min-width:0}
+.enterprise-filter-field label{display:block;margin-bottom:7px;color:#345c43;font-size:12px;font-weight:700}
+.enterprise-filter-field input{display:block;width:100%;min-height:44px;border:1px solid #cadfce;border-radius:9px;padding:10px 13px;background:#fff;color:#1d3c2a;font:inherit}
+.enterprise-filter-field input:focus-visible,.enterprise-module-filter button:focus-visible{outline:3px solid #087d49;outline-offset:2px}
+.enterprise-module-filter button{min-height:44px;padding:10px 16px;border:1px solid #b7d8c4;border-radius:9px;background:#fff;color:#11633e;font-weight:700;cursor:pointer}
+.enterprise-module-filter button:hover{background:#eaf7ef}
+.enterprise-module-filter p{margin:0;line-height:1.5}
+.enterprise-module-filter #enterprise-search-help{grid-column:1/-1}
+.enterprise-module-filter #enterprise-search-status{grid-column:1/-1;font-weight:650;color:#315c40}
+.enterprise-jump a[hidden],.enterprise-module-group[hidden],.enterprise-module[hidden]{display:none!important}
+@media(max-width:650px){.enterprise-module-filter{grid-template-columns:1fr;margin:6px 18px 14px;padding:14px}.enterprise-module-filter button{width:100%}}
+@media(prefers-reduced-motion:reduce){.enterprise-module-filter *{scroll-behavior:auto!important;transition:none!important}}
