@@ -1,0 +1,38 @@
+name: Realizze App UI checks
+
+on:
+  pull_request:
+    paths:
+      - 'container/app/**'
+      - 'scripts/publish-app-assets.php'
+      - '.github/workflows/app-ui-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: gd, zip, intl, pdo_mysql, zlib
+          coverage: none
+          tools: composer:v2
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+      - name: Check App PHP syntax
+        run: |
+          find container/app/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l scripts/publish-app-assets.php
+      - name: Check source JavaScript syntax
+        run: node --check container/app/realizze/v1/assets/js/dashboard.js
+      - name: Publish assets with MovesCode Compress
+        run: |
+          php scripts/publish-app-assets.php
+          test -s public/assets/realizze/v1/app/css/dashboard.min.css
+          test -s public/assets/realizze/v1/app/js/dashboard.min.js
+          node --check public/assets/realizze/v1/app/js/dashboard.min.js
