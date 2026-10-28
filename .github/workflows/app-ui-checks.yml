@@ -33,6 +33,6 @@ jobs:
       - name: Publish assets with MovesCode Compress
         run: |
           php scripts/publish-app-assets.php
-          test -s public/assets/realizze/v1/app/css/dashboard.min.css
-          test -s public/assets/realizze/v1/app/js/dashboard.min.js
-          node --check public/assets/realizze/v1/app/js/dashboard.min.js
+          test -s public/assets/realizze-app/v1/css/dashboard.min.css
+          test -s public/assets/realizze-app/v1/js/dashboard.min.js
+          node --check public/assets/realizze-app/v1/js/dashboard.min.js
