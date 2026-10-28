@@ -95,6 +95,7 @@ $accounts = [
 <main class="main" id="overview">
 <?php if ($section === 'overview'): ?>
 <?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user]) ?>
+<?= $appView->render('components::getting-started', ['icon' => $icon]) ?>
 <?= $appView->render('components::overview-summary') ?>
 <?= $appView->render('components::overview-panels', ['transactions' => $transactions, 'accounts' => $accounts]) ?>
 <?php else: ?>
