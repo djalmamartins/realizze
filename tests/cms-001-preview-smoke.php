@@ -142,3 +142,18 @@ if (!is_string($routes)
     throw new RuntimeException('Bloqueio de prévia local do CMS não identificado (checagem estática).');
 }
 echo 'CMS-001: renderização e bloqueio estático verificados. Não substitui teste HTTP de autorização.' . PHP_EOL;
+
+
+// CMS-UI-048: settings preview covers identity, SEO and governance without writes.
+$settingsPreview = $render('settings');
+foreach (['cms-settings-identity-title', 'cms-settings-editorial-title',
+    'cms-settings-governance-title', 'Auditoria e privacidade',
+    'cms-settings-description', 'cms-settings-indexing', 'Configurações bloqueadas'] as $needle) {
+    if (!str_contains($settingsPreview, $needle)) {
+        throw new RuntimeException('CMS-UI-048: configuração administrativa incompleta: ' . $needle);
+    }
+}
+if (preg_match('/<form\\b/i', $settingsPreview) === 1) {
+    throw new RuntimeException('CMS-UI-048: formulário administrativo habilitado.');
+}
+echo 'OK - CMS-UI-048: identidade, SEO e governança em prévia protegida.' . PHP_EOL;

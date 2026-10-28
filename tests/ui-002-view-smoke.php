@@ -252,3 +252,30 @@ foreach (['relatorios', 'planejamento'] as $page) {
     }
 }
 echo 'OK - APP-UI-045: contas/cartões, relatórios e planejamento com tabelas reutilizáveis.' . PHP_EOL;
+
+
+// APP-UI-048: settings preview has accessible fields and no live mutations.
+$settingsHtml = $view->render('pages/configuracoes', ['icon' => $icon, 'appView' => $view]);
+foreach (['settings-profile-title', 'settings-security-title', 'settings-notifications-title',
+    'settings-privacy-title', 'settings-preview-help', 'finance-settings-grid',
+    'Nenhuma configuração, sessão, notificação ou informação financeira'] as $needle) {
+    if (!str_contains($settingsHtml, $needle)) {
+        throw new RuntimeException('APP-UI-048: configuração PF incompleta: ' . $needle);
+    }
+}
+preg_match_all('/<(?:button|input|select|textarea)\\b[^>]*>/i', $settingsHtml, $settingsControls);
+foreach ($settingsControls[0] as $control) {
+    if (preg_match('/\\bdisabled\\b/i', $control) !== 1) {
+        throw new RuntimeException('APP-UI-048: controle de configuração habilitado: ' . $control);
+    }
+}
+if (str_contains($settingsHtml, '<form') || preg_match('/R\\$\\s*[0-9]/u', $settingsHtml) === 1
+    || substr_count($settingsHtml, 'id="settings-preview-help"') !== 1) {
+    throw new RuntimeException('APP-UI-048: formulário, valores fictícios ou ID duplicado.');
+}
+$settingsCss = file_get_contents($root . '/assets/css/dashboard.css');
+if (!is_string($settingsCss) || !str_contains($settingsCss, '.finance-settings-grid')
+    || !str_contains($settingsCss, '@media(max-width:650px){.finance-settings-grid')) {
+    throw new RuntimeException('APP-UI-048: estilos responsivos de configurações ausentes.');
+}
+echo 'OK - APP-UI-048: configurações PF responsivas, sem mutações ou dados inventados.' . PHP_EOL;

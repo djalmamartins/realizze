@@ -146,3 +146,11 @@ php scripts/publish-app-assets.php
 - `tests/cms-001-preview-smoke.php` cobre as seis tabelas, nomes acessíveis e colunas, além das verificações existentes de controles bloqueados, IDs e proteção da prévia.
 - **App PF:** dez páginas de interface, pendentes dados autorizados, operações, filtros e homologação responsiva. **App Empresarial:** onze módulos em prévia, pendentes serviços e consultas escopadas por organização. **CMS:** oito seções visuais; pendentes autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações reais.
 - Não houve alteração de rotas, banco, produção, cobranças, uploads ou WhatsApp.
+
+
+## APP/CMS-UI-048 — configurações responsivas e governança (28/10/2026)
+
+- **App PF / Configurações:** quatro painéis (perfil, segurança, notificações, privacidade) com rótulos, estados não consultados, controles desabilitados e grade adaptável a telas pequenas. Nenhum valor pessoal ou preferência real é exibido ou alterado.
+- **CMS / Configurações:** interface ampliada para identidade institucional, SEO/publicação, autenticação, RBAC, CSRF, auditoria e retenção; os estados são explicitamente pendentes, não diagnósticos de produção. Todos os controles administrativos seguem desabilitados.
+- Testes de renderização adicionados a `tests/ui-002-view-smoke.php` e `tests/cms-001-preview-smoke.php`. A homologação em navegador, testes HTTP de bloqueio, inspeção MySQL e testes de teclado/leitor de tela continuam pendentes.
+- **Inventário:** App PF 10 páginas de interface (faltam CRUD, filtros e dados autorizados); App Empresarial 11 módulos de prévia (faltam serviços e consultas escopadas por empresa); CMS 8 seções de prévia (faltam autenticação administrativa, autorização por papéis, CSRF nas mutações, auditoria persistente e operações reais). Sem WhatsApp, cobrança, migração ou produção.
