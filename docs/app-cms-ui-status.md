@@ -128,3 +128,12 @@ php scripts/publish-app-assets.php
 - CI do commit de código `35c5b6c`: [execução #40719453512](https://github.com/djalmamartins/realizze/actions/runs/40719453512) — aprovada. Não substitui auditoria manual com teclado/leitor de tela.
 - **App PF:** dez páginas visuais; faltam dados autorizados, operações, filtros reais e homologação responsiva. **App PJ:** onze módulos visuais; faltam cadastros, financeiro, DRE, equipes e importação OFX/CSV com escopo por empresa. **CMS:** oito seções visuais; faltam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações seguras em todas as oito.
 - Nenhum banco, cobrança, upload, WhatsApp ou produção foi alterado.
+
+
+## CMS-UI-046 — inventários de páginas e usuários (28/10/2026)
+
+- As prévias **Páginas** e **Usuários** agora compartilham `components/empty-table.php` com **Planos** e **Logs**: legendas visíveis, quatro colunas com cabeçalhos acessíveis, estado vazio e região de rolagem por teclado.
+- Os formulários de prévia permanecem desabilitados. Nenhum registro de usuário, convite, papel, página ou versão é consultado; não há novas rotas, operações, uploads ou dados fictícios.
+- `tests/cms-001-preview-smoke.php` verifica as quatro tabelas, colunas, legenda e região acessível. A validação de sintaxe e a homologação HTTP/visual devem ser realizadas no CI/Docker.
+- **App PF:** dez páginas de interface, pendentes operações e filtros com dados autorizados. **App Empresarial:** onze módulos em prévia, pendentes serviços escopados por organização. **CMS:** oito seções existentes, pendentes autenticação administrativa, CSRF, RBAC, auditoria persistente e CRUD; prévia local continua bloqueada externamente.
+- Sem migração, cobrança, WhatsApp ou alteração de produção.
