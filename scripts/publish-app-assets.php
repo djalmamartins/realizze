@@ -17,7 +17,7 @@ $root = dirname(__DIR__);
 require_once $root . '/vendor/autoload.php';
 
 $source = $root . '/container/app/realizze/v1/assets';
-$target = $root . '/public/assets/realizze/v1/app';
+$target = $root . '/public/assets/realizze-app/v1';
 
 $files = [
     ['css/dashboard.css', 'css/dashboard.min.css', CSS::class],
@@ -36,5 +36,5 @@ foreach ($files as [$input, $output, $compressor]) {
     if ($result === '' || !is_file($targetFile)) {
         throw new RuntimeException('Falha ao publicar o asset: ' . $output);
     }
-    echo 'Publicado: /assets/realizze/v1/app/' . $output . PHP_EOL;
+    echo 'Publicado: /assets/realizze-app/v1/' . $output . PHP_EOL;
 }
