@@ -34,6 +34,30 @@ try {
     verify(is_file($dir . '/' . $saved), 'Arquivo armazenado');
     $upload->remove($outside);
     verify(is_file($outside), 'Exclusão externa bloqueada');
+    // Rejeita arquivo acima do limite configurado.
+    $oversize = tempnam($dir, 'large-');
+    file_put_contents($oversize, str_repeat('x', 1025));
+    verify($upload->file(['tmp_name' => $oversize, 'name' => 'large.txt', 'size' => 1025, 'error' => UPLOAD_ERR_OK], 'large') === null, 'Limite de tamanho respeitado');
+    unlink($oversize);
+    // Impede traversal e exclusão por link simbólico.
+    $upload->remove('../' . basename($outside));
+    verify(is_file($outside), 'Traversal bloqueado');
+    $link = $dir . '/outside-link.txt';
+    if (function_exists('symlink') && @symlink($outside, $link)) {
+        $upload->remove('outside-link.txt');
+        verify(is_link($link) && is_file($outside), 'Link simbólico externo bloqueado');
+        unlink($link);
+    }
+    // Simula dois tenants com diretórios distintos.
+    $tenantB = sys_get_temp_dir() . '/realizze-tenant-b-' . bin2hex(random_bytes(6));
+    mkdir($tenantB, 0700);
+    try {
+        $tenantUpload = new Upload($tenantB);
+        $tenantUpload->remove($dir . '/' . $saved);
+        verify(is_file($dir . '/' . $saved), 'Isolamento entre tenants');
+    } finally {
+        rmdir($tenantB);
+    }
     $upload->remove($saved);
     verify(!is_file($dir . '/' . $saved), 'Exclusão interna autorizada');
     echo "TESTE CORE-006: APROVADO\n";
