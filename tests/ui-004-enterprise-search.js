@@ -101,6 +101,15 @@ assert.equal(groups[0].hidden, true);
 assert.equal(groups[1].hidden, false);
 assert.equal(links[0].hidden, true, 'atalho oculto não aponta para módulo filtrado');
 
+search('vencimento receber');
+assert.deepEqual(visible(), ['enterprise-receber'], 'palavras de campos distintos combinam sem exigir ordem contígua');
+search('  GESTÃO    VENCIMENTO  ');
+assert.deepEqual(visible(), ['enterprise-receber', 'enterprise-pagar'], 'espaços e acentos não prejudicam busca por múltiplos termos');
+search('fornecedor pagar');
+assert.deepEqual(visible(), ['enterprise-pagar'], 'múltiplos termos refinam o resultado');
+search('gestao documento');
+assert.deepEqual(visible(), [], 'todos os termos devem corresponder ao mesmo módulo');
+
 search('documento');
 assert.deepEqual(visible(), ['enterprise-clientes'], 'cabeçalhos de tabela são pesquisáveis');
 assert.equal(status.textContent, '1 módulo encontrado.');
@@ -130,4 +139,4 @@ callbacks['clear:click']();
 assert.equal(input.value, '');
 assert.equal(input.focused, true, 'botão limpar devolve foco ao campo');
 assert.equal(visible().length, 3);
-console.log('OK - APP-UI-052: filtro PJ por módulo, grupo e coluna; links e teclado.');
+console.log('OK - APP-UI-053: filtro PJ por múltiplos termos, grupo, coluna, links e teclado.');

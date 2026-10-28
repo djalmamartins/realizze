@@ -11,7 +11,7 @@
       sidebar.classList.remove('cms-menu-open');
       toggle.setAttribute('aria-expanded', 'false');
       toggle.setAttribute('aria-label', 'Abrir navegação');
-      if (restoreFocus) toggle.focus();
+      if (restoreFocus && !desktop.matches) toggle.focus();
     };
     toggle.addEventListener('click', () => {
       const open = !sidebar.classList.contains('cms-menu-open');
@@ -40,7 +40,15 @@
     });
     const desktop = window.matchMedia('(min-width: 721px)');
     if (typeof desktop.addEventListener === 'function') {
-      desktop.addEventListener('change', (event) => { if (event.matches) close(); });
+      desktop.addEventListener('change', (event) => {
+        if (event.matches) {
+          // Desktop navigation remains visible; never focus the hidden mobile toggle.
+          close();
+        } else if (nav.contains(document.activeElement)) {
+          // Desktop links become hidden when the mobile disclosure is collapsed.
+          toggle.focus();
+        }
+      });
     }
   };
   if (document.readyState === 'loading') {

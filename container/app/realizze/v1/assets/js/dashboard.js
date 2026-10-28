@@ -103,9 +103,9 @@
       const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
       const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
       const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
-      const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+      const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
       const applyFilter = () => {
-        const term = normalize(enterpriseSearch.value.trim());
+        const terms = normalize(enterpriseSearch.value).split(' ').filter(Boolean);
         let visible = 0;
         modules.forEach((module) => {
           const heading = module.querySelector('h4')?.textContent || '';
@@ -113,7 +113,8 @@
           const groupTitle = module.closest('.enterprise-module-group')?.querySelector('h3')?.textContent || '';
           const columns = Array.from(module.querySelectorAll('.enterprise-module-table th'))
             .map((column) => column.textContent || '').join(' ');
-          const matches = !term || normalize([heading, description, groupTitle, columns].join(' ')).includes(term);
+          const searchable = normalize([heading, description, groupTitle, columns].join(' '));
+          const matches = terms.every((term) => searchable.includes(term));
           module.hidden = !matches;
           if (matches) visible += 1;
         });

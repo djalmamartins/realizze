@@ -187,3 +187,12 @@ php scripts/publish-app-assets.php
 - Novo teste comportamental sem dependências em `tests/ui-004-enterprise-search.js`, integrado ao workflow, cobrindo buscas por grupo/coluna, links ocultos, estado vazio e foco ao limpar.
 - **Pendências App PF (10 páginas):** integração autorizada, CRUD, filtros de dados, relatórios reais e homologação visual. **App PJ (11 módulos):** serviços e operações escopadas por organização, equipes/permissões, financeiro, DRE e OFX/CSV. **CMS (8 seções):** autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente e operações. Inspeção do MySQL de homologação e testes HTTP/visuais continuam necessários.
 - Sem WhatsApp, cobrança, migração, alterações de produção ou abertura do CMS.
+
+
+## APP-UI/CMS-A11Y-053 — pesquisa PJ e foco responsivo (28/10/2026)
+
+- A pesquisa dos onze módulos empresariais aceita múltiplas palavras em qualquer ordem e em campos diferentes (título, descrição, grupo e colunas), normalizando acentos e espaços. Todos os termos devem corresponder ao mesmo módulo. O filtro permanece estritamente local, sem acesso a dados ou troca de contexto PF/PJ.
+- Corrigido o foco do CMS na transição desktop → celular: quando um link da navegação deixa de ficar visível, o foco é transferido ao botão móvel. Na transição inversa, o foco permanece no link visível, sem direcionamento ao botão oculto.
+- Testes de regressão ampliados em `tests/ui-004-enterprise-search.js` e `tests/cms-003-mobile-menu.js`. Testes com navegador real, teclado e leitor de tela continuam necessários.
+- **App PF:** dez páginas existentes ainda dependem de dados autorizados, operações financeiras, filtros persistentes, relatórios e homologação visual. **App PJ:** onze módulos em prévia ainda dependem de serviços escopados, CRUD e importação OFX/CSV segura. **CMS:** oito seções em prévia ainda dependem de autenticação administrativa, autorização por papéis, CSRF, auditoria persistente e operações reais.
+- Sem alterações em banco, migrations, produção, cobranças ou WhatsApp.
