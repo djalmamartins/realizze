@@ -116,3 +116,19 @@ if (!function_exists('passwd_rehash')) {
         return password_needs_rehash($hash, PASSWORD_DEFAULT);
     }
 }
+
+
+if (!function_exists('csrf_input')) {
+    function csrf_input(): string
+    {
+        $token = \Moves\Services\Csrf::token();
+        return '<input type="hidden" name="csrf" value="' . htmlspecialchars($token, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
+    }
+}
+
+if (!function_exists('csrf_verify')) {
+    function csrf_verify(mixed $token = null): bool
+    {
+        return \Moves\Services\Csrf::validate($token ?? ($_POST['csrf'] ?? null));
+    }
+}
