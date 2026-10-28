@@ -5,7 +5,7 @@
 <div class="cms-detail-layout">
 <section class="cms-card" aria-label="Estrutura de Páginas do site"><div class="cms-module-head"><div><h2>Gerenciamento</h2><p>Estrutura preparada para integração com serviços seguros.</p></div><button type="button" disabled>Criar página</button></div>
 <div class="cms-form-preview"><div><label class="cms-field-label" for="cms-pages-one">Título da página</label><input id="cms-pages-one" class="cms-field" placeholder="Título da página" disabled></div><div><label class="cms-field-label" for="cms-pages-two">Endereço amigável</label><input id="cms-pages-two" class="cms-field" placeholder="Endereço amigável" disabled></div><div><label class="cms-field-label" for="cms-pages-three">Modelo de página</label><select id="cms-pages-three" class="cms-field" disabled><option>Selecione uma opção</option></select></div></div>
-<div class="cms-section-divider"></div><div class="cms-module-head"><div><h2>Registros</h2><p>Sem dados carregados nesta prévia.</p></div><span class="cms-status">Indisponível</span></div><?php $cmsEmptyTable = [
+<div class="cms-section-divider"></div><div class="cms-module-head"><div><h2><span class="cms-list-heading-icon" aria-hidden="true"><?= $cmsIcon('pages') ?></span>Registros</h2><p>Sem dados carregados nesta prévia.</p></div><span class="cms-status">Indisponível</span></div><?php $cmsEmptyTable = [
     'caption' => 'Páginas cadastradas',
     'columns' => ['Título', 'Endereço', 'Modelo', 'Situação'],
     'title' => 'Nenhuma página consultada',
