@@ -119,3 +119,12 @@ php scripts/publish-app-assets.php
 - `tests/ui-002-view-smoke.php` valida as páginas, legendas, estrutura, escape da região e a quantidade de tabelas por tela.
 - **App PF — faltantes:** integração e operações reais nas dez páginas, filtros, exportação, acessibilidade e homologação visual no Docker. **App Empresarial — faltantes:** CRUD e consultas isoladas por organização nos onze módulos. **CMS — faltantes:** autenticação administrativa, RBAC, CSRF nas mutações, auditoria e operações nas oito prévias.
 - Nenhuma migração, operação financeira, cobrança, publicação administrativa, integração WhatsApp ou alteração em produção.
+
+## CMS-A11Y-045 — tabelas com rolagem acessível (28/10/2026)
+
+- `components/empty-table.php` agora expõe a tabela dentro de uma região com `role="region"`, `tabindex="0"` e nome acessível baseado na legenda escapada, permitindo rolagem horizontal por teclado.
+- `assets/css/responsive-fixes.css` adiciona contorno de foco visível e barra de rolagem compacta no celular.
+- `tests/cms-001-preview-smoke.php` verifica a região nomeada em **Planos e assinaturas** e **Logs e auditoria**, além de rejeitar HTML injetado no nome acessível.
+- CI do commit de código `35c5b6c`: [execução #40719453512](https://github.com/djalmamartins/realizze/actions/runs/40719453512) — aprovada. Não substitui auditoria manual com teclado/leitor de tela.
+- **App PF:** dez páginas visuais; faltam dados autorizados, operações, filtros reais e homologação responsiva. **App PJ:** onze módulos visuais; faltam cadastros, financeiro, DRE, equipes e importação OFX/CSV com escopo por empresa. **CMS:** oito seções visuais; faltam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações seguras em todas as oito.
+- Nenhum banco, cobrança, upload, WhatsApp ou produção foi alterado.
