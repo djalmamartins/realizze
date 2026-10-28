@@ -81,6 +81,15 @@
       });
     }
 
+    // Anchors in the PJ workspace move keyboard focus to the selected module.
+    document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]').forEach((link) => {
+      link.addEventListener('click', () => {
+        const targetId = link.getAttribute('href')?.slice(1);
+        const target = targetId ? document.getElementById(targetId) : null;
+        if (target) window.setTimeout(() => target.focus({ preventScroll: true }), 0);
+      });
+    });
+
     document.querySelectorAll('[data-demo]').forEach((element) => {
       element.addEventListener('click', (event) => {
         event.preventDefault();
