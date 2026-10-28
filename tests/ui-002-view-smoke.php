@@ -102,6 +102,13 @@ foreach (['id="enterprise-module-search"', 'type="search"', 'aria-controls="ente
         throw new RuntimeException('APP-UI-035: filtro PJ incompleto: ' . $needle);
     }
 }
+// APP-UI-040: a busca tem estado vazio explícito e mantém controles acessíveis.
+foreach (['id="enterprise-search-empty"', 'id="enterprise-search-empty-title"',
+    'Nenhum módulo encontrado', 'hidden aria-labelledby="enterprise-search-empty-title"'] as $needle) {
+    if (!str_contains($enterpriseHtml, $needle)) {
+        throw new RuntimeException('APP-UI-040: estado vazio da busca PJ ausente: ' . $needle);
+    }
+}
 if (preg_match('/<form\\b/i', $enterpriseHtml) === 1) {
     throw new RuntimeException('APP-UI-035: formulário inesperado com contexto empresarial desabilitado.');
 }
