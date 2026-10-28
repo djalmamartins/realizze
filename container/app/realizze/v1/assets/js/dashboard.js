@@ -10,6 +10,11 @@
     const backdrop = $('#sidebar-backdrop');
     const toast = $('#toast');
     let toastTimer;
+    const desktopViewport = window.matchMedia('(min-width: 851px)');
+    // Prevent keyboard focus from entering the off-canvas mobile sidebar.
+    const updateSidebarInert = () => {
+      if (sidebar) sidebar.inert = !desktopViewport.matches && !shell?.classList.contains('menu-open');
+    };
 
     const notify = (message) => {
       if (!toast) return;
@@ -26,7 +31,8 @@
       toggle?.setAttribute('aria-expanded', 'false');
       toggle?.setAttribute('aria-label', 'Abrir menu');
       backdrop?.setAttribute('aria-hidden', 'true');
-      if (restoreFocus) toggle?.focus();
+      if (restoreFocus || sidebar?.contains(document.activeElement)) toggle?.focus();
+      updateSidebarInert();
     };
 
     const openMenu = () => {
@@ -36,6 +42,7 @@
       toggle?.setAttribute('aria-expanded', 'true');
       toggle?.setAttribute('aria-label', 'Fechar menu');
       backdrop?.setAttribute('aria-hidden', 'false');
+      updateSidebarInert();
       (closeButton || sidebar?.querySelector('a'))?.focus();
     };
 
@@ -74,7 +81,7 @@
         first.focus();
       }
     });
-    const desktopViewport = window.matchMedia('(min-width: 851px)');
+    updateSidebarInert();
     if (typeof desktopViewport.addEventListener === 'function') {
       desktopViewport.addEventListener('change', (event) => {
         if (event.matches) closeMenu();
