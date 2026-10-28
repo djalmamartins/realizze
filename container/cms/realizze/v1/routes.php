@@ -9,17 +9,14 @@ return [
     'version' => 'v1',
     'controller' => null,
     'routes' => static function (Router $router): void {
-        // Preview only on an explicitly allowed local client IP. Never trust X-Forwarded-For.
-        // Docker gateways can be added individually via REALIZZE_CMS_PREVIEW_ALLOWED_IPS.
-        $extraIps = array_filter(
-            array_map('trim', explode(',', (string) (getenv('REALIZZE_CMS_PREVIEW_ALLOWED_IPS') ?: ''))),
-            static fn (string $ip): bool => filter_var($ip, FILTER_VALIDATE_IP) !== false
+        // Prévia estritamente local, sem confiar em cabeçalhos de proxy.
+        $previewAccess = require __DIR__ . '/components/preview-access.php';
+        $previewEnabled = $previewAccess(
+            (string) (getenv('APP_ENV') ?: ''),
+            (string) (getenv('REALIZZE_CMS_LOCAL_PREVIEW') ?: ''),
+            (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            (string) (getenv('REALIZZE_CMS_PREVIEW_ALLOWED_IPS') ?: '')
         );
-        $allowedIps = array_merge(['127.0.0.1', '::1'], $extraIps);
-        $clientIp = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
-        $previewEnabled = getenv('APP_ENV') === 'local'
-            && getenv('REALIZZE_CMS_LOCAL_PREVIEW') === '1'
-            && in_array($clientIp, $allowedIps, true);
 
         // Rotas reais para as telas, mas SEM acesso administrativo, dados ou mutações.
         $pages = [
