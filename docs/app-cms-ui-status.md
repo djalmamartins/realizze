@@ -154,3 +154,10 @@ php scripts/publish-app-assets.php
 - **CMS / Configurações:** interface ampliada para identidade institucional, SEO/publicação, autenticação, RBAC, CSRF, auditoria e retenção; os estados são explicitamente pendentes, não diagnósticos de produção. Todos os controles administrativos seguem desabilitados.
 - Testes de renderização adicionados a `tests/ui-002-view-smoke.php` e `tests/cms-001-preview-smoke.php`. A homologação em navegador, testes HTTP de bloqueio, inspeção MySQL e testes de teclado/leitor de tela continuam pendentes.
 - **Inventário:** App PF 10 páginas de interface (faltam CRUD, filtros e dados autorizados); App Empresarial 11 módulos de prévia (faltam serviços e consultas escopadas por empresa); CMS 8 seções de prévia (faltam autenticação administrativa, autorização por papéis, CSRF nas mutações, auditoria persistente e operações reais). Sem WhatsApp, cobrança, migração ou produção.
+
+## CMS-A11Y-049 — navegação por teclado e status móvel (28/10/2026)
+
+- A navegação responsiva do CMS fecha automaticamente quando o foco sai da sidebar (Tab), além do Escape, clique fora e troca para desktop. O Escape continua devolvendo o foco ao botão; nenhuma operação administrativa é acionada.
+- O cabeçalho exibe permanentemente **“Prévia local · Operações administrativas indisponíveis”**, inclusive em telas de até 720px; a mensagem não fica mais oculta em celulares.
+- Novo teste de comportamento com Node sem dependências: `tests/cms-003-mobile-menu.js`, executado no CI. `tests/cms-001-preview-smoke.php` verifica marcação e CSS da mensagem.
+- **Pendências mantidas:** App PF — operações, filtros, relatórios reais e homologação visual das 10 páginas; App PJ — 11 módulos ainda sem CRUD/queries escopadas; CMS — 8 prévias sem autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente ou CRUD. Testes HTTP, leitor de tela e MySQL de homologação continuam pendentes. Sem WhatsApp, cobrança, migração ou produção.

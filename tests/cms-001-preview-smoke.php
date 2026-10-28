@@ -157,3 +157,14 @@ if (preg_match('/<form\\b/i', $settingsPreview) === 1) {
     throw new RuntimeException('CMS-UI-048: formulário administrativo habilitado.');
 }
 echo 'OK - CMS-UI-048: identidade, SEO e governança em prévia protegida.' . PHP_EOL;
+
+// CMS-A11Y-049: the disabled administrative state must remain visible on mobile.
+$cmsMobilePreview = $render('overview');
+$cmsMobileCss = file_get_contents($root . '/assets/css/responsive-fixes.css');
+$cmsMobileJs = file_get_contents($root . '/assets/js/cms.js');
+if (!str_contains($cmsMobilePreview, 'class="cms-preview-status">Prévia local · Operações administrativas indisponíveis</span>')
+    || !is_string($cmsMobileCss) || !str_contains($cmsMobileCss, '.cms-topbar .cms-preview-status')
+    || !is_string($cmsMobileJs) || !str_contains($cmsMobileJs, "document.addEventListener('focusin'")) {
+    throw new RuntimeException('CMS-A11Y-049: status móvel ou fechamento por foco ausente.');
+}
+echo 'OK - CMS-A11Y-049: status da prévia visível e navegação móvel com saída por teclado.' . PHP_EOL;

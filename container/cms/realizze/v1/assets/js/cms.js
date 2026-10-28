@@ -33,6 +33,11 @@
     document.addEventListener('pointerdown', (event) => {
       if (sidebar.classList.contains('cms-menu-open') && !sidebar.contains(event.target)) close();
     });
+    // Keyboard users may Tab out of the menu; never leave it visually open
+    // once focus has moved into the main content.
+    document.addEventListener('focusin', (event) => {
+      if (sidebar.classList.contains('cms-menu-open') && !sidebar.contains(event.target)) close();
+    });
     const desktop = window.matchMedia('(min-width: 721px)');
     if (typeof desktop.addEventListener === 'function') {
       desktop.addEventListener('change', (event) => { if (event.matches) close(); });

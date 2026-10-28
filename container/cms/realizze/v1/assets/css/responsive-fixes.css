@@ -82,3 +82,9 @@
 /* CMS-UI-047: editorial and media inventory previews share the accessible table component. */
 .cms-preview-inventory{margin-top:18px}
 .cms-preview-inventory .cms-module-head p{margin:4px 0 0}
+
+/* CMS-A11Y-049: never hide the read-only administrative status on phones. */
+@media (max-width: 720px) {
+  .cms-topbar { height: auto; min-height: 60px; flex-wrap: wrap; align-content: center; padding: 12px 18px; gap: 5px 10px; }
+  .cms-topbar .cms-preview-status { display: inline-flex; max-width: 100%; white-space: normal; line-height: 1.4; font-size: 11px; padding: 4px 9px; border-radius: 12px; background: #fff4e8; color: #7a461b; }
+}

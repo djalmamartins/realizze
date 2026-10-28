@@ -71,6 +71,8 @@ jobs:
           node --check container/web/realizze/v1/assets/js/main.js
           node --check container/app/realizze/v1/assets/js/dashboard.js
           node --check container/cms/realizze/v1/assets/js/cms.js
+          node --check tests/cms-003-mobile-menu.js
+          node tests/cms-003-mobile-menu.js
       - name: Publish assets with MovesCode Compress
         run: |
           php scripts/publish-web-assets.php
