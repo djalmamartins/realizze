@@ -1,12 +1,9 @@
-<?php
-/** UI-004: estado vazio até integração com dados autenticados. */
-?>
+<?php /** Contas e cartões: apresentação sem leitura ou alteração de dados financeiros. */ ?>
 <section class="card finance-workspace" aria-labelledby="contas-title">
-  <div class="finance-toolbar">
-    <div><h2 id="contas-title">Contas e cartões</h2><p class="muted">Gerencie suas contas e cartões em um só lugar.</p></div>
-    <button type="button" class="primary" disabled title="Aguardando integração financeira">Adicionar conta</button>
-  </div>
-  <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th scope="col">Instituição</th><th scope="col">Tipo</th><th scope="col">Conta</th><th scope="col">Saldo</th><th scope="col">Status</th></tr></thead>
-    <tbody><tr><td colspan="5"><div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('credit-card') ?></span><h3>Nenhuma conta cadastrada</h3><p>Quando esta funcionalidade estiver disponível, seus dados aparecerão aqui. Nenhum registro foi criado.</p></div></td></tr></tbody>
-  </table></div>
+ <div class="finance-toolbar"><div><h2 id="contas-title">Contas e cartões</h2><p class="muted">Acompanhe suas contas, carteiras e cartões em um só lugar.</p></div><button type="button" class="primary" disabled title="Disponível após integração financeira">+ Adicionar conta</button></div>
+ <div class="finance-goal-summary" aria-label="Resumo de contas ainda indisponível"><div class="finance-goal-stat"><span>Saldo total</span><strong>—</strong><small>Aguardando dados autorizados</small></div><div class="finance-goal-stat"><span>Contas conectadas</span><strong>—</strong><small>Nenhuma integração ativa</small></div><div class="finance-goal-stat"><span>Faturas em aberto</span><strong>—</strong><small>Sem dados financeiros</small></div></div>
+ <div class="finance-toolbar"><div><h3>Suas contas</h3><p class="muted">Contas bancárias, dinheiro e carteiras digitais.</p></div><button type="button" disabled>Gerenciar carteiras</button></div>
+ <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th scope="col">Instituição</th><th scope="col">Tipo</th><th scope="col">Conta</th><th scope="col">Saldo</th><th scope="col">Status</th></tr></thead><tbody><tr><td colspan="5"><div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('credit-card') ?></span><h3>Nenhuma conta cadastrada</h3><p>As contas autorizadas aparecerão aqui quando o cadastro estiver disponível.</p></div></td></tr></tbody></table></div>
+ <div class="finance-toolbar"><div><h3>Cartões de crédito</h3><p class="muted">Limites, fechamentos e vencimentos das faturas.</p></div><button type="button" disabled>+ Adicionar cartão</button></div>
+ <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th scope="col">Cartão</th><th scope="col">Limite</th><th scope="col">Fatura atual</th><th scope="col">Vencimento</th></tr></thead><tbody><tr><td colspan="4"><div class="finance-empty"><h3>Nenhum cartão cadastrado</h3><p>Os cartões serão exibidos aqui após a implementação segura do módulo.</p></div></td></tr></tbody></table></div>
 </section>
