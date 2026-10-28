@@ -161,3 +161,10 @@
 .enterprise-jump a[hidden],.enterprise-module-group[hidden],.enterprise-module[hidden]{display:none!important}
 @media(max-width:650px){.enterprise-module-filter{grid-template-columns:1fr;margin:6px 18px 14px;padding:14px}.enterprise-module-filter button{width:100%}}
 @media(prefers-reduced-motion:reduce){.enterprise-module-filter *{scroll-behavior:auto!important;transition:none!important}}
+
+/* APP-UI-040: clear, keyboard-friendly no-results feedback for the PJ module finder. */
+.enterprise-search-empty{margin:0 28px 20px;padding:18px 20px;border:1px dashed #b6d9c2;border-radius:13px;background:#f5fbf7;color:#25523a}
+.enterprise-search-empty strong{display:block;font-size:14px;margin-bottom:6px}
+.enterprise-search-empty p{margin:0;color:#536d5c;line-height:1.55;font-size:12px}
+.enterprise-search-empty[hidden]{display:none!important}
+@media(max-width:650px){.enterprise-search-empty{margin:0 18px 20px;padding:16px}}
