@@ -47,7 +47,7 @@ $checks = [
         ['Últimas movimentações', 'Gastos por categoria'],
     ],
     'receber' => [
-        $view->render('pages/receber', ['icon' => $icon]),
+        $view->render('pages/receber', ['icon' => $icon, 'appView' => $view]),
         ['Contas a receber', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
     ],
     'empresarial' => [
@@ -55,7 +55,7 @@ $checks = [
         ['Gestão empresarial', 'Cadastro empresarial ainda não liberado', 'Nenhum registro consultado', 'Conciliação OFX/CSV', 'Centros de custos'],
     ],
     'pagar' => [
-        $view->render('pages/pagar', ['icon' => $icon]),
+        $view->render('pages/pagar', ['icon' => $icon, 'appView' => $view]),
         ['Contas a pagar', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
     ],
 ];
@@ -182,3 +182,37 @@ echo 'OK - APP-UI-035: busca PJ local acessível e sem submissão de dados.' . P
 echo 'OK - ENT-027: onze módulos PJ acessíveis, sem valores inventados e sem seleção indevida.' . PHP_EOL;
 echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
 echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
+
+// APP-UI-044: shared financial tables have captions and escape dynamic metadata.
+foreach ([
+    'receber' => 'Lançamentos a receber',
+    'pagar' => 'Lançamentos a pagar',
+    'movimentacoes' => 'Movimentações',
+] as $page => $caption) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    if (!str_contains($html, '<caption class="finance-table-caption">' . $caption)
+        || !str_contains($html, '<th scope="col">')
+        || !str_contains($html, 'Nenhum lançamento disponível')
+        || preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
+        throw new RuntimeException('APP-UI-044: tabela PF inconsistente: ' . $page);
+    }
+}
+$unsafeTable = $view->render('components::finance-empty-table', [
+    'financeEmptyTable' => [
+        'caption' => '<script>caption</script>',
+        'columns' => ['<img src=x onerror=alert(1)>', 'Valor'],
+        'title' => '<script>title</script>',
+        'description' => '<b>description</b>',
+    ],
+    'icon' => $icon,
+]);
+foreach (['&lt;script&gt;caption&lt;/script&gt;', '&lt;img src=x onerror=alert(1)&gt;',
+    '&lt;script&gt;title&lt;/script&gt;', '&lt;b&gt;description&lt;/b&gt;', 'colspan="2"'] as $needle) {
+    if (!str_contains($unsafeTable, $needle)) {
+        throw new RuntimeException('APP-UI-044: escape/estrutura de tabela ausente: ' . $needle);
+    }
+}
+if (str_contains($unsafeTable, '<script>') || str_contains($unsafeTable, '<img src=x')) {
+    throw new RuntimeException('APP-UI-044: HTML não confiável interpretado na tabela.');
+}
+echo 'OK - APP-UI-044: tabelas PF acessíveis e metadados escapados.' . PHP_EOL;
