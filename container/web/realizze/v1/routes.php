@@ -126,7 +126,7 @@ return [
 
         // Prévia protegida do onboarding; sem persistência ou operações bancárias.
         $router->get('/configuracao-inicial', static function () use ($render): void {
-            if (!\\Moves\\Services\\AccessPolicy::requireAccess('app')) {
+            if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
             }
             header('Cache-Control: no-store');
