@@ -4,5 +4,11 @@
  <div class="finance-goal-summary" aria-label="Resumo financeiro sem dados conectados"><div class="finance-goal-stat"><span>Entradas</span><strong>—</strong><small>Aguardando integração</small></div><div class="finance-goal-stat"><span>Saídas</span><strong>—</strong><small>Sem valores disponíveis</small></div><div class="finance-goal-stat"><span>Saldo do período</span><strong>—</strong><small>Dados não carregados</small></div></div>
  <div class="finance-toolbar"><div><h3>Consultar movimentações</h3><p class="muted">Filtros e lançamentos ficarão disponíveis após a integração.</p></div><button type="button" disabled>Exportar</button></div>
  <div class="finance-search-preview"><div><label for="movimentacoes-search">Pesquisar</label><input id="movimentacoes-search" type="search" placeholder="Descrição ou categoria" disabled></div><div><label for="movimentacoes-period">Período</label><select id="movimentacoes-period" disabled><option>Todos os períodos</option></select></div><div><label for="movimentacoes-status">Situação</label><select id="movimentacoes-status" disabled><option>Todas as situações</option></select></div></div>
- <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Categoria</th><th scope="col">Conta</th><th scope="col">Valor</th></tr></thead><tbody><tr><td colspan="5"><div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('arrows-left-right') ?></span><h3>Nenhum lançamento disponível</h3><p>Os dados autorizados aparecerão nesta tela após a implementação do módulo. Nenhum valor demonstrativo é apresentado.</p></div></td></tr></tbody></table></div>
+ <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
+    'caption' => 'Movimentações — integração pendente',
+    'columns' => ['Data', 'Descrição', 'Categoria', 'Conta', 'Valor'],
+    'title' => 'Nenhum lançamento disponível',
+    'description' => 'Os dados autorizados aparecerão nesta tela após a implementação do módulo. Nenhum valor demonstrativo é apresentado.',
+    'icon' => 'arrows-left-right',
+], 'icon' => $icon]) ?>
 </section>
