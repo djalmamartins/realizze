@@ -86,7 +86,7 @@ $enterpriseGroups = [
       <input id="enterprise-module-search" type="search" autocomplete="off" placeholder="Ex.: clientes, fluxo de caixa, DRE" aria-controls="enterprise-module-groups" aria-describedby="enterprise-search-help">
     </div>
     <button id="enterprise-module-clear" type="button" class="enterprise-secondary">Limpar filtro</button>
-    <p id="enterprise-search-help" class="muted">A pesquisa filtra apenas os módulos exibidos nesta página. Não consulta empresas ou lançamentos.</p>
+    <p id="enterprise-search-help" class="muted">Pesquise por módulo, área de gestão ou nome de coluna. O filtro atua somente nesta página. Não consulta empresas ou lançamentos.</p>
     <p id="enterprise-search-status" class="muted" role="status" aria-live="polite" aria-atomic="true">11 módulos disponíveis.</p>
   </div>
   <div id="enterprise-search-empty" class="enterprise-search-empty" hidden aria-labelledby="enterprise-search-empty-title">

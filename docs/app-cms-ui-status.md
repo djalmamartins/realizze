@@ -179,3 +179,11 @@ php scripts/publish-app-assets.php
 - `tests/ui-003-mobile-menu.js` simula os dois sentidos da mudança de viewport e valida foco, `aria-expanded` e `inert`. Ainda requer homologação visual e teclado em navegador real.
 - Inventário inalterado: **App PF** tem dez páginas visuais, sem CRUD/dados reais; **App PJ** tem onze módulos em prévia, sem persistência/isolamento de consultas reais; **CMS** tem oito prévias, ainda sem autenticação administrativa, RBAC, CSRF em mutações, auditoria e CRUD.
 - Nenhuma alteração em banco, produção, cobrança, WhatsApp ou rotas administrativas.
+
+## APP-UI-052 — busca PJ por área e colunas (28/10/2026)
+
+- O filtro local dos onze módulos empresariais agora pesquisa **nome do módulo, descrição, área de gestão e cabeçalhos das tabelas**, com normalização de acentos e letras maiúsculas. A ajuda textual foi atualizada.
+- O filtro continua apenas visual: cartões, grupos e atalhos são ocultados em conjunto, com contagem anunciada, estado vazio e limpeza por Escape ou botão. Sem consulta a empresas, dados financeiros ou mudança de contexto.
+- Novo teste comportamental sem dependências em `tests/ui-004-enterprise-search.js`, integrado ao workflow, cobrindo buscas por grupo/coluna, links ocultos, estado vazio e foco ao limpar.
+- **Pendências App PF (10 páginas):** integração autorizada, CRUD, filtros de dados, relatórios reais e homologação visual. **App PJ (11 módulos):** serviços e operações escopadas por organização, equipes/permissões, financeiro, DRE e OFX/CSV. **CMS (8 seções):** autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente e operações. Inspeção do MySQL de homologação e testes HTTP/visuais continuam necessários.
+- Sem WhatsApp, cobrança, migração, alterações de produção ou abertura do CMS.

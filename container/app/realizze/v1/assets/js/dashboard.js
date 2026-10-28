@@ -110,7 +110,10 @@
         modules.forEach((module) => {
           const heading = module.querySelector('h4')?.textContent || '';
           const description = module.querySelector('.enterprise-module-header p')?.textContent || '';
-          const matches = !term || normalize(heading + ' ' + description).includes(term);
+          const groupTitle = module.closest('.enterprise-module-group')?.querySelector('h3')?.textContent || '';
+          const columns = Array.from(module.querySelectorAll('.enterprise-module-table th'))
+            .map((column) => column.textContent || '').join(' ');
+          const matches = !term || normalize([heading, description, groupTitle, columns].join(' ')).includes(term);
           module.hidden = !matches;
           if (matches) visible += 1;
         });
