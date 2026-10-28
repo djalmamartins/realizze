@@ -6,6 +6,14 @@ on:
       - 'container/app/**'
       - 'scripts/publish-app-assets.php'
       - 'tests/ui-002-view-smoke.php'
+      - 'tests/enterprise-001-context.php'
+      - 'source/Services/OrganizationAccess.php'
+      - 'source/Services/OrganizationContext.php'
+      - 'source/Services/Authorization.php'
+      - 'source/Services/SessionAuth.php'
+      - 'source/Services/Csrf.php'
+      - 'container/web/realizze/v1/routes.php'
+      - 'database/proposals/**'
       - '.github/workflows/app-ui-checks.yml'
   workflow_dispatch:
 
@@ -20,7 +28,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: gd, zip, intl, pdo_mysql, zlib
+          extensions: gd, zip, intl, pdo_mysql, pdo_sqlite, sqlite3, zlib
           coverage: none
           tools: composer:v2
       - name: Install Composer dependencies
@@ -29,8 +37,14 @@ jobs:
         run: |
           find container/app/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l scripts/publish-app-assets.php
+          php -l source/Services/OrganizationAccess.php
+          php -l source/Services/OrganizationContext.php
+          php -l container/web/realizze/v1/routes.php
+          php -l tests/enterprise-001-context.php
       - name: Smoke-test MovesCode View components
         run: php tests/ui-002-view-smoke.php
+      - name: Verify enterprise session and permission isolation
+        run: php tests/enterprise-001-context.php
       - name: Check source JavaScript syntax
         run: node --check container/app/realizze/v1/assets/js/dashboard.js
       - name: Publish assets with MovesCode Compress
