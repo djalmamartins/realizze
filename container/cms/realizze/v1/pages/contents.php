@@ -1,9 +1,16 @@
 <?php
-/** CMS UI preview only: no database reads or administrative actions. */
-$title = "Conteúdos";
-$description = "Organize textos, notícias e materiais editoriais.";
-$columns = ["Conteúdo","Tipo","Publicação"];
+/** CMS content editor layout preview. No persistence, uploads or publishing. */
 ?>
-<div class="cms-heading"><div><span class="cms-eyebrow">Gerenciamento</span><h1><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h1><p><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p></div><span class="cms-chip">Prévia visual</span></div>
-<section class="cms-card cms-module" aria-label="<?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?>"><div class="cms-module-head"><div><h2>Visão dos registros</h2><p>Os dados serão exibidos após a ativação segura do módulo.</p></div><button type="button" disabled title="Funcionalidade indisponível">Novo registro</button></div><div class="cms-table-wrap"><table class="cms-table"><thead><tr><?php foreach ($columns as $column): ?><th scope="col"><?= htmlspecialchars($column, ENT_QUOTES, 'UTF-8') ?></th><?php endforeach; ?></tr></thead><tbody><tr><td colspan="<?= count($columns) ?>" class="cms-empty"><strong>Nenhum registro disponível</strong><p>Esta é uma prévia de layout. Nenhum dado privado foi consultado.</p></td></tr></tbody></table></div></section>
-<aside class="cms-notice"><strong>Módulo ainda indisponível</strong>Cadastro, edição, exclusão e publicação exigirão autenticação administrativa, autorização e proteção CSRF antes de serem liberados.</aside>
+<div class="cms-heading"><div><span class="cms-eyebrow">Gerenciamento / Editorial</span><h1>Conteúdos</h1><p>Planeje artigos, comunicados e páginas editoriais.</p></div><span class="cms-chip">Prévia visual · sem edição</span></div>
+<div class="cms-editor-layout">
+ <section class="cms-card cms-editor-main" aria-label="Prévia do editor de conteúdo">
+  <div class="cms-module-head"><div><h2>Editor de conteúdo</h2><p>Estrutura visual para uma futura edição segura.</p></div><span class="cms-status">Rascunho demonstrativo</span></div>
+  <label class="cms-field-label" for="cms-editor-title">Título</label><input id="cms-editor-title" class="cms-field" value="" placeholder="Título da publicação" disabled>
+  <label class="cms-field-label" for="cms-editor-slug">Endereço amigável</label><div class="cms-field-prefix"><span>/blog/</span><input id="cms-editor-slug" placeholder="endereco-do-conteudo" disabled></div>
+  <div class="cms-editor-toolbar" aria-label="Ferramentas de formatação indisponíveis"><button type="button" disabled aria-label="Negrito"><strong>B</strong></button><button type="button" disabled aria-label="Itálico"><em>I</em></button><button type="button" disabled aria-label="Lista">☷</button><button type="button" disabled aria-label="Inserir link">↗</button><button type="button" disabled aria-label="Inserir imagem">▧</button></div>
+  <div class="cms-editor-placeholder" role="note"><strong>Área de edição</strong><p>O editor será conectado à biblioteca de mídia e ao controle de versões após a implementação das permissões administrativas.</p></div>
+  <div class="cms-editor-actions"><button type="button" disabled>Salvar rascunho</button><button type="button" disabled>Publicar</button></div>
+ </section>
+ <aside class="cms-editor-side"><section class="cms-card"><h2>Publicação</h2><p>Defina visibilidade, agendamento e autoria.</p><label class="cms-field-label" for="cms-editor-status">Status</label><select id="cms-editor-status" class="cms-field" disabled><option>Não publicado</option></select><label class="cms-field-label" for="cms-editor-date">Agendamento</label><input id="cms-editor-date" class="cms-field" type="text" placeholder="Sem agendamento" disabled></section><section class="cms-card"><h2>SEO e compartilhamento</h2><p>Metadados e imagem de destaque serão configurados nesta área.</p><div class="cms-editor-media">▧<span>Nenhuma imagem selecionada</span></div></section></aside>
+</div>
+<aside class="cms-notice"><strong>Editor indisponível</strong>Esta tela é apenas uma prévia. Nenhuma alteração é salva, publicada ou enviada ao servidor.</aside>
