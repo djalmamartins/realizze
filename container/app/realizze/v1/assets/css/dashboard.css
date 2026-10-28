@@ -75,3 +75,15 @@
 .finance-goal-stat strong{display:block;font-size:28px;line-height:1.5;color:#263c2d}
 .finance-workspace .finance-toolbar h3{margin:0;font-size:17px}
 @media(max-width:760px){.finance-goal-summary{grid-template-columns:1fr;gap:9px}.finance-goal-stat{padding:15px}}
+
+/* APP-UI-024: responsive reporting and filter panels */
+.finance-search-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 24px}
+.finance-search-preview label{display:block;font-size:12px;font-weight:600;color:#627568;margin-bottom:7px}
+.finance-search-preview input,.finance-search-preview select{width:100%;min-height:42px;padding:10px 12px;border:1px solid #e1eae4;border-radius:9px;background:#f9fbfa;color:#738678;font:inherit}
+.finance-search-preview :disabled{opacity:1;cursor:not-allowed}
+.finance-report-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0 26px}
+.finance-report-panel{min-width:0;padding:19px;border:1px solid #eaf0eb;border-radius:13px;background:#fff}
+.finance-report-panel h3{font-size:15px;margin:0}
+.finance-chart-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:#738678;font-size:13px}
+.finance-chart-empty span{color:#159653}
+@media(max-width:760px){.finance-search-preview,.finance-report-panels{grid-template-columns:1fr}}
