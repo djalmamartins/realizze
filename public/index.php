@@ -1,6 +1,7 @@
 <?php
 
 use MovesCode\Router\Router;
+use Moves\Core\EnvironmentRouter;
 
 // Inicialização do Realizze 2.0
 require_once dirname(__DIR__) . '/source/Boot/app.php';
@@ -27,11 +28,28 @@ $router = new Router(
     getenv('APP_URL') ?: 'https://www.realizze.lab'
 );
 
-// Carregar as rotas do tema Web
-$theme = require BASE_PATH . '/container/web/realizze/v1/routes.php';
-
-// Registrar as rotas
-$theme['routes']($router);
+// Resolver ambiente por hostname configurado, sem aceitar caminhos da requisição.
+try {
+    $selected = EnvironmentRouter::resolve(
+        (string) ($_SERVER['HTTP_HOST'] ?? ''),
+        EnvironmentRouter::configuration(),
+        BASE_PATH
+    );
+    $theme = require $selected['path'];
+    if (!is_array($theme)
+        || ($theme['type'] ?? null) !== $selected['type']
+        || ($theme['name'] ?? null) !== $selected['theme']
+        || ($theme['version'] ?? null) !== $selected['version']
+        || !is_callable($theme['routes'] ?? null)) {
+        throw new RuntimeException('Metadados de rotas incompatíveis.');
+    }
+    $theme['routes']($router);
+} catch (InvalidArgumentException|RuntimeException $exception) {
+    error_log('Realizze router: ' . $exception->getMessage());
+    http_response_code(404);
+    echo 'Ambiente não encontrado.';
+    exit;
+}
 
 // Executar o roteador
 if (!$router->dispatch()) {
