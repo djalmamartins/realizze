@@ -14,3 +14,14 @@
   .section-topbar{display:block}
 }
 @media(prefers-reduced-motion:reduce){.sidebar-backdrop{transition:none}}
+
+/* UI-002: subtle financial sparklines based on the reference layout. */
+.balance{isolation:isolate;overflow:hidden}
+.balance .label,.balance .value,.balance .muted{position:relative;z-index:2}
+.balance-sparkline{position:absolute;right:8px;bottom:10px;width:min(49%,195px);height:auto;z-index:1;opacity:.9}
+.forecast{position:relative;overflow:hidden;isolation:isolate;min-height:120px}
+.forecast>span,.forecast>p,.forecast>strong{position:relative;z-index:2}
+.forecast-sparkline{position:absolute;right:7px;bottom:7px;width:min(40%,125px);height:auto;z-index:1}
+.months button svg,.bell svg{display:block}
+.sidebar-toggle svg{display:block}
+@media(max-width:560px){.balance-sparkline{width:40%}.forecast-sparkline{opacity:.65}}
