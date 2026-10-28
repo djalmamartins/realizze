@@ -10,6 +10,7 @@ on:
       - 'scripts/publish-web-assets.php'
       - 'tests/web-assets-smoke.php'
       - 'tests/ui-002-view-smoke.php'
+      - 'tests/ui-003-mobile-menu.js'
       - 'tests/cms-001-preview-smoke.php'
       - 'tests/cms-002-preview-access.php'
       - 'tests/enterprise-001-context.php'
@@ -71,6 +72,8 @@ jobs:
           node --check container/web/realizze/v1/assets/js/main.js
           node --check container/app/realizze/v1/assets/js/dashboard.js
           node --check container/cms/realizze/v1/assets/js/cms.js
+          node --check tests/ui-003-mobile-menu.js
+          node tests/ui-003-mobile-menu.js
           node --check tests/cms-003-mobile-menu.js
           node tests/cms-003-mobile-menu.js
       - name: Publish assets with MovesCode Compress

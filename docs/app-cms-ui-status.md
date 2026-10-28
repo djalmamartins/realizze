@@ -161,3 +161,13 @@ php scripts/publish-app-assets.php
 - O cabeçalho exibe permanentemente **“Prévia local · Operações administrativas indisponíveis”**, inclusive em telas de até 720px; a mensagem não fica mais oculta em celulares.
 - Novo teste de comportamento com Node sem dependências: `tests/cms-003-mobile-menu.js`, executado no CI. `tests/cms-001-preview-smoke.php` verifica marcação e CSS da mensagem.
 - **Pendências mantidas:** App PF — operações, filtros, relatórios reais e homologação visual das 10 páginas; App PJ — 11 módulos ainda sem CRUD/queries escopadas; CMS — 8 prévias sem autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente ou CRUD. Testes HTTP, leitor de tela e MySQL de homologação continuam pendentes. Sem WhatsApp, cobrança, migração ou produção.
+
+## APP-A11Y-050 — navegação móvel sem armadilha de teclado (28/10/2026)
+
+- A sidebar do App PF/PJ passa a seguir o padrão de navegação expansível, não modal: **Tab** pode sair da navegação, e o menu fecha quando o foco deixa a sidebar. O bloqueio `inert` é restaurado para impedir foco em links fora da tela.
+- **Escape**, botão de fechar, backdrop e mudança para desktop continuam fechando o menu; Escape restaura o foco ao botão que abriu a navegação.
+- Novo teste comportamental Node `tests/ui-003-mobile-menu.js` cobre foco, estado `aria-expanded`, `inert`, Tab, Escape, backdrop e mudança de breakpoint. O GitHub Actions executa o teste.
+- **App PF (10 páginas):** pendem integração autorizada e operações reais em Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; faltam homologação responsiva e leitor de tela.
+- **App Empresarial (11 módulos):** clientes, fornecedores, equipes/permissões, receber, pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, OFX/CSV e obrigações MEI/PJ continuam somente em prévia, sem persistência.
+- **CMS (8 seções):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos e assinaturas, Logs e Configurações continuam sem CRUD; autenticação administrativa, RBAC, CSRF em mutações e auditoria persistente seguem obrigatórios antes da abertura.
+- Não foram criadas rotas, queries financeiras, operações CMS, uploads, WhatsApp, cobranças, migrations ou alterações em produção. Testes visuais reais e auditoria MySQL de homologação ainda pendentes.

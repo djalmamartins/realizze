@@ -58,27 +58,17 @@
       });
     });
 
+    // Disclosure navigation is not a modal: Tab may leave the menu.
+    // Closing on focus exit prevents an off-canvas panel from staying open.
     document.addEventListener('keydown', (event) => {
-      if (!shell?.classList.contains('menu-open')) return;
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && shell?.classList.contains('menu-open')) {
         event.preventDefault();
         closeMenu(true);
-        return;
       }
-      if (event.key !== 'Tab' || !sidebar) return;
-      const focusable = Array.from(sidebar.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )).filter((element) => element.getClientRects().length > 0);
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const outside = !sidebar.contains(document.activeElement);
-      if (event.shiftKey && (outside || document.activeElement === first)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && (outside || document.activeElement === last)) {
-        event.preventDefault();
-        first.focus();
+    });
+    document.addEventListener('focusin', (event) => {
+      if (shell?.classList.contains('menu-open') && sidebar && !sidebar.contains(event.target)) {
+        closeMenu();
       }
     });
     updateSidebarInert();
