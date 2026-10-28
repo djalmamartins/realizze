@@ -112,6 +112,14 @@ foreach (['id="enterprise-search-empty"', 'id="enterprise-search-empty-title"',
 if (preg_match('/<form\\b/i', $enterpriseHtml) === 1) {
     throw new RuntimeException('APP-UI-035: formulário inesperado com contexto empresarial desabilitado.');
 }
+// APP-SEC-042: both organization-context POST forms must HTML-escape the CSRF token.
+$enterpriseSource = file_get_contents($root . '/pages/empresarial.php');
+if (!is_string($enterpriseSource)
+    || substr_count($enterpriseSource, '$escapeEnterprise($csrf ?? \'\')') !== 2
+    || str_contains($enterpriseSource, 'value="<?= $csrf ?? \'\' ?>"')) {
+    throw new RuntimeException('APP-SEC-042: token CSRF sem escape em formulário empresarial.');
+}
+echo 'OK - APP-SEC-042: tokens CSRF escapados nos dois formulários empresariais.' . PHP_EOL;
 // APP-UI-040: verify that the client-only filter toggles the empty state and supports Escape.
 $enterpriseJs = file_get_contents(dirname(__DIR__) . '/container/app/realizze/v1/assets/js/dashboard.js');
 $enterpriseCss = file_get_contents(dirname(__DIR__) . '/container/app/realizze/v1/assets/css/dashboard.css');

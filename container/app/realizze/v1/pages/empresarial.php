@@ -64,7 +64,7 @@ $enterpriseGroups = [
         </form>
         <?php if ($enterpriseCurrent !== null): ?>
           <form method="post" action="/minha-conta/contexto">
-            <input type="hidden" name="csrf_token" value="<?= $csrf ?? '' ?>">
+            <input type="hidden" name="csrf_token" value="<?= $escapeEnterprise($csrf ?? '') ?>">
             <input type="hidden" name="context_type" value="personal">
             <button type="submit" class="enterprise-secondary">Voltar ao pessoal</button>
           </form>
