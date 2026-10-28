@@ -125,9 +125,7 @@ return [
         }, 'web.login.submit');
 
         $router->get('/minha-conta', static function (): void {
-            $user = \Moves\Services\SessionAuth::current();
-            if ($user === null) {
-                header('Location: /entrar', true, 302);
+            if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
             }
             require BASE_PATH . '/container/app/realizze/v1/pages/dashboard.php';
