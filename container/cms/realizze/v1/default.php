@@ -14,9 +14,10 @@ declare(strict_types=1);
 // UI preview selection is deliberately local: no routes, authentication or data access.
 $cmsPreviews = ['overview' => 'Visão geral', 'pages' => 'Páginas', 'contents' => 'Conteúdos', 'media' => 'Mídia', 'users' => 'Usuários', 'plans' => 'Planos e assinaturas', 'logs' => 'Logs e auditoria', 'settings' => 'Configurações'];
 $cmsSection = isset($cmsSection) && is_string($cmsSection) && array_key_exists($cmsSection, $cmsPreviews) ? $cmsSection : 'overview';
-foreach ($cmsPreviews as $slug => $label):
+$slug = $cmsSection;
+$label = $cmsPreviews[$slug];
 ?>
 <section class="cms-preview-panel" id="cms-preview-<?= htmlspecialchars($slug, ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>"<?= $slug === $cmsSection ? '' : ' hidden' ?>>
 <?php if ($slug === 'overview'): require __DIR__ . '/components/overview.php'; else: require __DIR__ . '/pages/' . $slug . '.php'; endif; ?>
 </section>
-<?php endforeach; ?><footer class="cms-footer">Realizze CMS · Interface demonstrativa</footer></main></div></div><script><?php require __DIR__ . '/assets/js/cms.js'; ?></script></body></html>
+<footer class="cms-footer">Realizze CMS · Interface demonstrativa</footer></main></div></div><script><?php require __DIR__ . '/assets/js/cms.js'; ?></script></body></html>
