@@ -2,7 +2,7 @@
 /** CMS-UI-003: visão geral sem acesso a dados administrativos. */
 $cmsMetrics = ['Páginas', 'Conteúdos', 'Arquivos de mídia', 'Publicações pendentes'];
 ?>
-<div class="cms-heading"><div><span class="cms-eyebrow">Painel administrativo</span><h1>Visão geral</h1><p>Organize conteúdos, páginas e recursos do Realizze.</p></div><span class="cms-chip">Layout em desenvolvimento</span></div>
+<?php $cmsHeading = ['eyebrow' => 'Painel administrativo', 'title' => 'Visão geral', 'description' => 'Organize conteúdos, páginas e recursos do Realizze.', 'badge' => 'Layout em desenvolvimento']; require __DIR__ . '/page-heading.php'; ?>
 <section class="cms-kpis" aria-label="Indicadores não conectados">
 <?php foreach ($cmsMetrics as $title): ?><article class="cms-card"><span><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></span><strong>—</strong><small>Dados indisponíveis</small></article><?php endforeach; ?>
 </section>
