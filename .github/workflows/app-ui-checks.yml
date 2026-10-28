@@ -39,6 +39,7 @@ jobs:
         run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
       - name: Check App PHP syntax
         run: |
+          cp .env.example .env
           find container/app/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l scripts/publish-app-assets.php
           php -l source/Services/OrganizationAccess.php
