@@ -7,6 +7,7 @@ on:
       - 'container/cms/**'
       - 'scripts/publish-app-assets.php'
       - 'tests/ui-002-view-smoke.php'
+      - 'tests/cms-001-preview-smoke.php'
       - 'tests/enterprise-001-context.php'
       - 'source/Services/OrganizationAccess.php'
       - 'source/Services/OrganizationContext.php'
@@ -46,16 +47,21 @@ jobs:
           php -l source/Services/OrganizationContext.php
           php -l container/web/realizze/v1/routes.php
           php -l container/app/realizze/v1/routes.php
-          php -l container/cms/realizze/v1/routes.php
+          find container/cms/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l tests/cms-001-preview-smoke.php
           php -l tests/enterprise-001-context.php
           php tests/core-007-environment-router.php
           php tests/core-008-environments.php
       - name: Smoke-test MovesCode View components
         run: php tests/ui-002-view-smoke.php
+      - name: Smoke-test isolated CMS preview and static gate
+        run: php tests/cms-001-preview-smoke.php
       - name: Verify enterprise session and permission isolation
         run: php tests/enterprise-001-context.php
       - name: Check source JavaScript syntax
-        run: node --check container/app/realizze/v1/assets/js/dashboard.js
+        run: |
+          node --check container/app/realizze/v1/assets/js/dashboard.js
+          node --check container/cms/realizze/v1/assets/js/cms.js
       - name: Publish assets with MovesCode Compress
         run: |
           php scripts/publish-app-assets.php
