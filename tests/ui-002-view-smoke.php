@@ -83,7 +83,7 @@ foreach (['header', 'summary', 'panels'] as $name) {
 // ENT-027: o módulo PJ deve ser navegação local sem troca de organização por GET.
 $enterpriseHtml = $checks['empresarial'][0];
 foreach (['clientes', 'fornecedores', 'equipes', 'receber', 'pagar', 'bancos', 'fluxo', 'custos', 'dre', 'conciliacao', 'obrigacoes'] as $moduleId) {
-    if (!str_contains($enterpriseHtml, 'id="enterprise-' . $moduleId . '"')
+    if (!str_contains($enterpriseHtml, 'id="enterprise-' . $moduleId . '" tabindex="-1"')
         || !str_contains($enterpriseHtml, 'href="#enterprise-' . $moduleId . '"')) {
         throw new RuntimeException('ENT-027: módulo PJ sem âncora acessível: ' . $moduleId);
     }
