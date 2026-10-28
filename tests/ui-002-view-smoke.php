@@ -188,11 +188,13 @@ foreach ([
     'receber' => 'Lançamentos a receber',
     'pagar' => 'Lançamentos a pagar',
     'movimentacoes' => 'Movimentações',
+    'categorias' => 'Categorias',
+    'metas' => 'Metas financeiras',
 ] as $page => $caption) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, '<caption class="finance-table-caption">' . $caption)
         || !str_contains($html, '<th scope="col">')
-        || !str_contains($html, 'Nenhum lançamento disponível')
+        || !str_contains($html, 'Nenhum')
         || preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
         throw new RuntimeException('APP-UI-044: tabela PF inconsistente: ' . $page);
     }
