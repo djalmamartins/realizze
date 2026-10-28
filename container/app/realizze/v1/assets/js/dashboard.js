@@ -98,7 +98,7 @@
       const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
       const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
       const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
-      const normalize = (value) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('pt-BR');
+      const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
       const applyFilter = () => {
         const term = normalize(enterpriseSearch.value.trim());
         let visible = 0;
