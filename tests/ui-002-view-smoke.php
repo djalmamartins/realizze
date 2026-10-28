@@ -100,6 +100,15 @@ if (substr_count($maliciousSidebar, '<svg ') < 4) {
     throw new RuntimeException('APP-UI-043: ícones SVG da sidebar incompletos.');
 }
 echo 'OK - APP-SEC-043: sidebar escapa perfil, links e token CSRF.' . PHP_EOL;
+$maliciousHeader = $view->render('components::dashboard-header', [
+    'name' => '<img src=x onerror=alert(1)>',
+    'user' => ['first_name' => 'Teste'],
+]);
+if (str_contains($maliciousHeader, '<img src=x onerror=alert(1)>')
+    || !str_contains($maliciousHeader, '&lt;img src=x onerror=alert(1)&gt;')) {
+    throw new RuntimeException('APP-SEC-043: saudação do dashboard não escapou o nome.');
+}
+echo 'OK - APP-SEC-043: saudação personalizada escapada.' . PHP_EOL;
 // As telas iniciais não devem exibir saldos, transações ou bancos fictícios.
 foreach (['header', 'summary', 'panels'] as $name) {
     $html = $checks[$name][0];
