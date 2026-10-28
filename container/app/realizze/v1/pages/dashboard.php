@@ -68,6 +68,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 <?php endif; ?>
 </head>
 <body>
+<a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
 <div class="shell" id="shell">
 <?= $appView->render('components::sidebar', [
     'items' => $items,
