@@ -55,3 +55,14 @@
 /* CMS-A11Y-019: keyboard navigation directly to page content. */
 .cms-skip-link{position:fixed;top:8px;left:8px;z-index:9999;padding:12px 16px;border-radius:9px;background:#fff;color:#075f39;border:2px solid #087d49;transform:translateY(-150%)}
 .cms-skip-link:focus-visible{transform:translateY(0);outline:3px solid #073f29;outline-offset:2px}
+
+/* CMS-A11Y-030: scalable SVGs, safe touch navigation and visible keyboard focus. */
+.cms-media-empty-icon svg{width:30px;height:30px;stroke-width:1.8}
+.cms-compact-empty .cms-media-empty-icon svg{width:24px;height:24px}
+.cms-editor-media svg{width:30px;height:30px;color:#168b53}
+.cms-nav a:focus-visible,.cms-menu-toggle:focus-visible{outline:3px solid #087d49;outline-offset:2px}
+@media(max-width:720px){
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav{max-height:min(65vh,540px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+  .cms-nav a{min-height:44px}
+  .cms-brand-row{min-width:0}
+}
