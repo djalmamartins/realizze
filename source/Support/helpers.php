@@ -16,8 +16,8 @@ if (!function_exists('str_slug')) {
     function str_slug(string $string): string
     {
         $string = mb_strtolower(trim($string), 'UTF-8');
-        if (class_exists(\\Transliterator::class)) {
-            $transliterated = \\Transliterator::transliterate('Any-Latin; Latin-ASCII', $string);
+        if (class_exists(\Transliterator::class)) {
+            $transliterated = \Transliterator::transliterate('Any-Latin; Latin-ASCII', $string);
             if ($transliterated !== null) {
                 $string = $transliterated;
             }
@@ -52,7 +52,7 @@ if (!function_exists('str_limit_words')) {
         if ($limit <= 0) {
             return '';
         }
-        $words = preg_split('/\\s+/u', trim($string), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = preg_split('/\s+/u', trim($string), -1, PREG_SPLIT_NO_EMPTY) ?: [];
         return count($words) <= $limit ? implode(' ', $words) : implode(' ', array_slice($words, 0, $limit)) . $pointer;
     }
 }
@@ -76,7 +76,7 @@ if (!function_exists('str_price')) {
             $price = 0;
         }
         if (!is_numeric($price)) {
-            throw new \\InvalidArgumentException('Preço inválido.');
+            throw new \InvalidArgumentException('Preço inválido.');
         }
         return number_format((float) $price, 2, ',', '.');
     }
@@ -90,16 +90,16 @@ if (!function_exists('url')) {
             return $base;
         }
         if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $path) || str_starts_with($path, '//')) {
-            throw new \\InvalidArgumentException('URL externa não permitida.');
+            throw new \InvalidArgumentException('URL externa não permitida.');
         }
         return $base . '/' . ltrim($path, '/');
     }
 }
 
 if (!function_exists('date_fmt')) {
-    function date_fmt(?string $date, string $format = 'd/m/Y H\\hi'): string
+    function date_fmt(?string $date, string $format = 'd/m/Y H\hi'): string
     {
-        return (new \\DateTimeImmutable($date ?: 'now'))->format($format);
+        return (new \DateTimeImmutable($date ?: 'now'))->format($format);
     }
 }
 
