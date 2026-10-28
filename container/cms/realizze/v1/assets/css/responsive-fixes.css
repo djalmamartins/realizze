@@ -21,7 +21,14 @@
     }
 
     .cms-topbar span {
-        text-align: right;
-        overflow-wrap: anywhere;
+        display: none;
+    }
+
+    .cms-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .cms-nav b {
+        grid-column: 1;
     }
 }
