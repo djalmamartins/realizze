@@ -48,7 +48,7 @@ $checks = [
     ],
     'receber' => [
         $view->render('pages/receber', ['icon' => $icon]),
-        ['Contas a receber', 'Nenhum recebimento cadastrado'],
+        ['Contas a receber', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
     ],
     'empresarial' => [
         $view->render('pages/empresarial', ['icon' => $icon, 'csrf' => 'token-de-teste']),
@@ -56,7 +56,7 @@ $checks = [
     ],
     'pagar' => [
         $view->render('pages/pagar', ['icon' => $icon]),
-        ['Contas a pagar', 'Nenhuma despesa cadastrada'],
+        ['Contas a pagar', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
     ],
 ];
 
