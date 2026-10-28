@@ -51,8 +51,8 @@ $checks = [
         ['Contas a receber', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
     ],
     'empresarial' => [
-        $view->render('pages/empresarial', ['icon' => $icon, 'csrf' => 'token-de-teste']),
-        ['Gestão empresarial', 'Cadastro empresarial ainda não liberado', 'Aguardando integração'],
+        $view->render('pages/empresarial', ['icon' => $icon, 'csrf' => 'token-de-teste', 'appView' => $view]),
+        ['Gestão empresarial', 'Cadastro empresarial ainda não liberado', 'Nenhum registro consultado', 'Conciliação OFX/CSV', 'Centros de custos'],
     ],
     'pagar' => [
         $view->render('pages/pagar', ['icon' => $icon]),
@@ -80,5 +80,19 @@ foreach (['header', 'summary', 'panels'] as $name) {
         }
     }
 }
+// ENT-027: o módulo PJ deve ser navegação local sem troca de organização por GET.
+$enterpriseHtml = $checks['empresarial'][0];
+foreach (['clientes', 'fornecedores', 'equipes', 'receber', 'pagar', 'bancos', 'fluxo', 'custos', 'dre', 'conciliacao', 'obrigacoes'] as $moduleId) {
+    if (!str_contains($enterpriseHtml, 'id="enterprise-' . $moduleId . '"')
+        || !str_contains($enterpriseHtml, 'href="#enterprise-' . $moduleId . '"')) {
+        throw new RuntimeException('ENT-027: módulo PJ sem âncora acessível: ' . $moduleId);
+    }
+}
+if (substr_count($enterpriseHtml, 'class="enterprise-module"') !== 11
+    || preg_match('/R\\$\\s*[0-9]/u', $enterpriseHtml) === 1
+    || str_contains($enterpriseHtml, 'name="organization_id"')) {
+    throw new RuntimeException('ENT-027: prévia PJ inconsistente ou seletor indevido com flag desligada.');
+}
+echo 'OK - ENT-027: onze módulos PJ acessíveis, sem valores inventados e sem seleção indevida.' . PHP_EOL;
 echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
 echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
