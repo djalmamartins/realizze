@@ -138,3 +138,6 @@
  .enterprise-module-status{margin-left:50px}
  .enterprise-workspace .enterprise-obligations{margin:0 18px 20px}
 }
+
+/* APP-A11Y-030: prevent background scroll while the mobile menu has focus. */
+@media(max-width:850px){body.app-menu-locked{overflow:hidden;touch-action:none}}
