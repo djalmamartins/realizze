@@ -21,6 +21,7 @@ $sections = [
     'planejamento' => ['Planejamento', 'Planeje seu futuro financeiro'],
     'metas' => ['Metas', 'Acompanhe seus objetivos'],
     'categorias' => ['Categorias', 'Organize seus lançamentos'],
+    'assistente' => ['Assistente Financeiro', 'Registre e confirme movimentações por conversa'],
     'configuracoes' => ['Configurações', 'Personalize sua experiência'],
     'empresarial' => ['Empresarial', 'Gestão financeira para MEI e empresas'],
 ];
@@ -32,7 +33,7 @@ $items = [
     ['house','Visão Geral','/minha-conta?pagina=overview'],['arrow-down-left','Receber','/minha-conta?pagina=receber'],['arrow-up-right','Pagar','/minha-conta?pagina=pagar'],
     ['arrows-left-right','Movimentações','/minha-conta?pagina=movimentacoes'],['credit-card','Contas e Cartões','/minha-conta?pagina=contas'],
     ['chart-no-axes-column','Relatórios','/minha-conta?pagina=relatorios'],['calendar-days','Planejamento','/minha-conta?pagina=planejamento'],
-    ['target','Metas','/minha-conta?pagina=metas'],['list-filter','Categorias','/minha-conta?pagina=categorias'],['settings','Configurações','/minha-conta?pagina=configuracoes'],['building','Empresarial','/minha-conta?pagina=empresarial']
+    ['target','Metas','/minha-conta?pagina=metas'],['list-filter','Categorias','/minha-conta?pagina=categorias'],['message-circle','Assistente Financeiro','/minha-conta?pagina=assistente'],['settings','Configurações','/minha-conta?pagina=configuracoes'],['building','Empresarial','/minha-conta?pagina=empresarial']
 ];
 $iconPaths = [
     'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -44,6 +45,7 @@ $iconPaths = [
     'calendar-days' => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
     'target' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
     'list-filter' => '<path d="M4 7h16M7 12h10M10 17h4"/>',
+    'message-circle' => '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5.1A8 8 0 1 1 21 15Z"/>',
     'building' => '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M8 7h1M15 7h1M8 11h1M15 11h1"/>',
     'settings' => '<path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/><circle cx="12" cy="12" r="4"/>',
 ];
@@ -89,7 +91,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 <?php else: ?>
 <div class="section-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Abrir menu" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 <section class="page-heading"><div><p class="eyebrow">Meu financeiro / <?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></p><h1><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h1><p class="muted"><?= htmlspecialchars($sections[$section][1], ENT_QUOTES, 'UTF-8') ?></p></div><span class="preview-chip">Prévia de interface</span></section>
-<?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'configuracoes', 'empresarial'], true)): ?>
+<?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'assistente', 'configuracoes', 'empresarial'], true)): ?>
 <?= $appView->render('pages/' . $section, ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php else: ?>
 <section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[array_search($section, array_keys($sections), true)][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>

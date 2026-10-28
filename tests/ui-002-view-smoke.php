@@ -58,6 +58,10 @@ $checks = [
         $view->render('pages/pagar', ['icon' => $icon, 'appView' => $view]),
         ['Contas a pagar', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
     ],
+    'assistente' => [
+        $view->render('pages/assistente', ['icon' => $icon]),
+        ['Assistente Realizze', 'Aguardando confirmação', 'Nenhuma movimentação será registrada', 'Provedor de mensagens não conectado'],
+    ],
 ];
 
 foreach ($checks as $name => [$html, $expected]) {
