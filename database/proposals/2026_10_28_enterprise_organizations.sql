@@ -1,28 +1,35 @@
--- Realizze Empresarial: schema proposto, aplicar somente após revisão e backup.
--- Não altera tabelas existentes nem realiza migração automaticamente.
-CREATE TABLE IF NOT EXISTS organizations (
- id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
- legal_name VARCHAR(180) NOT NULL,
- trade_name VARCHAR(180) NULL,
- tax_id CHAR(14) NOT NULL,
- status VARCHAR(20) NOT NULL DEFAULT 'active',
- created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
- updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
- UNIQUE KEY uq_organizations_tax_id (tax_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- ENT-002 / AUDITORIA (somente leitura) — NÃO é uma migração.
+-- A proposta anterior criava tabelas organizations e organization_members incompatíveis
+-- com o código existente (Models/Organization*, Services/Authorization.php e
+-- tests/authorization-v1.php). NÃO executar o DDL anterior.
+-- Também existe evidência de users.id INT UNSIGNED em
+-- database/migrations/001_create_user_legal_acceptances.sql.
+-- Inspecione o schema REAL do ambiente de homologação antes de escrever migrações.
 
-CREATE TABLE IF NOT EXISTS organization_members (
- organization_id BIGINT UNSIGNED NOT NULL,
- user_id BIGINT UNSIGNED NOT NULL,
- role VARCHAR(24) NOT NULL,
- status VARCHAR(20) NOT NULL DEFAULT 'active',
- created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
- PRIMARY KEY (organization_id, user_id),
- KEY idx_organization_members_user (user_id, status),
- CONSTRAINT fk_org_members_org FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE RESTRICT,
- CONSTRAINT fk_org_members_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SELECT TABLE_NAME, COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+FROM information_schema.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'users', 'organizations', 'organization_members',
+    'organization_roles', 'organization_role_permissions'
+  )
+ORDER BY TABLE_NAME, ORDINAL_POSITION;
 
--- Antes de aplicar: verificar que users.id é BIGINT UNSIGNED; ajustar FK se necessário.
--- As futuras tabelas financeiras deverão ter organization_id obrigatório para dados PJ,
--- ou user_id para dados PF, com restrições explícitas que impeçam escopo ambíguo.
+SELECT TABLE_NAME, CONSTRAINT_NAME, COLUMN_NAME,
+       REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN (
+    'users', 'organizations', 'organization_members',
+    'organization_roles', 'organization_role_permissions'
+  )
+ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION;
+
+-- Modelo observado no repositório (a confirmar no banco):
+-- organizations: id, owner_user_id, name, status
+-- organization_members: id, organization_id, user_id, role_id, joined_at, status
+-- organization_roles: id, organization_id, role_key, name
+-- organization_role_permissions: role_id, permission_key
+-- A autorização existente usa organization.view e status active.
+-- CNPJ, regime tributário e tabelas financeiras exigem migrações ADITIVAS,
+-- planejadas após verificar índices, constraints e dados legados.
