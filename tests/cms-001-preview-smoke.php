@@ -31,7 +31,7 @@ foreach ($sections as $slug => [$label, $path]) {
     $html = $render($slug);
     foreach (['lang="pt-BR"', 'id="cms-navigation"', 'id="cms-menu-toggle"',
         'aria-controls="cms-navigation"', 'new-logo-realizze.svg',
-        'aria-current="page"', 'cms-preview-' . $slug] as $needle) {
+        'aria-current="page"', 'href="#cms-content"', 'id="cms-content"', 'cms-preview-' . $slug] as $needle) {
         if (!str_contains($html, $needle)) {
             throw new RuntimeException("CMS {$slug}: elemento ausente: {$needle}");
         }
