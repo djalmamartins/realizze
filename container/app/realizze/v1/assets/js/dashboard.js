@@ -22,7 +22,9 @@
     const closeMenu = (restoreFocus = false) => {
       if (!shell) return;
       shell.classList.remove('menu-open');
+      document.body.classList.remove('app-menu-locked');
       toggle?.setAttribute('aria-expanded', 'false');
+      toggle?.setAttribute('aria-label', 'Abrir menu');
       backdrop?.setAttribute('aria-hidden', 'true');
       if (restoreFocus) toggle?.focus();
     };
@@ -30,7 +32,9 @@
     const openMenu = () => {
       if (!shell) return;
       shell.classList.add('menu-open');
+      document.body.classList.add('app-menu-locked');
       toggle?.setAttribute('aria-expanded', 'true');
+      toggle?.setAttribute('aria-label', 'Fechar menu');
       backdrop?.setAttribute('aria-hidden', 'false');
       (closeButton || sidebar?.querySelector('a'))?.focus();
     };
@@ -48,8 +52,26 @@
     });
 
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && shell?.classList.contains('menu-open')) {
+      if (!shell?.classList.contains('menu-open')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
         closeMenu(true);
+        return;
+      }
+      if (event.key !== 'Tab' || !sidebar) return;
+      const focusable = Array.from(sidebar.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter((element) => element.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const outside = !sidebar.contains(document.activeElement);
+      if (event.shiftKey && (outside || document.activeElement === first)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (outside || document.activeElement === last)) {
+        event.preventDefault();
+        first.focus();
       }
     });
     const desktopViewport = window.matchMedia('(min-width: 851px)');
