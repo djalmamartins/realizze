@@ -4,6 +4,8 @@ $cmsMenu = [
  'Gerenciamento' => [['overview','Visão geral','▦'],['pages','Páginas','▤'],['contents','Conteúdos','✎'],['media','Mídia','▧']],
  'Plataforma' => [['users','Usuários','♙'],['plans','Planos e assinaturas','▤'],['logs','Logs e auditoria','◷'],['settings','Configurações','⚙']],
 ];
+$cmsPaths = ['overview' => '/', 'pages' => '/paginas', 'contents' => '/conteudos', 'media' => '/midia', 'users' => '/usuarios', 'plans' => '/planos', 'logs' => '/logs', 'settings' => '/configuracoes'];
+$cmsSection = isset($cmsSection) && is_string($cmsSection) && isset($cmsPaths[$cmsSection]) ? $cmsSection : 'overview';
 ?>
 <aside class="cms-sidebar" aria-label="Navegação demonstrativa do CMS">
  <div class="cms-brand">realizze<small>CMS</small></div>
@@ -11,7 +13,7 @@ $cmsMenu = [
  <?php foreach ($cmsMenu as $group => $items): ?>
   <b><?= htmlspecialchars($group, ENT_QUOTES, 'UTF-8') ?></b>
   <?php foreach ($items as [$slug, $label, $symbol]): ?>
-   <button type="button" data-cms-preview="<?= htmlspecialchars($slug, ENT_QUOTES, 'UTF-8') ?>" aria-controls="cms-preview-<?= htmlspecialchars($slug, ENT_QUOTES, 'UTF-8') ?>" aria-current="<?= $slug === 'overview' ? 'page' : 'false' ?>"<?= $slug === 'overview' ? ' class="selected"' : '' ?>><span aria-hidden="true"><?= htmlspecialchars($symbol, ENT_QUOTES, 'UTF-8') ?></span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></button>
+   <a href="<?= htmlspecialchars($cmsPaths[$slug], ENT_QUOTES, 'UTF-8') ?>"<?= $slug === $cmsSection ? ' class="selected" aria-current="page"' : '' ?>><span aria-hidden="true"><?= htmlspecialchars($symbol, ENT_QUOTES, 'UTF-8') ?></span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></a>
   <?php endforeach; ?>
  <?php endforeach; ?>
  </nav>
