@@ -141,3 +141,8 @@
 
 /* APP-A11Y-030: prevent background scroll while the mobile menu has focus. */
 @media(max-width:850px){body.app-menu-locked{overflow:hidden;touch-action:none}}
+
+/* APP-A11Y-036: visible destination for keyboard navigation in PJ workspace. */
+.enterprise-module:focus{outline:3px solid #087d49;outline-offset:3px}
+.enterprise-jump a:focus-visible{outline:3px solid #087d49;outline-offset:2px}
+@media(max-width:650px){.enterprise-module{scroll-margin-top:16px}}
