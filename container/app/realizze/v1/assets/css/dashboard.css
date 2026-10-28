@@ -87,3 +87,13 @@
 .finance-chart-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:#738678;font-size:13px}
 .finance-chart-empty span{color:#159653}
 @media(max-width:760px){.finance-search-preview,.finance-report-panels{grid-template-columns:1fr}}
+
+/* APP-UI-030: truthful, accessible financial empty states. */
+.overview-empty{min-height:208px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:10px;padding:24px 12px;color:#667688}
+.overview-empty strong{font-size:14px;color:#273b33}
+.overview-empty p{max-width:30ch;margin:0;font-size:12px;line-height:1.65}
+.overview-empty-icon{display:grid;place-items:center;width:50px;height:50px;border-radius:14px;background:#ecf8f1;color:#087f4b;font-size:26px}
+.months button:disabled,.period button:disabled,.insights button:disabled{opacity:.7;cursor:not-allowed;box-shadow:none}
+.months button:disabled,.period button:disabled{color:#5d6b78}
+.card:focus-within{outline:2px solid #098b50;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.card,.overview-empty *{transition:none!important;animation:none!important}}
