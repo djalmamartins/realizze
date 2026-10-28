@@ -11,7 +11,12 @@
  </div>
  <div class="cms-section-divider"></div>
  <div class="cms-module-head"><div><h2>Ofertas cadastradas</h2><p>Os planos autorizados aparecerão aqui.</p></div></div>
- <div class="cms-table-wrap"><table class="cms-table"><thead><tr><th scope="col">Plano</th><th scope="col">Público</th><th scope="col">Ciclo</th><th scope="col">Situação</th></tr></thead><tbody><tr><td colspan="4" class="cms-empty"><strong>Catálogo indisponível</strong><p>Esta prévia não consulta preços, assinaturas ou informações de clientes.</p></td></tr></tbody></table></div>
+ <?php $cmsEmptyTable = [
+    'caption' => 'Ofertas cadastradas',
+    'columns' => ['Plano', 'Público', 'Ciclo', 'Situação'],
+    'title' => 'Catálogo indisponível',
+    'description' => 'Esta prévia não consulta preços, assinaturas ou informações de clientes.',
+]; require __DIR__ . '/../components/empty-table.php'; ?>
 </section>
 <aside class="cms-card cms-detail-side" aria-labelledby="cms-plans-side-title"><h2 id="cms-plans-side-title">Assinaturas</h2><p>Visão administrativa preparada para os estados de contratação.</p>
  <div class="cms-setting-row"><span>Assinaturas ativas</span><strong>Não consultado</strong></div>

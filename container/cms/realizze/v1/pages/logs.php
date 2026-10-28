@@ -10,7 +10,12 @@
   <div><label class="cms-field-label" for="cms-audit-actor">Responsável</label><input class="cms-field" id="cms-audit-actor" placeholder="Usuário autorizado" disabled></div>
  </div>
  <div class="cms-section-divider"></div>
- <div class="cms-table-wrap"><table class="cms-table"><thead><tr><th scope="col">Data</th><th scope="col">Ação</th><th scope="col">Responsável</th><th scope="col">Origem</th><th scope="col">Resultado</th></tr></thead><tbody><tr><td colspan="5" class="cms-empty"><strong>Nenhum evento consultado</strong><p>O CMS não acessa logs privados nesta prévia de layout.</p></td></tr></tbody></table></div>
+ <?php $cmsEmptyTable = [
+    'caption' => 'Histórico de eventos administrativos',
+    'columns' => ['Data', 'Ação', 'Responsável', 'Origem', 'Resultado'],
+    'title' => 'Nenhum evento consultado',
+    'description' => 'O CMS não acessa logs privados nesta prévia de layout.',
+]; require __DIR__ . '/../components/empty-table.php'; ?>
 </section>
 <aside class="cms-card cms-detail-side" aria-labelledby="cms-audit-side-title"><h2 id="cms-audit-side-title">Política de auditoria</h2><p>Eventos sensíveis devem ser registrados no servidor, sem exposição de credenciais ou dados pessoais desnecessários.</p>
  <div class="cms-setting-row"><span>Autenticação administrativa</span><strong>Pendente</strong></div>

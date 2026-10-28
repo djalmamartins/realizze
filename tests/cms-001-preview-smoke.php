@@ -87,6 +87,34 @@ if (str_contains($escapedHeading, '<script>')
     throw new RuntimeException('CMS-UI-038: componente de cabeçalho não escapou os metadados.');
 }
 echo 'OK - CMS-UI-038: cabeçalho reutilizado e metadados escapados.' . PHP_EOL;
+// CMS-UI-041: shared empty tables must be accessible and never interpret metadata as HTML.
+foreach (['plans' => ['Ofertas cadastradas', 4], 'logs' => ['Histórico de eventos administrativos', 5]] as $slug => [$caption, $columnCount]) {
+    $html = $render($slug);
+    if (!str_contains($html, '<caption class="cms-table-caption">' . $caption . '</caption>')
+        || substr_count($html, '<th scope="col">') !== $columnCount
+        || !str_contains($html, 'colspan="' . $columnCount . '"')) {
+        throw new RuntimeException('CMS-UI-041: tabela vazia inacessível em ' . $slug);
+    }
+}
+$cmsEmptyTable = [
+    'caption' => '<script>alert(1)</script>',
+    'columns' => ['Cliente & empresa', '<img src=x onerror=alert(1)>'],
+    'title' => '<b>Falso</b>',
+    'description' => 'Sem dados & sem operações',
+];
+ob_start();
+require $root . '/components/empty-table.php';
+$emptyTableHtml = (string) ob_get_clean();
+if (str_contains($emptyTableHtml, '<script>')
+    || str_contains($emptyTableHtml, '<img')
+    || str_contains($emptyTableHtml, '<b>Falso</b>')
+    || !str_contains($emptyTableHtml, '&lt;script&gt;')
+    || !str_contains($emptyTableHtml, '&lt;img')
+    || !str_contains($emptyTableHtml, 'Cliente &amp; empresa')
+    || !str_contains($emptyTableHtml, 'colspan="2"')) {
+    throw new RuntimeException('CMS-UI-041: dados da tabela não escapados corretamente.');
+}
+echo 'OK - CMS-UI-041: tabelas vazias acessíveis, compartilhadas e com HTML escapado.' . PHP_EOL;
 $routes = file_get_contents($root . '/routes.php');
 if (!is_string($routes)
     || !str_contains($routes, "getenv('REALIZZE_CMS_LOCAL_PREVIEW')")

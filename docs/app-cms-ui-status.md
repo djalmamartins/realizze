@@ -85,3 +85,11 @@ php scripts/publish-app-assets.php
 - Não foram adicionadas rotas, operações administrativas, uploads, cobranças, integrações WhatsApp ou migrações. A prévia do CMS continua restrita pelo gate local e não substitui autenticação administrativa real.
 
 **Ainda faltam no App PF:** dados autorizados e operações nas dez páginas existentes; filtros de dados, exportações e homologação visual. **No App Empresarial:** serviços e operações isoladas por organização para clientes/fornecedores, equipes, contas a receber/pagar, bancos/cartões, fluxo de caixa, custos, DRE, conciliação OFX/CSV e obrigações MEI/PJ. **No CMS:** as oito páginas de prévia existem; faltam autenticação administrativa, CSRF nas mutações, RBAC, auditoria persistente e operações de conteúdo/mídia/usuários/configurações. Testes HTTP, inspeção MySQL de homologação e testes visuais no Docker seguem pendentes.
+
+## CMS-UI-041 — tabelas vazias acessíveis (28/10/2026)
+
+- Criado `container/cms/realizze/v1/components/empty-table.php` para tabelas de prévia com legenda visível, cabeçalhos com `scope="col"`, estado vazio e `colspan` calculado.
+- As seções **Planos e assinaturas** e **Logs e auditoria** usam o mesmo componente; metadados são escapados antes da renderização.
+- Estilos de legenda e rolagem horizontal adicionados em `assets/css/responsive-fixes.css`; `tests/cms-001-preview-smoke.php` verifica estrutura e escape de HTML.
+- **Páginas CMS ainda pendentes de operação:** as oito seções exigem autenticação administrativa, RBAC, CSRF, auditoria e serviços reais. **App PF:** dez páginas ainda sem integração financeira. **App PJ:** onze módulos ainda sem consultas/CRUD escopados.
+- Nenhum acesso a banco, upload, cobrança, publicação, WhatsApp ou alteração de produção nesta etapa.
