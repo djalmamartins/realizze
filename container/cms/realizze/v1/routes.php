@@ -9,7 +9,10 @@ return [
     'version' => 'v1',
     'controller' => null,
     'routes' => static function (Router $router): void {
-        // Rotas reais para as telas, mas SEM acesso administrativo até RBAC/CSRF.
+        $previewEnabled = getenv('APP_ENV') === 'local'
+            && getenv('REALIZZE_CMS_LOCAL_PREVIEW') === '1';
+
+        // Rotas reais para as telas, mas SEM acesso administrativo, dados ou mutações.
         $pages = [
             '/' => ['overview', 'cms.index'],
             '/paginas' => ['pages', 'cms.pages'],
@@ -21,11 +24,15 @@ return [
             '/configuracoes' => ['settings', 'cms.settings'],
         ];
         foreach ($pages as $path => [$section, $name]) {
-            $router->get($path, static function () use ($section): void {
-                http_response_code(503);
+            $router->get($path, static function () use ($section, $previewEnabled): void {
                 header('Cache-Control: no-store, private');
                 header('X-Robots-Tag: noindex, nofollow');
-                header('Retry-After: 3600');
+                if (!$previewEnabled) {
+                    http_response_code(503);
+                    header('Retry-After: 3600');
+                    echo 'CMS indisponível.';
+                    return;
+                }
                 $cmsSection = $section;
                 require __DIR__ . '/default.php';
             }, $name);
