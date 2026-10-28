@@ -66,21 +66,6 @@
       });
     });
 
-    // Only August 2026 has illustrative values. Do not show the same values
-    // under a different month or switch to annual totals.
-    ['#prev-month', '#next-month', '#previous-month-label', '#current-month-label'].forEach((selector) => {
-      $(selector)?.addEventListener('click', () => {
-        notify('Os dados ilustrativos são de agosto de 2026. Outros períodos estarão disponíveis com a integração financeira.');
-      });
-    });
-    document.querySelectorAll('[data-period]').forEach((element) => {
-      element.addEventListener('click', () => {
-        if (element.dataset.period !== 'mensal') {
-          notify('A visão anual será disponibilizada quando houver dados financeiros reais.');
-        }
-      });
-    });
-
     $('#theme-toggle')?.addEventListener('click', () => {
       notify('O tema escuro será disponibilizado em uma próxima etapa.');
     });
