@@ -137,3 +137,12 @@ php scripts/publish-app-assets.php
 - `tests/cms-001-preview-smoke.php` verifica as quatro tabelas, colunas, legenda e região acessível. A validação de sintaxe e a homologação HTTP/visual devem ser realizadas no CI/Docker.
 - **App PF:** dez páginas de interface, pendentes operações e filtros com dados autorizados. **App Empresarial:** onze módulos em prévia, pendentes serviços escopados por organização. **CMS:** oito seções existentes, pendentes autenticação administrativa, CSRF, RBAC, auditoria persistente e CRUD; prévia local continua bloqueada externamente.
 - Sem migração, cobrança, WhatsApp ou alteração de produção.
+
+
+## CMS-UI-047 — inventários de conteúdos e mídia (28/10/2026)
+
+- As páginas **Conteúdos** e **Mídia** receberam inventários vazios com o componente `components/empty-table.php`, agora compartilhado por seis seções administrativas (Páginas, Conteúdos, Mídia, Usuários, Planos e Logs).
+- Cada tabela possui legenda, colunas identificadas, região rolável por teclado e estado vazio explícito; os controles de edição, publicação e upload permanecem desabilitados. Não são consultados arquivos, artigos, identidades ou registros financeiros.
+- `tests/cms-001-preview-smoke.php` cobre as seis tabelas, nomes acessíveis e colunas, além das verificações existentes de controles bloqueados, IDs e proteção da prévia.
+- **App PF:** dez páginas de interface, pendentes dados autorizados, operações, filtros e homologação responsiva. **App Empresarial:** onze módulos em prévia, pendentes serviços e consultas escopadas por organização. **CMS:** oito seções visuais; pendentes autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações reais.
+- Não houve alteração de rotas, banco, produção, cobranças, uploads ou WhatsApp.

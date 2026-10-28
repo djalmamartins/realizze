@@ -13,4 +13,16 @@
  </section>
  <aside class="cms-editor-side"><section class="cms-card"><h2>Publicação</h2><p>Defina visibilidade, agendamento e autoria.</p><label class="cms-field-label" for="cms-editor-status">Status</label><select id="cms-editor-status" class="cms-field" disabled><option>Não publicado</option></select><label class="cms-field-label" for="cms-editor-date">Agendamento</label><input id="cms-editor-date" class="cms-field" type="text" placeholder="Sem agendamento" disabled></section><section class="cms-card"><h2>SEO e compartilhamento</h2><p>Metadados e imagem de destaque serão configurados nesta área.</p><div class="cms-editor-media"><?= $cmsIcon('media') ?><span>Nenhuma imagem selecionada</span></div></section></aside>
 </div>
+<section class="cms-card cms-preview-inventory" aria-labelledby="cms-contents-inventory-title">
+  <div class="cms-module-head">
+    <div><h2 id="cms-contents-inventory-title">Inventário editorial</h2><p>Os conteúdos autorizados aparecerão aqui após a integração.</p></div>
+    <span class="cms-status">Sem consulta ao banco</span>
+  </div>
+  <?php $cmsEmptyTable = [
+      'caption' => 'Conteúdos editoriais',
+      'columns' => ['Título', 'Tipo', 'Responsável', 'Situação', 'Atualização'],
+      'title' => 'Nenhum conteúdo consultado',
+      'description' => 'A prévia não carrega artigos, autores, versões ou agendamentos reais.',
+  ]; require __DIR__ . '/../components/empty-table.php'; ?>
+</section>
 <aside class="cms-notice"><strong>Editor indisponível</strong>Esta tela é apenas uma prévia. Nenhuma alteração é salva, publicada ou enviada ao servidor.</aside>

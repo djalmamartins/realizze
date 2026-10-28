@@ -78,3 +78,7 @@
 /* CMS-UI-046: preserve shared decorative icons in inventory headings. */
 .cms-list-heading-icon{display:inline-flex;align-items:center;vertical-align:middle;margin-right:8px;color:#168b53}
 .cms-list-heading-icon svg{width:19px;height:19px;flex:none}
+
+/* CMS-UI-047: editorial and media inventory previews share the accessible table component. */
+.cms-preview-inventory{margin-top:18px}
+.cms-preview-inventory .cms-module-head p{margin:4px 0 0}

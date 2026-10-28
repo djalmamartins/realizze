@@ -88,7 +88,7 @@ if (str_contains($escapedHeading, '<script>')
 }
 echo 'OK - CMS-UI-038: cabeçalho reutilizado e metadados escapados.' . PHP_EOL;
 // CMS-UI-041: shared empty tables must be accessible and never interpret metadata as HTML.
-foreach (['pages' => ['Páginas cadastradas', 4], 'users' => ['Usuários administrativos', 4], 'plans' => ['Ofertas cadastradas', 4], 'logs' => ['Histórico de eventos administrativos', 5]] as $slug => [$caption, $columnCount]) {
+foreach (['pages' => ['Páginas cadastradas', 4], 'users' => ['Usuários administrativos', 4], 'plans' => ['Ofertas cadastradas', 4], 'logs' => ['Histórico de eventos administrativos', 5], 'contents' => ['Conteúdos editoriais', 5], 'media' => ['Arquivos da biblioteca', 4]] as $slug => [$caption, $columnCount]) {
     $html = $render($slug);
     if (!str_contains($html, '<caption class="cms-table-caption">' . $caption . '</caption>')
         || substr_count($html, '<th scope="col">') !== $columnCount
@@ -114,9 +114,9 @@ if (str_contains($emptyTableHtml, '<script>')
     || !str_contains($emptyTableHtml, 'colspan="2"')) {
     throw new RuntimeException('CMS-UI-041: dados da tabela não escapados corretamente.');
 }
-echo 'OK - CMS-UI-046: tabelas de páginas, usuários, planos e logs compartilhadas, acessíveis e escapadas.' . PHP_EOL;
+echo 'OK - CMS-UI-047: tabelas de páginas, usuários, planos, logs, conteúdos e mídia compartilhadas, acessíveis e escapadas.' . PHP_EOL;
 // CMS-A11Y-045: table scrolling must be keyboard reachable, named and escaped.
-foreach (['pages', 'users', 'plans', 'logs'] as $slug) {
+foreach (['pages', 'users', 'plans', 'logs', 'contents', 'media'] as $slug) {
     $html = $render($slug);
     if (!str_contains($html, 'class="cms-table-wrap" role="region" tabindex="0" aria-label="')) {
         throw new RuntimeException("CMS-A11Y-045: tabela de {$slug} sem região acessível.");
