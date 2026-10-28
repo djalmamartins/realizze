@@ -1,5 +1,5 @@
 <?php /** CMS: prévia de planos e assinaturas, sem acesso a dados ou cobranças. */ ?>
-<div class="cms-heading"><div><span class="cms-eyebrow">Plataforma / Comercial</span><h1>Planos e assinaturas</h1><p>Estruture ofertas, recursos e ciclos de contratação sem executar cobranças.</p></div><span class="cms-chip">Prévia visual</span></div>
+<?php $cmsHeading = ['eyebrow' => 'Plataforma / Comercial', 'title' => 'Planos e assinaturas', 'description' => 'Estruture ofertas, recursos e ciclos de contratação sem executar cobranças.', 'badge' => 'Prévia visual']; require __DIR__ . '/../components/page-heading.php'; ?>
 <div class="cms-detail-layout">
 <section class="cms-card" aria-labelledby="cms-plans-title">
  <div class="cms-module-head"><div><h2 id="cms-plans-title">Catálogo de planos</h2><p>Configure as informações de apresentação antes de publicar ofertas.</p></div><button type="button" disabled>Novo plano</button></div>
