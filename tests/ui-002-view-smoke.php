@@ -19,6 +19,8 @@ $user = ['first_name' => 'Teste'];
 $items = [['house', 'Visão Geral', '/minha-conta?pagina=overview']];
 $sections = ['overview' => ['Visão Geral', 'Resumo']];
 
+putenv('REALIZZE_ENTERPRISE_CONTEXT_ENABLED=0');
+
 $checks = [
     'sidebar' => [
         $view->render('components::sidebar', [
@@ -47,6 +49,10 @@ $checks = [
     'receber' => [
         $view->render('pages/receber', ['icon' => $icon]),
         ['Contas a receber', 'Nenhum recebimento cadastrado'],
+    ],
+    'empresarial' => [
+        $view->render('pages/empresarial', ['icon' => $icon, 'csrf' => 'token-de-teste']),
+        ['Gestão empresarial', 'Cadastro empresarial ainda não liberado', 'Aguardando integração'],
     ],
     'pagar' => [
         $view->render('pages/pagar', ['icon' => $icon]),
