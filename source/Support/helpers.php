@@ -17,7 +17,7 @@ if (!function_exists('str_slug')) {
     {
         $string = mb_strtolower(trim($string), 'UTF-8');
         if (class_exists(\Transliterator::class)) {
-            $transliterated = \Transliterator::transliterate('Any-Latin; Latin-ASCII', $string);
+            $transliterated = transliterator_transliterate('Any-Latin; Latin-ASCII', $string);
             if ($transliterated !== null) {
                 $string = $transliterated;
             }
