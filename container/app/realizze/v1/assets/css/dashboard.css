@@ -67,3 +67,11 @@
 
 /* UI polish: consistent focus, touch targets and reduced motion */
 :where(a,button,input,select,textarea):focus-visible{outline:2px solid #078d50;outline-offset:3px}button:disabled{cursor:not-allowed;opacity:.58}.finance-workspace .finance-table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.finance-workspace .finance-table{min-width:580px}.finance-workspace .finance-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.enterprise-feature,.enterprise-kpi{transition:box-shadow .15s ease,transform .15s ease}.enterprise-feature:hover{box-shadow:0 8px 24px #163d2410;transform:translateY(-1px)}@media(max-width:640px){.finance-workspace .finance-toolbar{align-items:stretch}.finance-workspace .finance-toolbar>button{width:100%}.enterprise-grid{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* APP-UI-018: goal summary with truthful unavailable values */
+.finance-goal-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0 26px}
+.finance-goal-stat{padding:20px;border-radius:14px;background:#f6faf7;min-width:0}
+.finance-goal-stat span,.finance-goal-stat small{display:block;color:#718477;font-size:12px}
+.finance-goal-stat strong{display:block;font-size:28px;line-height:1.5;color:#263c2d}
+.finance-workspace .finance-toolbar h3{margin:0;font-size:17px}
+@media(max-width:760px){.finance-goal-summary{grid-template-columns:1fr;gap:9px}.finance-goal-stat{padding:15px}}
