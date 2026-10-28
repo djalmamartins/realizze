@@ -4,7 +4,18 @@ Data da auditoria: 2026-10-28.
 
 ## Inventário
 
-Existe um único arquivo: `scripts/publish-app-assets.php`.
+Existem dois publicadores de assets:
+
+- `scripts/publish-web-assets.php`, para o site institucional;
+- `scripts/publish-app-assets.php`, para o App financeiro.
+
+O publicador institucional lê os fontes em
+`container/web/realizze/v1/assets`, usa `MovesCode\Compress\CSS` e
+`MovesCode\Compress\JS` e gera os arquivos minificados em
+`public/assets/realizze/v1`. A logo oficial e o favicon SVG são copiados para
+o mesmo destino público sem alteração de conteúdo. Esse processo substitui o
+antigo symlink absoluto, que funcionava dentro do container mas aparecia
+quebrado no host macOS.
 
 O script publica os assets do App financeiro. Ele lê
 `container/app/realizze/v1/assets/css/dashboard.css` e
@@ -35,9 +46,9 @@ publicados em `public/assets/realizze/v1`.
 
 ## Obsolescência e duplicidade
 
-Não foram encontrados scripts duplicados. O arquivo é ativo, tem chamador em
-CI e corresponde ao mecanismo de publicação atualmente consumido pelo App.
-Ele não parece obsoleto. Os assets fonte e minificados não são duplicatas
+Não foram encontrados scripts duplicados. Os arquivos são ativos, têm
+verificação em CI e correspondem aos mecanismos de publicação consumidos pelo
+site e pelo App. Os assets fonte e minificados não são duplicatas
 acidentais: representam, respectivamente, entrada versionada e saída de build.
 
 ## Recomendação
@@ -45,6 +56,5 @@ acidentais: representam, respectivamente, entrada versionada e saída de build.
 A pasta deve permanecer na raiz do projeto. O script é uma ferramenta de
 build transversal ao tema e não um asset servido nem uma página da arquitetura
 `container/`. Não há justificativa para apagar, mover ou renomear o arquivo.
-Uma futura conveniência opcional seria expor o mesmo comando em
-`composer.json`, mantendo `scripts/publish-app-assets.php` como implementação
-canônica.
+Uma futura conveniência opcional seria expor os comandos em `composer.json`,
+mantendo os scripts PHP como implementações canônicas.

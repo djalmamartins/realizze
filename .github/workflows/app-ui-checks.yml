@@ -5,7 +5,10 @@ on:
     paths:
       - 'container/app/**'
       - 'container/cms/**'
+      - 'container/web/realizze/v1/**'
       - 'scripts/publish-app-assets.php'
+      - 'scripts/publish-web-assets.php'
+      - 'tests/web-assets-smoke.php'
       - 'tests/ui-002-view-smoke.php'
       - 'tests/cms-001-preview-smoke.php'
       - 'tests/cms-002-preview-access.php'
@@ -44,6 +47,7 @@ jobs:
           cp .env.example .env
           find container/app/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l scripts/publish-app-assets.php
+          php -l scripts/publish-web-assets.php
           php -l source/Services/OrganizationAccess.php
           php -l source/Services/OrganizationContext.php
           php -l container/web/realizze/v1/routes.php
@@ -64,10 +68,14 @@ jobs:
         run: php tests/enterprise-001-context.php
       - name: Check source JavaScript syntax
         run: |
+          node --check container/web/realizze/v1/assets/js/main.js
           node --check container/app/realizze/v1/assets/js/dashboard.js
           node --check container/cms/realizze/v1/assets/js/cms.js
       - name: Publish assets with MovesCode Compress
         run: |
+          php scripts/publish-web-assets.php
+          php tests/web-assets-smoke.php
+          node --check public/assets/realizze/v1/js/main.min.js
           php scripts/publish-app-assets.php
           test -s public/assets/realizze-app/v1/css/dashboard.min.css
           test -s public/assets/realizze-app/v1/js/dashboard.min.js
