@@ -112,6 +112,16 @@ foreach (['id="enterprise-search-empty"', 'id="enterprise-search-empty-title"',
 if (preg_match('/<form\\b/i', $enterpriseHtml) === 1) {
     throw new RuntimeException('APP-UI-035: formulário inesperado com contexto empresarial desabilitado.');
 }
+// APP-UI-040: verify that the client-only filter toggles the empty state and supports Escape.
+$enterpriseJs = file_get_contents(dirname(__DIR__) . '/container/app/realizze/v1/assets/js/dashboard.js');
+$enterpriseCss = file_get_contents(dirname(__DIR__) . '/container/app/realizze/v1/assets/css/dashboard.css');
+if (!is_string($enterpriseJs) || !is_string($enterpriseCss)
+    || !str_contains($enterpriseJs, "enterpriseEmpty.hidden = visible !== 0")
+    || !str_contains($enterpriseJs, "event.key !== 'Escape'")
+    || !str_contains($enterpriseCss, '.enterprise-search-empty[hidden]{display:none!important}')) {
+    throw new RuntimeException('APP-UI-040: estado vazio ou limpeza por teclado não configurados.');
+}
+echo 'OK - APP-UI-040: estado vazio e limpeza por Escape configurados.' . PHP_EOL;
 echo 'OK - APP-UI-035: busca PJ local acessível e sem submissão de dados.' . PHP_EOL;
 echo 'OK - ENT-027: onze módulos PJ acessíveis, sem valores inventados e sem seleção indevida.' . PHP_EOL;
 echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
