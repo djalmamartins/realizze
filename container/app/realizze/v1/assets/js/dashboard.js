@@ -90,6 +90,46 @@
       });
     });
 
+    // Client-side discovery only: never loads organizations or financial records.
+    const enterpriseSearch = $('#enterprise-module-search');
+    const enterpriseClear = $('#enterprise-module-clear');
+    const enterpriseStatus = $('#enterprise-search-status');
+    if (enterpriseSearch && enterpriseStatus) {
+      const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
+      const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
+      const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
+      const normalize = (value) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('pt-BR');
+      const applyFilter = () => {
+        const term = normalize(enterpriseSearch.value.trim());
+        let visible = 0;
+        modules.forEach((module) => {
+          const heading = module.querySelector('h4')?.textContent || '';
+          const description = module.querySelector('.enterprise-module-header p')?.textContent || '';
+          const matches = !term || normalize(heading + ' ' + description).includes(term);
+          module.hidden = !matches;
+          if (matches) visible += 1;
+        });
+        groups.forEach((group) => {
+          group.hidden = !Array.from(group.querySelectorAll('.enterprise-module')).some((module) => !module.hidden);
+        });
+        jumpLinks.forEach((link) => {
+          const targetId = link.getAttribute('href')?.slice(1);
+          const target = targetId ? document.getElementById(targetId) : null;
+          link.hidden = !target || target.hidden;
+        });
+        enterpriseStatus.textContent = visible === 0
+          ? 'Nenhum módulo corresponde à pesquisa.'
+          : visible === 1 ? '1 módulo encontrado.' : visible + ' módulos encontrados.';
+      };
+      enterpriseSearch.addEventListener('input', applyFilter);
+      enterpriseClear?.addEventListener('click', () => {
+        enterpriseSearch.value = '';
+        applyFilter();
+        enterpriseSearch.focus();
+      });
+      applyFilter();
+    }
+
     document.querySelectorAll('[data-demo]').forEach((element) => {
       element.addEventListener('click', (event) => {
         event.preventDefault();
