@@ -216,3 +216,14 @@ if (str_contains($unsafeTable, '<script>') || str_contains($unsafeTable, '<img s
     throw new RuntimeException('APP-UI-044: HTML não confiável interpretado na tabela.');
 }
 echo 'OK - APP-UI-044: tabelas PF acessíveis e metadados escapados.' . PHP_EOL;
+
+// APP-SEC-044: values remain raw until the sidebar/header HTML sinks escape them.
+$dashboardSource = file_get_contents($root . '/pages/dashboard.php');
+if (!is_string($dashboardSource)
+    || !str_contains($dashboardSource, '$name = (string) (')
+    || !str_contains($dashboardSource, '$csrf = \\Moves\\Services\\Csrf::token();')
+    || str_contains($dashboardSource, '$name = htmlspecialchars(')
+    || str_contains($dashboardSource, '$csrf = htmlspecialchars(')) {
+    throw new RuntimeException('APP-SEC-044: dashboard escapando dados antes dos componentes.');
+}
+echo 'OK - APP-SEC-044: nome e token CSRF escapados somente no HTML.' . PHP_EOL;
