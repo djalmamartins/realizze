@@ -1,8 +1,13 @@
-<section class="content-grid">
-<article class="card" id="movimentacoes"><div class="section-head"><h2>Últimas movimentações</h2><a href="/minha-conta?pagina=movimentacoes">Ver todas</a></div>
-<?php foreach ($transactions as $t): ?><div class="transaction"><span class="mini-icon <?= $t[5]?'':'out' ?>"><?= $t[0] ?></span><div class="details"><strong><?= $t[1] ?></strong><small><?= $t[2] ?></small></div><div class="amount <?= $t[5]?'green':'red' ?>"><?= $t[3] ?><small><?= $t[4] ?></small></div></div><?php endforeach; ?>
-</article>
-<article class="card" id="categorias"><div class="section-head"><h2>Gastos por categoria</h2><span class="muted">Este mês ▾</span></div><div class="chart-area"><div class="donut" role="img" aria-label="Gráfico demonstrativo de gastos por categoria"></div><div class="legend"><?php foreach ([['Moradia','32%'],['Alimentação','21%'],['Transporte','14%'],['Lazer','10%'],['Saúde','8%'],['Outros','15%']] as $category): ?><div><b><?= $category[0] ?></b><span><?= $category[1] ?></span></div><?php endforeach; ?></div></div><a href="/minha-conta?pagina=relatorios" style="display:block;text-align:center;color:#008f4c;font-size:12px">Ver relatório completo →</a></article>
-<article class="card" id="contas"><div class="section-head"><h2>Contas e cartões</h2><a href="/minha-conta?pagina=contas">Ver todas</a></div><?php foreach ($accounts as $a): ?><div class="account"><span class="bank" style="background:<?= $a[4] ?>"><?= $a[0] ?></span><div class="details"><strong><?= $a[1] ?></strong><small><?= $a[2] ?></small></div><span class="amount <?= str_starts_with($a[3],'−')?'red':'green' ?>"><?= $a[3] ?></span></div><?php endforeach; ?></article>
+<?php /** UI-026: somente estados vazios, sem transações, instituições ou categorias inventadas. */ ?>
+<section class="content-grid" aria-label="Painéis financeiros">
+  <article class="card" id="movimentacoes"><div class="section-head"><h2>Últimas movimentações</h2><a href="/minha-conta?pagina=movimentacoes">Ver todas</a></div>
+    <div class="overview-empty"><span class="overview-empty-icon" aria-hidden="true">↔</span><strong>Nenhuma movimentação disponível</strong><p>As entradas e saídas autorizadas aparecerão aqui após a integração.</p></div>
+  </article>
+  <article class="card" id="categorias"><div class="section-head"><h2>Gastos por categoria</h2><a href="/minha-conta?pagina=relatorios">Ver relatórios</a></div>
+    <div class="overview-empty"><span class="overview-empty-icon" aria-hidden="true">◌</span><strong>Distribuição indisponível</strong><p>O gráfico será gerado somente com lançamentos reais do contexto autorizado.</p></div>
+  </article>
+  <article class="card" id="contas"><div class="section-head"><h2>Contas e cartões</h2><a href="/minha-conta?pagina=contas">Ver todas</a></div>
+    <div class="overview-empty"><span class="overview-empty-icon" aria-hidden="true">▣</span><strong>Nenhuma conta disponível</strong><p>Contas e cartões não são consultados nesta prévia.</p></div>
+  </article>
 </section>
-<section class="card insights"><span class="stat-icon">☼</span><div><strong>Insights do mês</strong><p>Você gastou R$ 680,00 a mais com alimentação neste mês comparado a julho.</p></div><button type="button" data-demo="true">Ver mais insights</button></section>
+<section class="card insights" aria-label="Análises financeiras futuras"><span class="stat-icon" aria-hidden="true">✧</span><div><strong>Insights financeiros</strong><p>As análises serão exibidas quando houver dados reais, com autorização e separação entre PF e PJ.</p></div><button type="button" disabled title="Disponível após integração financeira">Ver insights</button></section>
