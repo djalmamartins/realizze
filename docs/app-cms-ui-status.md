@@ -101,3 +101,13 @@ php scripts/publish-app-assets.php
 - Substituídos símbolos tipográficos de tema, ajuda e saída por SVGs estáticos com rótulos acessíveis; sem novas APIs nem operações.
 - No menu móvel, `dashboard.js` aplica `inert` à sidebar fora da tela, retirando links invisíveis da navegação por Tab. A abertura restaura a interação e o fechamento devolve o foco ao botão de menu; desktop continua navegável. Testes de origem não substituem teste real em navegador com teclado/leitor de tela.
 - **Inventário de páginas pendentes:** App PF: dez páginas existentes, faltam CRUD, filtros e dados autorizados; App PJ: onze módulos em prévia, faltam serviços, persistência e isolamento efetivo; CMS: oito prévias, faltam autenticação administrativa, RBAC, CSRF nas mutações, auditoria e CRUD. Sem alterações de rotas, banco, produção, WhatsApp ou cobranças.
+
+## APP-UI/SEC-044 — tabelas financeiras PF e escape único (28/10/2026)
+
+- Criado `container/app/realizze/v1/components/finance-empty-table.php`, reutilizando a API verificada de `MovesCode\\View\\Engine::render()` para legendas de tabelas, cabeçalhos `scope="col"`, `colspan` e estados vazios com metadados escapados.
+- Aplicado às cinco páginas PF: **Receber, Pagar, Movimentações, Categorias e Metas**. Legendas visíveis e rolagem horizontal contida em dispositivos móveis; não há consultas financeiras nem valores simulados.
+- Em `pages/dashboard.php`, o nome do perfil e o token CSRF são mantidos como valores brutos até o componente de apresentação aplicar escape HTML, evitando dupla codificação de caracteres. `sidebar.php` e `dashboard-header.php` já escapam os valores ao renderizar.
+- `tests/ui-002-view-smoke.php` verifica a renderização das cinco tabelas com MovesCode View, legendas, ausência de valores inventados, escape de HTML malicioso e contrato de escape único.
+- **Páginas PF que ainda precisam da mesma padronização de tabela:** Contas e Cartões e Relatórios; as demais seções precisam de operações reais e validação responsiva no Docker.
+- **App PJ:** onze módulos em prévia, ainda sem CRUD/consultas escopadas. **CMS:** oito prévias; ainda sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria e CRUD.
+- Sem alteração de banco, migrações, produção, cobranças ou integração WhatsApp.
