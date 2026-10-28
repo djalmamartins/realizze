@@ -115,6 +115,22 @@ if (str_contains($emptyTableHtml, '<script>')
     throw new RuntimeException('CMS-UI-041: dados da tabela não escapados corretamente.');
 }
 echo 'OK - CMS-UI-041: tabelas vazias acessíveis, compartilhadas e com HTML escapado.' . PHP_EOL;
+// CMS-A11Y-045: table scrolling must be keyboard reachable, named and escaped.
+foreach (['plans', 'logs'] as $slug) {
+    $html = $render($slug);
+    if (!str_contains($html, 'class="cms-table-wrap" role="region" tabindex="0" aria-label="')) {
+        throw new RuntimeException("CMS-A11Y-045: tabela de {$slug} sem região acessível.");
+    }
+}
+if (!str_contains($emptyTableHtml, 'aria-label="&lt;script&gt;alert(1)&lt;/script&gt;"')
+    || !str_contains($emptyTableHtml, 'tabindex="0"')) {
+    throw new RuntimeException('CMS-A11Y-045: nome acessível da tabela não escapado.');
+}
+$css = file_get_contents($root . '/assets/css/responsive-fixes.css');
+if (!is_string($css) || !str_contains($css, '.cms-table-wrap:focus-visible')) {
+    throw new RuntimeException('CMS-A11Y-045: foco visível da região de tabela ausente.');
+}
+echo 'OK - CMS-A11Y-045: tabelas navegáveis pelo teclado, foco visível e nome escapado.' . PHP_EOL;
 $routes = file_get_contents($root . '/routes.php');
 if (!is_string($routes)
     || !str_contains($routes, "getenv('REALIZZE_CMS_LOCAL_PREVIEW')")

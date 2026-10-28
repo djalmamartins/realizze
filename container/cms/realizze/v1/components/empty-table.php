@@ -10,7 +10,7 @@ if (!is_array($columns) || $columns === []) {
 }
 $escapeTable = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
-<div class="cms-table-wrap">
+<div class="cms-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeTable($table['caption'] ?? 'Registros indisponíveis') ?>">
   <table class="cms-table">
     <caption class="cms-table-caption"><?= $escapeTable($table['caption'] ?? 'Registros indisponíveis') ?></caption>
     <thead><tr><?php foreach ($columns as $column): ?><th scope="col"><?= $escapeTable($column) ?></th><?php endforeach; ?></tr></thead>

@@ -70,3 +70,7 @@
 /* CMS-UI-041: captions stay visible for screen readers and visual context. */
 .cms-table-caption{caption-side:top;text-align:left;padding:12px 10px 2px;color:#52695a;font-size:12px;font-weight:700}
 .cms-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+
+/* CMS-A11Y-045: keyboard-accessible scrolling for wide tables on small screens. */
+.cms-table-wrap:focus-visible{outline:3px solid #087d49;outline-offset:3px;border-radius:8px}
+@media(max-width:720px){.cms-table-wrap{scrollbar-width:thin}}
