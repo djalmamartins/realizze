@@ -38,8 +38,8 @@ $accounts = [
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#079550">
 <title>Visão Geral | Realizze</title>
-<link rel="stylesheet" href="<?= $css ?>">
-<script defer src="<?= $js ?>"></script>
+<style><?= file_get_contents(dirname(__DIR__) . '/assets/css/dashboard.css') ?></style>
+<script defer><?= file_get_contents(dirname(__DIR__) . '/assets/js/dashboard.js') ?></script>
 </head>
 <body>
 <div class="shell" id="shell">
