@@ -1,1 +1,86 @@
-(()=>{'use strict';const $=s=>document.querySelector(s);const toast=$('#toast');let timeout;const notify=message=>{toast.textContent=message;toast.classList.add('visible');clearTimeout(timeout);timeout=setTimeout(()=>toast.classList.remove('visible'),3200)};document.querySelectorAll('[data-demo]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();notify('Funcionalidade em preparação. Nenhum dado foi alterado.')}));const shell=$('#shell'),toggle=$('#sidebar-toggle');toggle?.addEventListener('click',()=>{const open=shell.classList.toggle('menu-open');toggle.setAttribute('aria-expanded',String(open))});const today=new Date(2026,7,1);const names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];let offset=0;const updateMonth=()=>{const date=new Date(today.getFullYear(),today.getMonth()+offset,1);const previous=new Date(date.getFullYear(),date.getMonth()-1,1);$('#month-label').textContent=names[date.getMonth()]+' de '+date.getFullYear();$('#current-month-label').textContent=names[date.getMonth()]+' '+date.getFullYear();$('#previous-month-label').textContent=names[previous.getMonth()];if(offset!==0)notify('Período selecionado. Dados ilustrativos permanecem fixos até a integração financeira.')};$('#prev-month')?.addEventListener('click',()=>{offset--;updateMonth()});$('#next-month')?.addEventListener('click',()=>{offset++;updateMonth()});$('#previous-month-label')?.addEventListener('click',()=>{offset--;updateMonth()});document.querySelectorAll('[data-period]').forEach(el=>el.addEventListener('click',()=>{document.querySelectorAll('[data-period]').forEach(btn=>btn.classList.toggle('selected',btn===el));notify('Visualização '+el.dataset.period+' selecionada. A integração dos dados está pendente.')}));$('#theme-toggle')?.addEventListener('click',()=>notify('Tema escuro será disponibilizado em uma próxima etapa.'));})();
+(() => {
+  'use strict';
+
+  const initialize = () => {
+    const $ = (selector) => document.querySelector(selector);
+    const shell = $('#shell');
+    const sidebar = $('#app-sidebar');
+    const toggle = $('#sidebar-toggle');
+    const closeButton = $('#sidebar-close');
+    const backdrop = $('#sidebar-backdrop');
+    const toast = $('#toast');
+    let toastTimer;
+
+    const notify = (message) => {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add('visible');
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 3600);
+    };
+
+    const closeMenu = (restoreFocus = false) => {
+      if (!shell) return;
+      shell.classList.remove('menu-open');
+      toggle?.setAttribute('aria-expanded', 'false');
+      backdrop?.setAttribute('aria-hidden', 'true');
+      if (restoreFocus) toggle?.focus();
+    };
+
+    const openMenu = () => {
+      if (!shell) return;
+      shell.classList.add('menu-open');
+      toggle?.setAttribute('aria-expanded', 'true');
+      backdrop?.setAttribute('aria-hidden', 'false');
+      (closeButton || sidebar?.querySelector('a'))?.focus();
+    };
+
+    toggle?.addEventListener('click', () => {
+      if (shell?.classList.contains('menu-open')) closeMenu(true);
+      else openMenu();
+    });
+    closeButton?.addEventListener('click', () => closeMenu(true));
+    backdrop?.addEventListener('click', () => closeMenu(true));
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && shell?.classList.contains('menu-open')) {
+        closeMenu(true);
+      }
+    });
+    window.matchMedia('(min-width: 851px)').addEventListener('change', (event) => {
+      if (event.matches) closeMenu();
+    });
+
+    document.querySelectorAll('[data-demo]').forEach((element) => {
+      element.addEventListener('click', (event) => {
+        event.preventDefault();
+        notify('Recurso em preparação. Nenhum dado financeiro foi alterado.');
+      });
+    });
+
+    // Only August 2026 has illustrative values. Do not show the same values
+    // under a different month or switch to annual totals.
+    ['#prev-month', '#next-month', '#previous-month-label', '#current-month-label'].forEach((selector) => {
+      $(selector)?.addEventListener('click', () => {
+        notify('Os dados ilustrativos são de agosto de 2026. Outros períodos estarão disponíveis com a integração financeira.');
+      });
+    });
+    document.querySelectorAll('[data-period]').forEach((element) => {
+      element.addEventListener('click', () => {
+        if (element.dataset.period !== 'mensal') {
+          notify('A visão anual será disponibilizada quando houver dados financeiros reais.');
+        }
+      });
+    });
+
+    $('#theme-toggle')?.addEventListener('click', () => {
+      notify('O tema escuro será disponibilizado em uma próxima etapa.');
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+  } else {
+    initialize();
+  }
+})();
