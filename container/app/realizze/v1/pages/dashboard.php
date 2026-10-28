@@ -11,11 +11,27 @@ $csrf = htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8');
 $css = '/container/app/realizze/v1/assets/css/dashboard.css';
 $js = '/container/app/realizze/v1/assets/js/dashboard.js';
 $items = [
-    ['⌂','Visão Geral','#overview'],['⇄','Receber','#receber'],['▣','Pagar','#pagar'],
-    ['↔','Movimentações','#movimentacoes'],['▤','Contas e Cartões','#contas'],
-    ['▧','Relatórios','#relatorios'],['◷','Planejamento','#planejamento'],
-    ['☷','Metas','#metas'],['☷','Categoria','#categorias'],['⚙','Configurações','#configuracoes']
+    ['house','Visão Geral','#overview'],['arrow-down-left','Receber','#receber'],['arrow-up-right','Pagar','#pagar'],
+    ['arrows-left-right','Movimentações','#movimentacoes'],['credit-card','Contas e Cartões','#contas'],
+    ['chart-no-axes-column','Relatórios','#relatorios'],['calendar-days','Planejamento','#planejamento'],
+    ['target','Metas','#metas'],['list-filter','Categoria','#categorias'],['settings','Configurações','#configuracoes']
 ];
+$iconPaths = [
+    'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+    'arrow-down-left' => '<path d="M17 7 7 17M7 7v10h10"/>',
+    'arrow-up-right' => '<path d="M7 17 17 7M7 7h10v10"/>',
+    'arrows-left-right' => '<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>',
+    'credit-card' => '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+    'chart-no-axes-column' => '<path d="M5 20v-6M10 20V9M15 20V4M20 20v-9"/>',
+    'calendar-days' => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+    'target' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    'list-filter' => '<path d="M4 7h16M7 12h10M10 17h4"/>',
+    'settings' => '<path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12m9.9 9.9 2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9 2.12-2.12"/><circle cx="12" cy="12" r="4"/>',
+];
+$icon = static function (string $name) use ($iconPaths): string {
+    $paths = $iconPaths[$name] ?? '';
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $paths . '</svg>';
+};
 $transactions = [
     ['↓','Recebimento de Aluguel','Apartamento 101','+ R$ 2.000,00','Hoje',true],
     ['↗','Pagamento Celular','Vivo Pós','− R$ 150,00','Hoje',false],
@@ -36,7 +52,7 @@ $accounts = [
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#079550">
+<meta name="theme-color" content="#079550">\n<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
 <title>Visão Geral | Realizze</title>
 <style><?= file_get_contents(dirname(__DIR__) . '/assets/css/dashboard.css') ?></style>
 <script defer><?= file_get_contents(dirname(__DIR__) . '/assets/js/dashboard.js') ?></script>
@@ -44,10 +60,10 @@ $accounts = [
 <body>
 <div class="shell" id="shell">
 <aside class="sidebar" aria-label="Navegação principal">
-<a href="/minha-conta" class="brand">⬡ realizze</a>
+<a href="/minha-conta" class="brand" aria-label="Realizze"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="152" height="38"></a>
 <nav class="nav" aria-label="Menu principal">
 <?php foreach ($items as $index => $item): ?>
-<a href="<?= $item[2] ?>" <?= $index === 0 ? 'class="active" aria-current="page"' : 'data-demo="true"' ?>><span class="symbol" aria-hidden="true"><?= $item[0] ?></span><?= htmlspecialchars($item[1], ENT_QUOTES, 'UTF-8') ?></a>
+<a href="<?= $item[2] ?>" <?= $index === 0 ? 'class="active" aria-current="page"' : 'data-demo="true"' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= htmlspecialchars($item[1], ENT_QUOTES, 'UTF-8') ?></a>
 <?php endforeach; ?>
 </nav>
 <div class="sidebar-bottom">
