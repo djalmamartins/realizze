@@ -93,6 +93,19 @@ if (substr_count($enterpriseHtml, 'class="enterprise-module"') !== 11
     || str_contains($enterpriseHtml, 'name="organization_id"')) {
     throw new RuntimeException('ENT-027: prévia PJ inconsistente ou seletor indevido com flag desligada.');
 }
+// APP-UI-035: client-side module search is accessible and never submits organization IDs.
+foreach (['id="enterprise-module-search"', 'type="search"', 'aria-controls="enterprise-module-groups"',
+    'id="enterprise-module-groups"', 'id="enterprise-module-clear"',
+    'id="enterprise-search-status"', 'aria-live="polite"',
+    'Não consulta empresas ou lançamentos'] as $needle) {
+    if (!str_contains($enterpriseHtml, $needle)) {
+        throw new RuntimeException('APP-UI-035: filtro PJ incompleto: ' . $needle);
+    }
+}
+if (preg_match('/<form\\b/i', $enterpriseHtml) === 1) {
+    throw new RuntimeException('APP-UI-035: formulário inesperado com contexto empresarial desabilitado.');
+}
+echo 'OK - APP-UI-035: busca PJ local acessível e sem submissão de dados.' . PHP_EOL;
 echo 'OK - ENT-027: onze módulos PJ acessíveis, sem valores inventados e sem seleção indevida.' . PHP_EOL;
 echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
 echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
