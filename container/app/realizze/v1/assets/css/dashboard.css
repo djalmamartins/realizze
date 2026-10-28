@@ -61,3 +61,6 @@
 .enterprise-context-controls button.enterprise-secondary{background:#fff;color:#176442}
 .enterprise-context-controls select:focus-visible,.enterprise-context-controls button:focus-visible{outline:3px solid #71cfa2;outline-offset:3px}
 @media(max-width:600px){.enterprise-context-controls,.enterprise-context-controls form{display:flex;flex-direction:column;align-items:stretch;width:100%}.enterprise-context-controls select,.enterprise-context-controls button{width:100%}}
+
+/* Primeiros passos no painel */
+.setup-card{margin-bottom:20px}.setup-task-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.setup-task{display:flex;align-items:center;gap:12px;background:#f3f9f5;border-radius:12px;padding:14px;text-decoration:none;color:inherit;font-size:13px}.setup-task svg{color:#079550;flex-shrink:0}.setup-task span:nth-child(2){flex:1}.setup-task:hover,.setup-task:focus-visible{background:#e4f4e9}.setup-note{font-size:12px;margin-top:14px}@media(max-width:640px){.setup-task-grid{grid-template-columns:1fr}}
