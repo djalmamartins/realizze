@@ -32,3 +32,22 @@
         grid-column: 1;
     }
 }
+
+/* CMS-UI-017: responsive sidebar, SVG icons, focus and reduced motion. */
+.cms-brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cms-brand{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.cms-brand img{display:block;max-width:100%;height:auto}
+.cms-menu-toggle{display:none;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #dcebe1;border-radius:10px;background:#fff;color:#087c49;cursor:pointer}
+.cms-nav a svg{flex:0 0 19px}
+.cms-nav a span{display:inline;min-width:0;padding:0;border-radius:0;color:inherit;overflow-wrap:anywhere}
+.cms-menu-toggle:focus-visible,.cms-brand:focus-visible{outline:3px solid #078e51;outline-offset:3px}
+.cms-nav a{min-height:44px}
+@media(max-width:720px){
+  .cms-menu-toggle{display:inline-flex}
+  .cms-sidebar.cms-js .cms-nav{display:none}
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav{display:grid;grid-template-columns:1fr}
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav b{grid-column:1}
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav a{font-size:14px}
+  .cms-brand img{width:126px}
+}
+@media(prefers-reduced-motion:reduce){.cms-sidebar *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
