@@ -73,7 +73,7 @@ $accounts = [
 </head>
 <body>
 <div class="shell" id="shell">
-<?= $appView->render('components/sidebar', [
+<?= $appView->render('components::sidebar', [
     'items' => $items,
     'sections' => $sections,
     'section' => $section,
@@ -85,9 +85,9 @@ $accounts = [
 <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
 <main class="main" id="overview">
 <?php if ($section === 'overview'): ?>
-<?= $appView->render('components/dashboard-header', ['name' => $name, 'user' => $user]) ?>
-<?= $appView->render('components/overview-summary') ?>
-<?= $appView->render('components/overview-panels', ['transactions' => $transactions, 'accounts' => $accounts]) ?>
+<?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user]) ?>
+<?= $appView->render('components::overview-summary') ?>
+<?= $appView->render('components::overview-panels', ['transactions' => $transactions, 'accounts' => $accounts]) ?>
 <?php else: ?>
 <div class="section-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Abrir menu" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 <section class="page-heading"><div><p class="eyebrow">Meu financeiro / <?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></p><h1><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h1><p class="muted"><?= htmlspecialchars($sections[$section][1], ENT_QUOTES, 'UTF-8') ?></p></div><span class="preview-chip">Prévia de interface</span></section>
