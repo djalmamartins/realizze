@@ -1,7 +1,7 @@
 <?php
 /** CMS-UI-012: isolated layout preview, without data access or mutations. */
 ?>
-<div class="cms-heading"><div><span class="cms-eyebrow">Gerenciamento / Site</span><h1>Páginas do site</h1><p>Estruture e organize as páginas institucionais.</p></div><span class="cms-chip">Prévia visual</span></div>
+<?php $cmsHeading = ['eyebrow' => 'Gerenciamento / Site', 'title' => 'Páginas do site', 'description' => 'Estruture e organize as páginas institucionais.', 'badge' => 'Prévia visual']; require __DIR__ . '/../components/page-heading.php'; ?>
 <div class="cms-detail-layout">
 <section class="cms-card" aria-label="Estrutura de Páginas do site"><div class="cms-module-head"><div><h2>Gerenciamento</h2><p>Estrutura preparada para integração com serviços seguros.</p></div><button type="button" disabled>Criar página</button></div>
 <div class="cms-form-preview"><div><label class="cms-field-label" for="cms-pages-one">Título da página</label><input id="cms-pages-one" class="cms-field" placeholder="Título da página" disabled></div><div><label class="cms-field-label" for="cms-pages-two">Endereço amigável</label><input id="cms-pages-two" class="cms-field" placeholder="Endereço amigável" disabled></div><div><label class="cms-field-label" for="cms-pages-three">Modelo de página</label><select id="cms-pages-three" class="cms-field" disabled><option>Selecione uma opção</option></select></div></div>
