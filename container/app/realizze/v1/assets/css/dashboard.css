@@ -172,3 +172,6 @@
 /* APP-UI-044: captions on responsive PF financial tables. */
 .finance-workspace .finance-table-caption{caption-side:top;text-align:left;padding:12px 14px 8px;color:#52695a;font-size:12px;font-weight:700}
 .finance-workspace .finance-table-wrap{overscroll-behavior-inline:contain}
+
+/* APP-A11Y-045: horizontal financial tables remain keyboard-scrollable on narrow viewports. */
+.finance-table-wrap:focus-visible{outline:3px solid #078b4c;outline-offset:-3px;border-radius:4px}

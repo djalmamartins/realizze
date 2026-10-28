@@ -108,6 +108,14 @@ php scripts/publish-app-assets.php
 - Aplicado às cinco páginas PF: **Receber, Pagar, Movimentações, Categorias e Metas**. Legendas visíveis e rolagem horizontal contida em dispositivos móveis; não há consultas financeiras nem valores simulados.
 - Em `pages/dashboard.php`, o nome do perfil e o token CSRF são mantidos como valores brutos até o componente de apresentação aplicar escape HTML, evitando dupla codificação de caracteres. `sidebar.php` e `dashboard-header.php` já escapam os valores ao renderizar.
 - `tests/ui-002-view-smoke.php` verifica a renderização das cinco tabelas com MovesCode View, legendas, ausência de valores inventados, escape de HTML malicioso e contrato de escape único.
-- **Páginas PF que ainda precisam da mesma padronização de tabela:** Contas e Cartões e Relatórios; as demais seções precisam de operações reais e validação responsiva no Docker.
+- **Páginas PF ainda pendentes:** todas as tabelas de prévia serão padronizadas na etapa APP-UI-045; as dez páginas ainda precisam de serviços, dados autorizados e homologação visual; as demais seções precisam de operações reais e validação responsiva no Docker.
 - **App PJ:** onze módulos em prévia, ainda sem CRUD/consultas escopadas. **CMS:** oito prévias; ainda sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria e CRUD.
 - Sem alteração de banco, migrações, produção, cobranças ou integração WhatsApp.
+
+## APP-UI/A11Y-045 — tabelas PF restantes (28/10/2026)
+
+- **Contas e Cartões** usa duas instâncias do componente compartilhado `finance-empty-table.php`, com legendas distintas para contas e cartões; **Relatórios** e **Planejamento** usam uma instância cada. Assim, as tabelas de prévia das páginas PF ficam padronizadas, sem consultas ou dados financeiros simulados.
+- O contêiner de cada tabela compartilhada recebe `role="region"`, `tabindex="0"` e nome acessível escapado, permitindo rolagem horizontal pelo teclado em telas estreitas; foco visível definido no CSS.
+- `tests/ui-002-view-smoke.php` valida as páginas, legendas, estrutura, escape da região e a quantidade de tabelas por tela.
+- **App PF — faltantes:** integração e operações reais nas dez páginas, filtros, exportação, acessibilidade e homologação visual no Docker. **App Empresarial — faltantes:** CRUD e consultas isoladas por organização nos onze módulos. **CMS — faltantes:** autenticação administrativa, RBAC, CSRF nas mutações, auditoria e operações nas oito prévias.
+- Nenhuma migração, operação financeira, cobrança, publicação administrativa, integração WhatsApp ou alteração em produção.

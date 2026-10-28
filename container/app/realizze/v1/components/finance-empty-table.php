@@ -13,7 +13,7 @@ if (!is_array($columns) || $columns === []) {
 $escapeFinance = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $iconName = $table['icon'] ?? null;
 ?>
-<div class="finance-table-wrap">
+<div class="finance-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?>">
   <table class="finance-table">
     <caption class="finance-table-caption"><?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?></caption>
     <thead><tr><?php foreach ($columns as $column): ?><th scope="col"><?= $escapeFinance($column) ?></th><?php endforeach; ?></tr></thead>

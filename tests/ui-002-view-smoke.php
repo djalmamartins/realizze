@@ -190,10 +190,14 @@ foreach ([
     'movimentacoes' => 'Movimentações',
     'categorias' => 'Categorias',
     'metas' => 'Metas financeiras',
+    'contas' => 'Contas e carteiras',
+    'relatorios' => 'Relatórios financeiros',
+    'planejamento' => 'Planejamento financeiro',
 ] as $page => $caption) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, '<caption class="finance-table-caption">' . $caption)
         || !str_contains($html, '<th scope="col">')
+        || !str_contains($html, 'role="region" tabindex="0" aria-label="')
         || !str_contains($html, 'Nenhum')
         || preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
         throw new RuntimeException('APP-UI-044: tabela PF inconsistente: ' . $page);
@@ -209,7 +213,8 @@ $unsafeTable = $view->render('components::finance-empty-table', [
     'icon' => $icon,
 ]);
 foreach (['&lt;script&gt;caption&lt;/script&gt;', '&lt;img src=x onerror=alert(1)&gt;',
-    '&lt;script&gt;title&lt;/script&gt;', '&lt;b&gt;description&lt;/b&gt;', 'colspan="2"'] as $needle) {
+    '&lt;script&gt;title&lt;/script&gt;', '&lt;b&gt;description&lt;/b&gt;', 'colspan="2"',
+    'role="region" tabindex="0" aria-label="&lt;script&gt;caption&lt;/script&gt;"'] as $needle) {
     if (!str_contains($unsafeTable, $needle)) {
         throw new RuntimeException('APP-UI-044: escape/estrutura de tabela ausente: ' . $needle);
     }
@@ -229,3 +234,17 @@ if (!is_string($dashboardSource)
     throw new RuntimeException('APP-SEC-044: dashboard escapando dados antes dos componentes.');
 }
 echo 'OK - APP-SEC-044: nome e token CSRF escapados somente no HTML.' . PHP_EOL;
+
+// APP-UI-045: Contas has two separate, labelled tables; reports and planning each have one.
+$accountsHtml = $view->render('pages/contas', ['icon' => $icon, 'appView' => $view]);
+if (substr_count($accountsHtml, '<caption class="finance-table-caption">') !== 2
+    || !str_contains($accountsHtml, 'Cartões de crédito — integração pendente')) {
+    throw new RuntimeException('APP-UI-045: contas e cartões sem tabelas acessíveis independentes.');
+}
+foreach (['relatorios', 'planejamento'] as $page) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    if (substr_count($html, '<caption class="finance-table-caption">') !== 1) {
+        throw new RuntimeException('APP-UI-045: tabela duplicada ou ausente: ' . $page);
+    }
+}
+echo 'OK - APP-UI-045: contas/cartões, relatórios e planejamento com tabelas reutilizáveis.' . PHP_EOL;

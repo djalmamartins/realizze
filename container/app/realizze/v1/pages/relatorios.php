@@ -5,5 +5,11 @@
 <div class="finance-search-preview"><div><label for="relatorios-period">Período</label><select id="relatorios-period" disabled><option>Selecionar período</option></select></div><div><label for="relatorios-account">Conta</label><select id="relatorios-account" disabled><option>Todas as contas</option></select></div><div><label for="relatorios-category">Categoria</label><select id="relatorios-category" disabled><option>Todas as categorias</option></select></div></div>
 <div class="finance-report-panels"><section class="finance-report-panel" aria-label="Evolução financeira"><h3>Evolução financeira</h3><div class="finance-chart-empty"><span aria-hidden="true"><?= $icon('chart-no-axes-column') ?></span><p>Gráfico disponível após a integração financeira.</p></div></section><section class="finance-report-panel" aria-label="Distribuição por categoria"><h3>Distribuição por categoria</h3><div class="finance-chart-empty"><span aria-hidden="true"><?= $icon('chart-no-axes-column') ?></span><p>Sem dados para exibir neste período.</p></div></section></div>
 <div class="finance-toolbar"><div><h3>Detalhamento</h3><p class="muted">Consulte os registros por período e categoria.</p></div></div>
-<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th scope="col">Período</th><th scope="col">Relatório</th><th scope="col">Formato</th><th scope="col">Situação</th></tr></thead><tbody><tr><td colspan="4"><div class="finance-empty"><h3>Nenhum registro disponível</h3><p>Os resultados serão apresentados quando houver dados reais autorizados.</p></div></td></tr></tbody></table></div>
+ <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
+    'caption' => 'Relatórios financeiros — integração pendente',
+    'columns' => ['Período', 'Relatório', 'Formato', 'Situação'],
+    'title' => 'Nenhum registro disponível',
+    'description' => 'Os resultados serão apresentados quando houver dados reais autorizados.',
+    'icon' => 'chart-no-axes-column',
+], 'icon' => $icon]) ?>
 </section>

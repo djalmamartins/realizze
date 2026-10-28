@@ -5,5 +5,11 @@
 <div class="finance-search-preview"><div><label for="planejamento-period">Período</label><select id="planejamento-period" disabled><option>Selecionar período</option></select></div><div><label for="planejamento-account">Conta</label><select id="planejamento-account" disabled><option>Todas as contas</option></select></div><div><label for="planejamento-category">Categoria</label><select id="planejamento-category" disabled><option>Todas as categorias</option></select></div></div>
 <div class="finance-report-panels"><section class="finance-report-panel" aria-label="Previsto x realizado"><h3>Previsto x realizado</h3><div class="finance-chart-empty"><span aria-hidden="true"><?= $icon('calendar-days') ?></span><p>Gráfico disponível após a integração financeira.</p></div></section><section class="finance-report-panel" aria-label="Orçamento por categoria"><h3>Orçamento por categoria</h3><div class="finance-chart-empty"><span aria-hidden="true"><?= $icon('calendar-days') ?></span><p>Sem dados para exibir neste período.</p></div></section></div>
 <div class="finance-toolbar"><div><h3>Detalhamento</h3><p class="muted">Consulte os registros por período e categoria.</p></div></div>
-<div class="finance-table-wrap"><table class="finance-table"><thead><tr><th scope="col">Planejamento</th><th scope="col">Período</th><th scope="col">Previsto</th><th scope="col">Realizado</th><th scope="col">Status</th></tr></thead><tbody><tr><td colspan="5"><div class="finance-empty"><h3>Nenhum registro disponível</h3><p>Os resultados serão apresentados quando houver dados reais autorizados.</p></div></td></tr></tbody></table></div>
+ <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
+    'caption' => 'Planejamento financeiro — integração pendente',
+    'columns' => ['Planejamento', 'Período', 'Previsto', 'Realizado', 'Status'],
+    'title' => 'Nenhum registro disponível',
+    'description' => 'Os resultados serão apresentados quando houver dados reais autorizados.',
+    'icon' => 'calendar-days',
+], 'icon' => $icon]) ?>
 </section>
