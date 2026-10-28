@@ -68,6 +68,38 @@ foreach ($checks as $name => [$html, $expected]) {
     }
     echo 'OK - ' . $name . PHP_EOL;
 }
+// APP-SEC-043: sidebar escapes profile text, navigation attributes and logout CSRF.
+$maliciousSidebar = $view->render('components::sidebar', [
+    'items' => [['house', '<script>menu</script>', '/minha-conta?pagina=overview&test="x"']],
+    'sections' => $sections,
+    'section' => 'overview',
+    'icon' => $icon,
+    'name' => '<img src=x onerror=alert(1)>',
+    'user' => ['first_name' => '<'],
+    'csrf' => '" onfocus="alert(1)',
+]);
+foreach ([
+    '&lt;script&gt;menu&lt;/script&gt;',
+    '&lt;img src=x onerror=alert(1)&gt;',
+    'href="/minha-conta?pagina=overview&amp;test=&quot;x&quot;"',
+    'value="&quot; onfocus=&quot;alert(1)"',
+    'class="avatar">&lt;</span>',
+    'aria-label="Alternar tema"',
+    'aria-label="Ajuda"',
+] as $needle) {
+    if (!str_contains($maliciousSidebar, $needle)) {
+        throw new RuntimeException('APP-SEC-043: escape ou SVG ausente na sidebar: ' . $needle);
+    }
+}
+foreach (['<script>menu</script>', '<img src=x onerror=alert(1)>', 'value="" onfocus='] as $unsafe) {
+    if (str_contains($maliciousSidebar, $unsafe)) {
+        throw new RuntimeException('APP-SEC-043: HTML não confiável renderizado na sidebar.');
+    }
+}
+if (substr_count($maliciousSidebar, '<svg ') < 4) {
+    throw new RuntimeException('APP-UI-043: ícones SVG da sidebar incompletos.');
+}
+echo 'OK - APP-SEC-043: sidebar escapa perfil, links e token CSRF.' . PHP_EOL;
 // As telas iniciais não devem exibir saldos, transações ou bancos fictícios.
 foreach (['header', 'summary', 'panels'] as $name) {
     $html = $checks[$name][0];
@@ -130,6 +162,13 @@ if (!is_string($enterpriseJs) || !is_string($enterpriseCss)
     throw new RuntimeException('APP-UI-040: estado vazio ou limpeza por teclado não configurados.');
 }
 echo 'OK - APP-UI-040: estado vazio e limpeza por Escape configurados.' . PHP_EOL;
+// APP-A11Y-043: off-canvas mobile links are inert while the menu is closed.
+if (!str_contains($enterpriseJs, 'sidebar.inert = !desktopViewport.matches')
+    || !str_contains($enterpriseJs, 'updateSidebarInert();')
+    || !str_contains($enterpriseJs, 'sidebar?.contains(document.activeElement)')) {
+    throw new RuntimeException('APP-A11Y-043: sidebar móvel permite foco fora da tela.');
+}
+echo 'OK - APP-A11Y-043: menu móvel remove links ocultos da ordem de foco.' . PHP_EOL;
 echo 'OK - APP-UI-035: busca PJ local acessível e sem submissão de dados.' . PHP_EOL;
 echo 'OK - ENT-027: onze módulos PJ acessíveis, sem valores inventados e sem seleção indevida.' . PHP_EOL;
 echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
