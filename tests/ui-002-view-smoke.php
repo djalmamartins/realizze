@@ -36,14 +36,14 @@ $checks = [
     ],
     'header' => [
         $view->render('components::dashboard-header', ['name' => 'Teste', 'user' => $user]),
-        ['Agosto de 2026', 'sidebar-toggle'],
+        ['Sem dados integrados.', 'sidebar-toggle'],
     ],
     'summary' => [
         $view->render('components::overview-summary'),
         ['Saldo disponível', 'Fechamento previsto'],
     ],
     'panels' => [
-        $view->render('components::overview-panels', ['transactions' => [], 'accounts' => []]),
+        $view->render('components::overview-panels'),
         ['Últimas movimentações', 'Gastos por categoria'],
     ],
     'receber' => [
@@ -68,4 +68,17 @@ foreach ($checks as $name => [$html, $expected]) {
     }
     echo 'OK - ' . $name . PHP_EOL;
 }
+// As telas iniciais não devem exibir saldos, transações ou bancos fictícios.
+foreach (['header', 'summary', 'panels'] as $name) {
+    $html = $checks[$name][0];
+    if (preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
+        throw new RuntimeException("UI-026: valor monetário fictício em {$name}");
+    }
+    foreach (['Agosto de 2026', 'Nubank', 'Visa Final 4242', 'Enel'] as $fixture) {
+        if (str_contains($html, $fixture)) {
+            throw new RuntimeException("UI-026: dado demonstrativo indevido em {$name}: {$fixture}");
+        }
+    }
+}
+echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
 echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
