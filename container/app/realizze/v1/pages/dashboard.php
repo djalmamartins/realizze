@@ -8,7 +8,7 @@ if ($user === null) {
 }
 $name = htmlspecialchars((string) ($user['first_name'] ?? 'Cliente'), ENT_QUOTES, 'UTF-8');
 $csrf = htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8');
-$publishedAssets = BASE_PATH . '/public/assets/realizze/v1/app';
+$publishedAssets = BASE_PATH . '/public/assets/realizze-app/v1';
 $publishedCss = $publishedAssets . '/css/dashboard.min.css';
 $publishedJs = $publishedAssets . '/js/dashboard.min.js';
 $sections = [
@@ -73,7 +73,7 @@ $accounts = [
 <link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
 <title><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?> | Realizze</title>
 <?php if (is_file($publishedCss)): ?>
-<link rel="stylesheet" href="/assets/realizze/v1/app/css/dashboard.min.css?v=<?= (int) filemtime($publishedCss) ?>">
+<link rel="stylesheet" href="/assets/realizze-app/v1/css/dashboard.min.css?v=<?= (int) filemtime($publishedCss) ?>">
 <?php else: ?>
 <style><?= file_get_contents(dirname(__DIR__) . '/assets/css/dashboard.css') ?></style>
 <?php endif; ?>
@@ -109,7 +109,7 @@ $accounts = [
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <?php if (is_file($publishedJs)): ?>
-<script src="/assets/realizze/v1/app/js/dashboard.min.js?v=<?= (int) filemtime($publishedJs) ?>" defer></script>
+<script src="/assets/realizze-app/v1/js/dashboard.min.js?v=<?= (int) filemtime($publishedJs) ?>" defer></script>
 <?php else: ?>
 <script><?= file_get_contents(dirname(__DIR__) . '/assets/js/dashboard.js') ?></script>
 <?php endif; ?>
