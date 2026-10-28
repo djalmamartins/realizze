@@ -1,5 +1,5 @@
 <?php /** CMS: prévia da trilha de auditoria, sem leitura de eventos privados. */ ?>
-<div class="cms-heading"><div><span class="cms-eyebrow">Plataforma / Segurança</span><h1>Logs e auditoria</h1><p>Consulte futuramente alterações administrativas e eventos de acesso.</p></div><span class="cms-chip">Prévia visual</span></div>
+<?php $cmsHeading = ['eyebrow' => 'Plataforma / Segurança', 'title' => 'Logs e auditoria', 'description' => 'Consulte futuramente alterações administrativas e eventos de acesso.', 'badge' => 'Prévia visual']; require __DIR__ . '/../components/page-heading.php'; ?>
 <div class="cms-detail-layout">
 <section class="cms-card" aria-labelledby="cms-audit-title">
  <div class="cms-module-head"><div><h2 id="cms-audit-title">Histórico de eventos</h2><p>Filtros de auditoria disponíveis após autenticação e autorização.</p></div><button type="button" disabled>Exportar registros</button></div>
