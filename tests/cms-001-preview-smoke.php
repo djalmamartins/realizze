@@ -31,7 +31,8 @@ foreach ($sections as $slug => [$label, $path]) {
     $html = $render($slug);
     foreach (['lang="pt-BR"', 'id="cms-navigation"', 'id="cms-menu-toggle"',
         'aria-controls="cms-navigation"', 'new-logo-realizze.svg',
-        'aria-current="page"', 'href="#cms-content"', 'id="cms-content"', 'cms-preview-' . $slug] as $needle) {
+        'aria-current="page"', 'href="#cms-content"', 'id="cms-content"',
+        'id="cms-page-title"', 'cms-preview-' . $slug] as $needle) {
         if (!str_contains($html, $needle)) {
             throw new RuntimeException("CMS {$slug}: elemento ausente: {$needle}");
         }
@@ -68,6 +69,24 @@ foreach ($sections as $slug => [$label, $path]) {
     }
     echo "OK - CMS {$slug}: prévia renderizada e controles bloqueados" . PHP_EOL;
 }
+// CMS-UI-038: shared heading escapes all metadata and is rendered once per page.
+$cmsHeading = [
+    'eyebrow' => '<script>alert(1)</script>',
+    'title' => '<img src=x onerror=alert(1)>',
+    'description' => 'Descrição & detalhes',
+    'badge' => 'Prévia',
+];
+ob_start();
+require $root . '/components/page-heading.php';
+$escapedHeading = (string) ob_get_clean();
+if (str_contains($escapedHeading, '<script>')
+    || str_contains($escapedHeading, '<img')
+    || !str_contains($escapedHeading, '&lt;script&gt;')
+    || !str_contains($escapedHeading, '&lt;img')
+    || !str_contains($escapedHeading, 'Descrição &amp; detalhes')) {
+    throw new RuntimeException('CMS-UI-038: componente de cabeçalho não escapou os metadados.');
+}
+echo 'OK - CMS-UI-038: cabeçalho reutilizado e metadados escapados.' . PHP_EOL;
 $routes = file_get_contents($root . '/routes.php');
 if (!is_string($routes)
     || !str_contains($routes, "getenv('REALIZZE_CMS_LOCAL_PREVIEW')")
