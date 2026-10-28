@@ -1,39 +1,48 @@
 <?php $this->layout('default', [
- 'title' => 'Início | Realizze',
- 'description' => 'Realizze: uma experiência mais clara, moderna e conectada para a gestão de condomínios.',
+ 'title' => 'Realizze | Controle, planeje e realize',
+ 'description' => 'Organize contas, acompanhe movimentações e planeje seus objetivos pessoais ou empresariais com o Realizze.',
 ]); ?>
-<section class="hero">
- <div class="container hero-grid">
-  <div class="hero-copy">
-   <span class="pill"><span class="pill-dot"></span> CONDOMÍNIOS MAIS CONECTADOS</span>
-   <h1>Uma gestão mais <em>simples.</em> Uma rotina mais <em>leve.</em></h1>
-   <p>Organize informações, aproxime pessoas e tenha uma visão mais clara do dia a dia do seu condomínio.</p>
-   <div class="hero-actions"><a class="btn btn-primary" href="/cadastrar">Começar agora <span aria-hidden="true">↗</span></a><a class="btn btn-outline" href="/solucoes">Conhecer soluções <span aria-hidden="true">→</span></a></div>
-   <div class="hero-note"><span class="note-mark">✓</span> Uma plataforma pensada para simplificar o cotidiano.</div>
+<section class="rz-hero" id="inicio" aria-labelledby="rz-hero-title">
+ <div class="container rz-hero-grid">
+  <div class="rz-hero-copy" data-reveal>
+   <span class="rz-eyebrow">CONTROLE · PLANEJE · REALIZE</span>
+   <h1 id="rz-hero-title">Seu dinheiro sob controle, <em>sem esforço.</em></h1>
+   <p>Mais clareza para suas finanças pessoais e para o dia a dia da sua empresa. Organize, acompanhe e planeje tudo em um só lugar.</p>
+   <div class="rz-actions"><a class="btn btn-primary" href="/cadastrar">Começar agora <span aria-hidden="true">↗</span></a><a class="btn btn-outline" href="#como-funciona">Ver como funciona <span aria-hidden="true">▶</span></a></div>
+   <div class="rz-hero-perks"><span>✓ Interface intuitiva</span><span>✓ Para você e sua empresa</span><span>✓ Organização em um só lugar</span></div>
   </div>
-  <div class="hero-visual" aria-label="Ilustração conceitual do painel Realizze">
-    <div class="visual-glow"></div>
-    <div class="dashboard-mock">
-      <div class="mock-top"><span class="mock-logo">realizze<span class="mock-dot">.</span></span><span class="mock-avatar">R</span></div>
-      <div class="mock-greeting">Bom dia! <span>✳</span></div>
-      <div class="mock-sub">Seu condomínio em uma visão mais clara.</div>
-      <div class="mock-stats"><div><span>Solicitações</span><strong>12</strong><small>Em acompanhamento</small></div><div><span>Comunicados</span><strong>08</strong><small>Últimas atualizações</small></div></div>
-      <div class="mock-chart"><div class="mock-chart-head"><strong>Visão geral</strong><span>Esta semana</span></div><div class="bars"><i style="height:38%"></i><i style="height:57%"></i><i style="height:46%"></i><i style="height:75%"></i><i style="height:61%"></i><i style="height:91%"></i><i style="height:72%"></i></div></div>
+  <div class="rz-hero-art" data-reveal aria-label="Prévia ilustrativa do aplicativo Realizze; sem dados reais">
+   <div class="rz-glow"></div>
+   <div class="rz-browser">
+    <div class="rz-browser-top"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="" width="105" height="28"><span>Visão geral <i>●</i></span></div>
+    <div class="rz-browser-body"><div class="rz-mini-nav"><span>▦ &nbsp; Visão geral</span><span>↔ &nbsp; Movimentações</span><span>◉ &nbsp; Metas</span><span>▤ &nbsp; Relatórios</span></div>
+     <div class="rz-mini-content"><strong>Seu painel financeiro</strong><small>Exemplo ilustrativo de organização</small><div class="rz-mini-stats"><div><span>Receitas</span><b>—</b><small>Dados não conectados</small></div><div><span>Despesas</span><b>—</b><small>Dados não conectados</small></div></div><div class="rz-mini-chart"><span style="height:32%"></span><span style="height:50%"></span><span style="height:43%"></span><span style="height:72%"></span><span style="height:57%"></span><span style="height:86%"></span><span style="height:69%"></span></div><small>Gráfico ilustrativo · não representa movimentações reais</small></div>
     </div>
-    <div class="floating-card"><span class="float-icon">✓</span><div><strong>Tudo organizado</strong><small>Mais clareza na rotina</small></div></div>
+   </div>
+   <div class="rz-phone"><div class="rz-phone-notch"></div><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="" width="94" height="28"><p>Seu dinheiro, mais claro.</p><div class="rz-phone-balance">Visão do período <strong>—</strong><small>Sem dados conectados</small></div><div class="rz-phone-item">↙ <span>Receber</span><b>—</b></div><div class="rz-phone-item">↗ <span>Pagar</span><b>—</b></div><div class="rz-phone-item">◎ <span>Metas</span><b>—</b></div></div>
+   <div class="rz-float rz-float-one">✓ <span>Organização sem complicação</span></div><div class="rz-float rz-float-two">↗ <span>Mais clareza para decidir</span></div>
   </div>
  </div>
 </section>
-<section class="trust-strip"><div class="container"><span>MENOS COMPLEXIDADE</span><span>MAIS ORGANIZAÇÃO</span><span>COMUNICAÇÃO CLARA</span><span>EVOLUÇÃO CONTÍNUA</span></div></section>
-<section class="section" id="beneficios"><div class="container"><div class="section-heading centered"><span class="eyebrow">POR QUE REALIZZE?</span><h2>O que importa, no lugar certo.</h2><p>Uma experiência desenhada para deixar as tarefas mais simples e as informações mais acessíveis.</p></div>
-<div class="feature-grid">
- <article class="feature-card"><span class="feature-icon">▦</span><h3>Organização no dia a dia</h3><p>Uma visão clara para acompanhar informações e atividades importantes.</p><a href="/solucoes">Saiba mais <span aria-hidden="true">→</span></a></article>
- <article class="feature-card"><span class="feature-icon">◎</span><h3>Comunicação próxima</h3><p>Mais contexto e transparência para conectar gestão e moradores.</p><a href="/solucoes">Saiba mais <span aria-hidden="true">→</span></a></article>
- <article class="feature-card"><span class="feature-icon">✦</span><h3>Experiência intuitiva</h3><p>Interfaces pensadas para facilitar o acesso em diferentes dispositivos.</p><a href="/solucoes">Saiba mais <span aria-hidden="true">→</span></a></article>
+<div class="rz-trust-bar"><div class="container"><span>FEITO PARA SUA ROTINA</span><span>Finanças pessoais</span><span>Gestão empresarial</span><span>Planejamento</span><span>Controle e organização</span></div></div>
+<section class="rz-section" id="para-voce"><div class="container rz-split"><div class="rz-visual-card rz-personal-art" data-reveal><div class="rz-orbit"><div class="rz-orbit-center">◎</div><span class="rz-orbit-tag a">✓ Contas organizadas</span><span class="rz-orbit-tag b">◉ Metas e objetivos</span><span class="rz-orbit-tag c">▥ Relatórios claros</span></div></div><div data-reveal><span class="rz-kicker">PARA VOCÊ</span><h2>A maneira mais simples de cuidar do seu dinheiro.</h2><p class="rz-lead">Tenha uma visão mais clara de seus compromissos, organize seus gastos e transforme planos em objetivos acompanháveis.</p><ul class="rz-checks"><li>Acompanhe receitas e despesas</li><li>Organize contas e cartões</li><li>Planeje metas e prioridades</li><li>Consulte relatórios em um só lugar</li></ul><a class="btn btn-primary" href="/cadastrar">Conhecer o plano pessoal ↗</a></div></div></section>
+<section class="rz-section rz-business" id="empresas"><div class="container rz-split rz-business-grid"><div data-reveal><span class="rz-kicker rz-kicker-light">PARA EMPRESAS</span><h2>Tenha a gestão financeira que sua empresa precisa.</h2><p class="rz-lead">Organize cobranças, acompanhe contas a pagar e receber e tenha mais contexto para tomar decisões.</p><ul class="rz-checks"><li>Receitas, despesas e cobranças</li><li>Fluxo de caixa e planejamento</li><li>Visão por empresa e equipe</li><li>Relatórios para apoiar decisões</li></ul><a class="btn btn-light" href="/cadastrar">Conhecer o Realizze empresarial ↗</a></div><div class="rz-business-preview" data-reveal><div class="rz-business-head">Realizze <span>Visão empresarial</span></div><div class="rz-business-cards"><div><small>Receitas</small><strong>—</strong></div><div><small>Despesas</small><strong>—</strong></div><div><small>Resultado</small><strong>—</strong></div></div><div class="rz-business-bars"><i style="height:55%"></i><i style="height:78%"></i><i style="height:42%"></i><i style="height:88%"></i><i style="height:63%"></i><i style="height:74%"></i></div><small>Visualização demonstrativa, sem dados financeiros reais</small></div></div></section>
+<section class="rz-section" id="funcionalidades"><div class="container"><div class="rz-section-intro" data-reveal><span class="rz-kicker">FUNCIONALIDADES</span><h2>Tudo o que você precisa, em um só lugar.</h2><p class="rz-lead">Uma experiência consistente para acompanhar sua vida financeira e o crescimento do seu negócio.</p></div><div class="rz-features">
+<article class="rz-feature" data-reveal><span class="rz-feature-icon">↙</span><h3>Contas a receber</h3><p>Organize entradas e acompanhe vencimentos com mais clareza.</p></article>
+<article class="rz-feature" data-reveal><span class="rz-feature-icon">↗</span><h3>Contas a pagar</h3><p>Tenha seus compromissos e despesas em uma única visão.</p></article>
+<article class="rz-feature" data-reveal><span class="rz-feature-icon">▥</span><h3>Movimentações</h3><p>Consulte e organize seus registros financeiros por período.</p></article>
+<article class="rz-feature" data-reveal><span class="rz-feature-icon">◎</span><h3>Metas financeiras</h3><p>Transforme objetivos em planos com prazos e prioridades.</p></article>
+<article class="rz-feature" data-reveal><span class="rz-feature-icon">▤</span><h3>Relatórios</h3><p>Visualize informações para tomar decisões com mais segurança.</p></article>
+<article class="rz-feature" data-reveal><span class="rz-feature-icon">▦</span><h3>Contas e cartões</h3><p>Prepare uma visão centralizada das suas contas e cartões.</p></article>
 </div></div></section>
-<section class="section section-soft"><div class="container split-grid"><div class="illustration-panel"><div class="illustration-orb"></div><div class="illustration-note"><span>✦</span><strong>Mais tempo para o que importa</strong><small>Rotinas claras, decisões melhores.</small></div><div class="illustration-lines"><span></span><span></span><span></span></div></div><div class="split-copy"><span class="eyebrow">FEITO PARA O COTIDIANO</span><h2>Menos esforço para acompanhar. Mais tranquilidade para administrar.</h2><p>Uma plataforma de gestão precisa ser útil para quem administra e simples para quem acompanha.</p><ul class="check-list"><li>Informações apresentadas com clareza</li><li>Navegação simples e responsiva</li><li>Uma base preparada para evoluir</li></ul><a class="btn btn-primary" href="/sobre">Conheça o Realizze <span aria-hidden="true">→</span></a></div></div></section>
-<section class="section"><div class="container"><div class="section-heading between"><div><span class="eyebrow">CONTEÚDOS</span><h2>Ideias para uma gestão melhor.</h2></div><a class="text-link" href="/blog">Ver todos os artigos →</a></div><div class="blog-grid">
-<?php $posts = require __DIR__ . '/../components/posts-data.php'; foreach ($posts as $slug => $post): ?>
- <article class="post-card"><div class="post-art post-art-<?= $this->e($post['category'] === 'Gestão' ? 'one' : ($post['category'] === 'Comunicação' ? 'two' : 'three')) ?>"><span><?= $this->e($post['category']) ?></span></div><div class="post-body"><span class="post-tag"><?= $this->e($post['category']) ?></span><h3><a href="/blog/<?= $this->e($slug) ?>"><?= $this->e($post['title']) ?></a></h3><p><?= $this->e($post['excerpt']) ?></p><a class="text-link" href="/blog/<?= $this->e($slug) ?>">Ler artigo →</a></div></article>
-<?php endforeach; ?>
+<section class="rz-section rz-how" id="como-funciona"><div class="container rz-split"><div data-reveal><span class="rz-kicker">COMO FUNCIONA</span><h2>Seu caminho para uma vida financeira mais organizada.</h2><p class="rz-lead">Do primeiro acesso ao acompanhamento da rotina, o Realizze foi pensado para simplificar.</p><ol class="rz-steps"><li><b>01</b><div><strong>Crie sua conta</strong><p>Comece com seu perfil e suas preferências.</p></div></li><li><b>02</b><div><strong>Escolha seu contexto</strong><p>Organize suas finanças pessoais ou empresariais.</p></div></li><li><b>03</b><div><strong>Acompanhe sua rotina</strong><p>Consulte os módulos disponíveis conforme a evolução da plataforma.</p></div></li></ol></div><div class="rz-how-card" data-reveal><span class="rz-kicker">CONTROLE · PLANEJE · REALIZE</span><h3>Mais organização.<br>Mais possibilidades.</h3><div class="rz-how-stack"><span>✓ Receitas e despesas</span><span>✓ Planejamento</span><span>✓ Metas e objetivos</span><span>✓ Visão empresarial</span></div><a class="btn btn-primary" href="/cadastrar">Criar minha conta ↗</a></div></div></section>
+<section class="rz-section rz-security" id="seguranca"><div class="container rz-split"><div class="rz-security-art" data-reveal><span>♢</span><strong>Confiança começa com transparência.</strong><small>Suas informações merecem cuidado em cada etapa.</small></div><div data-reveal><span class="rz-kicker">SEGURANÇA E TRANSPARÊNCIA</span><h2>Uma experiência que inspira confiança.</h2><p class="rz-lead">Privacidade, controle de acesso e clareza sobre os recursos disponíveis fazem parte da construção do Realizze.</p><ul class="rz-checks"><li>Ambientes separados para site, App e administração</li><li>Acesso autenticado às áreas privadas</li><li>Separação entre contextos pessoais e empresariais</li><li>Informações sobre privacidade disponíveis para consulta</li></ul><a class="rz-text-link" href="/privacidade">Conhecer nossa política de privacidade →</a></div></div></section>
+<section class="rz-section rz-faq" id="perguntas"><div class="container"><div class="rz-section-intro" data-reveal><span class="rz-kicker">DÚVIDAS</span><h2>Perguntas frequentes</h2><p class="rz-lead">Respostas claras para você conhecer melhor o Realizze.</p></div><div class="rz-faq-list">
+<details><summary>O que é o Realizze?</summary><p>É uma plataforma em desenvolvimento para organizar e acompanhar finanças pessoais e empresariais em uma experiência unificada.</p></details>
+<details><summary>Posso usar para minha empresa?</summary><p>O Realizze contempla experiências para pessoas físicas e empresas, com separação de contexto e permissões.</p></details>
+<details><summary>O Realizze já se conecta automaticamente aos bancos?</summary><p>Integrações bancárias dependem de implementação, parceiros e autorizações. Não apresentamos conexões como ativas antes de estarem disponíveis.</p></details>
+<details><summary>Quais funcionalidades estão disponíveis?</summary><p>O aplicativo está em evolução. A disponibilidade real de cada recurso pode ser consultada após o acesso à plataforma.</p></details>
+<details><summary>Como meus dados são tratados?</summary><p>Consulte os detalhes na nossa política de privacidade e nos termos de uso.</p></details>
+<details><summary>Como entrar em contato?</summary><p>Você pode falar com a equipe pela <a href="/contato">página de contato</a>.</p></details>
 </div></div></section>
+<section class="rz-final-cta"><div class="container rz-final-inner"><div><span class="rz-kicker rz-kicker-light">O PRÓXIMO PASSO É SEU</span><h2>Organize suas finanças hoje e conquiste seus planos amanhã.</h2><p>Descubra uma forma mais clara de acompanhar o que importa para você.</p></div><div class="rz-actions"><a class="btn btn-light" href="/cadastrar">Começar agora ↗</a><a class="btn btn-outline rz-outline-light" href="/solucoes">Explorar soluções →</a></div></div></section>
