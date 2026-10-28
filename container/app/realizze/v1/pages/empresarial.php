@@ -80,6 +80,15 @@ $enterpriseGroups = [
     <div><h3 id="enterprise-modules-title">Áreas de gestão</h3><p>Conheça os módulos planejados. Todas as tabelas abaixo são apenas estruturas visuais, sem dados de clientes ou empresas.</p></div>
     <span class="enterprise-readonly-label">Somente visualização</span>
   </div>
+  <div class="enterprise-module-filter" role="search" aria-label="Filtrar áreas empresariais">
+    <div class="enterprise-filter-field">
+      <label for="enterprise-module-search">Localizar módulo</label>
+      <input id="enterprise-module-search" type="search" autocomplete="off" placeholder="Ex.: clientes, fluxo de caixa, DRE" aria-controls="enterprise-module-groups" aria-describedby="enterprise-search-help">
+    </div>
+    <button id="enterprise-module-clear" type="button" class="enterprise-secondary">Limpar filtro</button>
+    <p id="enterprise-search-help" class="muted">A pesquisa filtra apenas os módulos exibidos nesta página. Não consulta empresas ou lançamentos.</p>
+    <p id="enterprise-search-status" class="muted" role="status" aria-live="polite" aria-atomic="true">11 módulos disponíveis.</p>
+  </div>
   <nav class="enterprise-jump" aria-label="Ir para módulo empresarial">
     <?php foreach ($enterpriseGroups as $modules): ?>
       <?php foreach ($modules as $module): ?>
@@ -87,6 +96,7 @@ $enterpriseGroups = [
       <?php endforeach; ?>
     <?php endforeach; ?>
   </nav>
+  <div id="enterprise-module-groups">
   <?php foreach ($enterpriseGroups as $group => $modules): ?>
     <section class="enterprise-module-group" aria-label="<?= $escapeEnterprise($group) ?>">
       <h3><?= $escapeEnterprise($group) ?></h3>
@@ -97,5 +107,6 @@ $enterpriseGroups = [
       </div>
     </section>
   <?php endforeach; ?>
+  </div>
   <div class="enterprise-obligations"><strong>Isolamento PF/PJ</strong><p>Esta prévia não consulta nem altera lançamentos. O acesso futuro a cada módulo exigirá vínculo ativo, permissão por operação e consultas escopadas à organização validada no servidor. A importação OFX/CSV não está habilitada.</p></div>
 </section>
