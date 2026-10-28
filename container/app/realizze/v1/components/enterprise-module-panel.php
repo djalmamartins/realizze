@@ -7,7 +7,7 @@ $moduleColumns = $module['columns'] ?? [];
 $moduleIcon = (string) ($module['icon'] ?? 'building');
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ?>
-<section class="enterprise-module" id="enterprise-<?= $escape($moduleId) ?>" aria-labelledby="enterprise-title-<?= $escape($moduleId) ?>">
+<section class="enterprise-module" id="enterprise-<?= $escape($moduleId) ?>" tabindex="-1" aria-labelledby="enterprise-title-<?= $escape($moduleId) ?>">
   <header class="enterprise-module-header">
     <span class="enterprise-module-icon" aria-hidden="true"><?= $icon($moduleIcon) ?></span>
     <div>
