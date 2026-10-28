@@ -94,6 +94,7 @@
     const enterpriseSearch = $('#enterprise-module-search');
     const enterpriseClear = $('#enterprise-module-clear');
     const enterpriseStatus = $('#enterprise-search-status');
+    const enterpriseEmpty = $('#enterprise-search-empty');
     if (enterpriseSearch && enterpriseStatus) {
       const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
       const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
@@ -117,11 +118,18 @@
           const target = targetId ? document.getElementById(targetId) : null;
           link.hidden = !target || target.hidden;
         });
+        if (enterpriseEmpty) enterpriseEmpty.hidden = visible !== 0;
         enterpriseStatus.textContent = visible === 0
           ? 'Nenhum módulo corresponde à pesquisa.'
           : visible === 1 ? '1 módulo encontrado.' : visible + ' módulos encontrados.';
       };
       enterpriseSearch.addEventListener('input', applyFilter);
+      enterpriseSearch.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || enterpriseSearch.value === '') return;
+        event.preventDefault();
+        enterpriseSearch.value = '';
+        applyFilter();
+      });
       enterpriseClear?.addEventListener('click', () => {
         enterpriseSearch.value = '';
         applyFilter();
