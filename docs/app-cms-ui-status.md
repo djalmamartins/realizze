@@ -171,3 +171,11 @@ php scripts/publish-app-assets.php
 - **App Empresarial (11 módulos):** clientes, fornecedores, equipes/permissões, receber, pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, OFX/CSV e obrigações MEI/PJ continuam somente em prévia, sem persistência.
 - **CMS (8 seções):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos e assinaturas, Logs e Configurações continuam sem CRUD; autenticação administrativa, RBAC, CSRF em mutações e auditoria persistente seguem obrigatórios antes da abertura.
 - Não foram criadas rotas, queries financeiras, operações CMS, uploads, WhatsApp, cobranças, migrations ou alterações em produção. Testes visuais reais e auditoria MySQL de homologação ainda pendentes.
+
+## APP-A11Y-051 — transições responsivas de foco (28/10/2026)
+
+- Em `assets/js/dashboard.js`, a transição **móvel → desktop** fecha o menu sem direcionar foco ao botão móvel oculto; a sidebar visível permanece acessível.
+- Na transição **desktop → móvel**, o foco dentro da sidebar é transferido para o botão visível antes de ativar `inert` no menu fechado. Assim, links fora da tela não permanecem na ordem de Tab.
+- `tests/ui-003-mobile-menu.js` simula os dois sentidos da mudança de viewport e valida foco, `aria-expanded` e `inert`. Ainda requer homologação visual e teclado em navegador real.
+- Inventário inalterado: **App PF** tem dez páginas visuais, sem CRUD/dados reais; **App PJ** tem onze módulos em prévia, sem persistência/isolamento de consultas reais; **CMS** tem oito prévias, ainda sem autenticação administrativa, RBAC, CSRF em mutações, auditoria e CRUD.
+- Nenhuma alteração em banco, produção, cobrança, WhatsApp ou rotas administrativas.

@@ -47,12 +47,11 @@ const document = {
   querySelectorAll: () => [],
   addEventListener: (name, handler) => { listeners[name] = handler; },
 };
-const window = {
-  matchMedia: () => ({
-    matches: false,
-    addEventListener: (name, handler) => { if (name === 'change') desktopChange = handler; },
-  }),
+const desktopMedia = {
+  matches: false,
+  addEventListener: (name, handler) => { if (name === 'change') desktopChange = handler; },
 };
+const window = { matchMedia: () => desktopMedia };
 vm.runInNewContext(script, { document, window });
 assert.equal(sidebar.inert, true, 'mobile navigation is inert while closed');
 listeners['toggle:click']();
@@ -80,6 +79,16 @@ listeners['toggle:click']();
 listeners['backdrop:click']();
 assert.equal(shellClasses.has('menu-open'), false, 'backdrop closes navigation');
 listeners['toggle:click']();
+document.activeElement = closeButton;
+desktopMedia.matches = true;
 desktopChange({ matches: true });
 assert.equal(shellClasses.has('menu-open'), false, 'desktop transition closes mobile menu');
-console.log('OK - APP-A11Y-050: mobile disclosure navigation, focus, inert and Escape.');
+assert.equal(sidebar.inert, false, 'visible desktop sidebar remains keyboard reachable');
+assert.equal(toggleFocus, 1, 'desktop transition never focuses hidden mobile toggle');
+assert.equal(document.activeElement, closeButton, 'desktop transition preserves focus in visible navigation');
+desktopMedia.matches = false;
+desktopChange({ matches: false });
+assert.equal(sidebar.inert, true, 'desktop-to-mobile transition hides closed sidebar from keyboard');
+assert.equal(toggleFocus, 2, 'focus moves to visible mobile toggle before sidebar becomes inert');
+assert.equal(document.activeElement, toggle, 'focus stays on visible mobile control');
+console.log('OK - APP-A11Y-051: mobile disclosure, focus, inert and bidirectional breakpoint changes.');

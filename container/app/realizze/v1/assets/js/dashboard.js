@@ -31,7 +31,8 @@
       toggle?.setAttribute('aria-expanded', 'false');
       toggle?.setAttribute('aria-label', 'Abrir menu');
       backdrop?.setAttribute('aria-hidden', 'true');
-      if (restoreFocus || sidebar?.contains(document.activeElement)) toggle?.focus();
+      // The mobile toggle is hidden on desktop: keep focus inside the visible sidebar.
+      if (!desktopViewport.matches && (restoreFocus || sidebar?.contains(document.activeElement))) toggle?.focus();
       updateSidebarInert();
     };
 
@@ -74,7 +75,13 @@
     updateSidebarInert();
     if (typeof desktopViewport.addEventListener === 'function') {
       desktopViewport.addEventListener('change', (event) => {
-        if (event.matches) closeMenu();
+        if (event.matches) {
+          closeMenu();
+        } else {
+          // The desktop sidebar becomes off-canvas; move focus before applying inert.
+          if (sidebar?.contains(document.activeElement)) toggle?.focus();
+          updateSidebarInert();
+        }
       });
     }
 
