@@ -10,11 +10,25 @@ $name = htmlspecialchars((string) ($user['first_name'] ?? 'Cliente'), ENT_QUOTES
 $csrf = htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8');
 $css = '/container/app/realizze/v1/assets/css/dashboard.css';
 $js = '/container/app/realizze/v1/assets/js/dashboard.js';
+$sections = [
+    'overview' => ['Visão Geral', 'Resumo das suas finanças'],
+    'receber' => ['Receber', 'Acompanhe seus recebimentos'],
+    'pagar' => ['Pagar', 'Organize suas contas a pagar'],
+    'movimentacoes' => ['Movimentações', 'Consulte entradas e saídas'],
+    'contas' => ['Contas e Cartões', 'Gerencie suas contas e cartões'],
+    'relatorios' => ['Relatórios', 'Acompanhe seus resultados'],
+    'planejamento' => ['Planejamento', 'Planeje seu futuro financeiro'],
+    'metas' => ['Metas', 'Acompanhe seus objetivos'],
+    'categorias' => ['Categorias', 'Organize seus lançamentos'],
+    'configuracoes' => ['Configurações', 'Personalize sua experiência'],
+];
+$requestedSection = $_GET['pagina'] ?? 'overview';
+$section = is_string($requestedSection) && isset($sections[$requestedSection]) ? $requestedSection : 'overview';
 $items = [
-    ['house','Visão Geral','#overview'],['arrow-down-left','Receber','#receber'],['arrow-up-right','Pagar','#pagar'],
-    ['arrows-left-right','Movimentações','#movimentacoes'],['credit-card','Contas e Cartões','#contas'],
-    ['chart-no-axes-column','Relatórios','#relatorios'],['calendar-days','Planejamento','#planejamento'],
-    ['target','Metas','#metas'],['list-filter','Categoria','#categorias'],['settings','Configurações','#configuracoes']
+    ['house','Visão Geral','/minha-conta?pagina=overview'],['arrow-down-left','Receber','/minha-conta?pagina=receber'],['arrow-up-right','Pagar','/minha-conta?pagina=pagar'],
+    ['arrows-left-right','Movimentações','/minha-conta?pagina=movimentacoes'],['credit-card','Contas e Cartões','/minha-conta?pagina=contas'],
+    ['chart-no-axes-column','Relatórios','/minha-conta?pagina=relatorios'],['calendar-days','Planejamento','/minha-conta?pagina=planejamento'],
+    ['target','Metas','/minha-conta?pagina=metas'],['list-filter','Categorias','/minha-conta?pagina=categorias'],['settings','Configurações','/minha-conta?pagina=configuracoes']
 ];
 $iconPaths = [
     'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -52,8 +66,9 @@ $accounts = [
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#079550">\n<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
-<title>Visão Geral | Realizze</title>
+<meta name="theme-color" content="#079550">
+<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
+<title><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?> | Realizze</title>
 <style><?= file_get_contents(dirname(__DIR__) . '/assets/css/dashboard.css') ?></style>
 <script defer><?= file_get_contents(dirname(__DIR__) . '/assets/js/dashboard.js') ?></script>
 </head>
@@ -63,7 +78,7 @@ $accounts = [
 <a href="/minha-conta" class="brand" aria-label="Realizze"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="152" height="38"></a>
 <nav class="nav" aria-label="Menu principal">
 <?php foreach ($items as $index => $item): ?>
-<a href="<?= $item[2] ?>" <?= $index === 0 ? 'class="active" aria-current="page"' : 'data-demo="true"' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= htmlspecialchars($item[1], ENT_QUOTES, 'UTF-8') ?></a>
+<a href="<?= $item[2] ?>" <?= $section === array_keys($sections)[$index] ? 'class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= htmlspecialchars($item[1], ENT_QUOTES, 'UTF-8') ?></a>
 <?php endforeach; ?>
 </nav>
 <div class="sidebar-bottom">
@@ -74,6 +89,7 @@ $accounts = [
 </div>
 </aside>
 <main class="main" id="overview">
+<?php if ($section === 'overview'): ?>
 <header class="top">
 <div style="display:flex;align-items:center;gap:12px"><button class="sidebar-toggle" id="sidebar-toggle" aria-label="Abrir menu" aria-expanded="false">☰</button><div><h1>Bom dia, <?= $name ?>! 👋</h1><p>Aqui está o resumo de <strong id="month-label">Agosto de 2026</strong>.</p></div></div>
 <div class="toolbar">
@@ -103,6 +119,10 @@ $accounts = [
 <article class="card" id="contas"><div class="section-head"><h2>Contas e cartões</h2><a href="#contas" data-demo="true">Ver todas</a></div><?php foreach ($accounts as $a): ?><div class="account"><span class="bank" style="background:<?= $a[4] ?>"><?= $a[0] ?></span><div class="details"><strong><?= $a[1] ?></strong><small><?= $a[2] ?></small></div><span class="amount <?= str_starts_with($a[3],'−')?'red':'green' ?>"><?= $a[3] ?></span></div><?php endforeach; ?></article>
 </section>
 <section class="card insights"><span class="stat-icon">☼</span><div><strong>Insights do mês</strong><p>Você gastou R$ 680,00 a mais com alimentação neste mês comparado a julho.</p></div><button type="button" data-demo="true">Ver mais insights</button></section>
+<?php else: ?>
+<section class="page-heading"><div><p class="eyebrow">Meu financeiro / <?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></p><h1><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h1><p class="muted"><?= htmlspecialchars($sections[$section][1], ENT_QUOTES, 'UTF-8') ?></p></div><span class="preview-chip">Prévia de interface</span></section>
+<section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[array_search($section, array_keys($sections), true)][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
+<?php endif; ?>
 <p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Valores ilustrativos · Nenhuma movimentação real é exibida</p>
 </main>
 </div>
