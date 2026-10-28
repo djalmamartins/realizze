@@ -11,5 +11,6 @@ $cmsIcons = [
     'settings' => '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7m10 10 2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
 ];
 $cmsIcon = static function (string $name) use ($cmsIcons): string {
-    return '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $cmsIcons[$name] . '</svg>';
+    $safeName = array_key_exists($name, $cmsIcons) ? $name : 'overview';
+    return '<svg data-cms-icon="' . $safeName . '" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . $cmsIcons[$safeName] . '</svg>';
 };
