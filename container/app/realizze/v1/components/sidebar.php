@@ -1,4 +1,5 @@
-<aside class="sidebar" aria-label="Navegação principal">
+<aside class="sidebar" id="app-sidebar" aria-label="Navegação principal">
+<button type="button" class="sidebar-close" id="sidebar-close" aria-label="Fechar menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
 <a href="/minha-conta" class="brand" aria-label="Realizze"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="152" height="38"></a>
 <nav class="nav" aria-label="Menu principal">
 <?php foreach ($items as $index => $item): ?>
