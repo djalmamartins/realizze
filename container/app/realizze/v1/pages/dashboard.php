@@ -51,19 +51,6 @@ $icon = static function (string $name) use ($iconPaths): string {
     $paths = $iconPaths[$name] ?? '';
     return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $paths . '</svg>';
 };
-$transactions = [
-    ['↓','Recebimento de Aluguel','Apartamento 101','+ R$ 2.000,00','Hoje',true],
-    ['↗','Pagamento Celular','Vivo Pós','− R$ 150,00','Hoje',false],
-    ['↓','Transferência recebida','De: Cliente A','+ R$ 850,00','Ontem',true],
-    ['↗','Pagamento Energia','Enel','− R$ 320,00','14/08',false],
-    ['↓','Recebimento Salário','Empresa Ltda','+ R$ 8.500,00','13/08',true],
-];
-$accounts = [
-    ['nu','Nubank','Conta Corrente','R$ 2.800,00','#8022bc'],
-    ['inter','Inter','Conta Corrente','R$ 4.200,00','#ff7e00'],
-    ['▣','Carteira','Dinheiro','R$ 1.150,00','#0a9c59'],
-    ['VISA','Visa Final 4242','Cartão de Crédito','− R$ 2.430,00','#1754cf'],
-];
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -97,7 +84,7 @@ $accounts = [
 <?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user]) ?>
 <?= $appView->render('components::getting-started', ['icon' => $icon]) ?>
 <?= $appView->render('components::overview-summary') ?>
-<?= $appView->render('components::overview-panels', ['transactions' => $transactions, 'accounts' => $accounts]) ?>
+<?= $appView->render('components::overview-panels') ?>
 <?php else: ?>
 <div class="section-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Abrir menu" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 <section class="page-heading"><div><p class="eyebrow">Meu financeiro / <?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></p><h1><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h1><p class="muted"><?= htmlspecialchars($sections[$section][1], ENT_QUOTES, 'UTF-8') ?></p></div><span class="preview-chip">Prévia de interface</span></section>
@@ -107,7 +94,7 @@ $accounts = [
 <section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[array_search($section, array_keys($sections), true)][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
 <?php endif; ?>
 <?php endif; ?>
-<p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Valores ilustrativos · Nenhuma movimentação real é exibida</p>
+<p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Dados financeiros ainda não integrados · Nenhuma movimentação real é exibida</p>
 </main>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
