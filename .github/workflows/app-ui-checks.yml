@@ -5,6 +5,7 @@ on:
     paths:
       - 'container/app/**'
       - 'scripts/publish-app-assets.php'
+      - 'tests/ui-002-view-smoke.php'
       - '.github/workflows/app-ui-checks.yml'
   workflow_dispatch:
 
@@ -28,6 +29,8 @@ jobs:
         run: |
           find container/app/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l scripts/publish-app-assets.php
+      - name: Smoke-test MovesCode View components
+        run: php tests/ui-002-view-smoke.php
       - name: Check source JavaScript syntax
         run: node --check container/app/realizze/v1/assets/js/dashboard.js
       - name: Publish assets with MovesCode Compress
