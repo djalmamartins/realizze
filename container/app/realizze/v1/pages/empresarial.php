@@ -51,7 +51,7 @@ $enterpriseGroups = [
     <?php if ($enterpriseOrganizations !== []): ?>
       <div class="enterprise-context-controls">
         <form method="post" action="/minha-conta/contexto">
-          <input type="hidden" name="csrf_token" value="<?= $csrf ?? '' ?>">
+          <input type="hidden" name="csrf_token" value="<?= $escapeEnterprise($csrf ?? '') ?>">
           <input type="hidden" name="context_type" value="organization">
           <label for="enterprise-organization">Empresa vinculada</label>
           <select name="organization_id" id="enterprise-organization" required>
@@ -88,6 +88,10 @@ $enterpriseGroups = [
     <button id="enterprise-module-clear" type="button" class="enterprise-secondary">Limpar filtro</button>
     <p id="enterprise-search-help" class="muted">A pesquisa filtra apenas os módulos exibidos nesta página. Não consulta empresas ou lançamentos.</p>
     <p id="enterprise-search-status" class="muted" role="status" aria-live="polite" aria-atomic="true">11 módulos disponíveis.</p>
+  </div>
+  <div id="enterprise-search-empty" class="enterprise-search-empty" hidden aria-labelledby="enterprise-search-empty-title">
+    <strong id="enterprise-search-empty-title">Nenhum módulo encontrado</strong>
+    <p>Experimente outro termo ou use “Limpar filtro” para ver todas as áreas de gestão.</p>
   </div>
   <nav class="enterprise-jump" aria-label="Ir para módulo empresarial">
     <?php foreach ($enterpriseGroups as $modules): ?>
