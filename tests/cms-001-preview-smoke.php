@@ -45,7 +45,28 @@ foreach ($sections as $slug => [$label, $path]) {
     if (!str_contains($html, $label)) {
         throw new RuntimeException("CMS {$slug}: título da seção ausente");
     }
-    echo "OK - CMS {$slug}: prévia renderizada" . PHP_EOL;
+    // CMS-A11Y-031: a prévia nunca deve permitir edição, submissão ou valores financeiros fictícios.
+    if (preg_match('/<form\\b/i', $html) === 1 || preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
+        throw new RuntimeException("CMS {$slug}: formulário ou valor fictício indevido na prévia.");
+    }
+    preg_match_all('/<(?:button|input|select|textarea)\\b[^>]*>/i', $html, $controls);
+    foreach ($controls[0] as $control) {
+        if (str_contains($control, 'id="cms-menu-toggle"')) {
+            continue; // A navegação local é a única interação habilitada.
+        }
+        if (preg_match('/\\bdisabled\\b/i', $control) !== 1) {
+            throw new RuntimeException("CMS {$slug}: controle administrativo habilitado: {$control}");
+        }
+    }
+    preg_match_all('/\\bid="([^"]+)"/', $html, $ids);
+    if (count($ids[1]) !== count(array_unique($ids[1]))) {
+        throw new RuntimeException("CMS {$slug}: IDs duplicados no HTML.");
+    }
+    $pageIcons = ['pages' => 'pages', 'contents' => 'media', 'media' => 'media', 'users' => 'users'];
+    if (isset($pageIcons[$slug]) && substr_count($html, 'data-cms-icon="' . $pageIcons[$slug] . '"') < 2) {
+        throw new RuntimeException("CMS {$slug}: ícone SVG compartilhado ausente na página.");
+    }
+    echo "OK - CMS {$slug}: prévia renderizada e controles bloqueados" . PHP_EOL;
 }
 $routes = file_get_contents($root . '/routes.php');
 if (!is_string($routes)
