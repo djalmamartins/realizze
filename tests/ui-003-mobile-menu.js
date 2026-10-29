@@ -105,3 +105,37 @@ assert.equal(document.activeElement, navigationLink, 'desktop transition moves f
 assert.equal(navigationFocus, 2, 'desktop navigation receives focus from both mobile-only buttons');
 assert.equal(sidebar.inert, false, 'desktop sidebar remains reachable after returning to desktop');
 console.log('OK - APP-A11Y-060: mobile disclosure, focus, inert and breakpoint focus recovery.');
+
+
+// APP-A11Y-068: a partial DOM must never make the visible fallback navigation inert.
+for (const missing of ['#shell', '#app-sidebar', '#sidebar-toggle', '#sidebar-close', '#sidebar-backdrop']) {
+  const fallbackListeners = {};
+  const fallbackClasses = new Set();
+  const fallbackShell = { classList: classList(fallbackClasses) };
+  const fallbackSidebar = { inert: false, querySelectorAll: () => [] };
+  const fallbackToggle = { addEventListener: (name) => { fallbackListeners['toggle:' + name] = true; } };
+  const fallbackClose = { addEventListener: (name) => { fallbackListeners['close:' + name] = true; } };
+  const fallbackBackdrop = { addEventListener: (name) => { fallbackListeners['backdrop:' + name] = true; } };
+  const elements = {
+    '#shell': fallbackShell, '#app-sidebar': fallbackSidebar,
+    '#sidebar-toggle': fallbackToggle, '#sidebar-close': fallbackClose,
+    '#sidebar-backdrop': fallbackBackdrop,
+  };
+  delete elements[missing];
+  const fallbackDocument = {
+    readyState: 'complete', activeElement: null,
+    body: { classList: classList(new Set()) },
+    querySelector: (selector) => elements[selector] || null,
+    querySelectorAll: () => [],
+    addEventListener: (name) => { fallbackListeners[name] = true; },
+  };
+  vm.runInNewContext(script, {
+    document: fallbackDocument,
+    window: { matchMedia: () => ({ matches: false, addEventListener: () => {} }) },
+  });
+  assert.equal(fallbackClasses.has('app-js'), false, 'incomplete shell cannot activate the off-canvas CSS: ' + missing);
+  assert.equal(fallbackSidebar.inert, false, 'fallback links stay keyboard reachable: ' + missing);
+  assert.equal(fallbackListeners['toggle:click'], undefined, 'no half-working menu toggle: ' + missing);
+  assert.equal(fallbackListeners.keydown, undefined, 'no incomplete menu keyboard handler: ' + missing);
+}
+console.log('OK - APP-A11Y-068: incomplete navigation keeps accessible no-JS fallback.');

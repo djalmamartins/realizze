@@ -334,3 +334,11 @@ php scripts/publish-app-assets.php
 - Regressões adicionadas a `tests/ui-003-mobile-menu.js` e `tests/ui-002-view-smoke.php`. A homologação visual e de teclado em navegador móvel real continua pendente.
 - **App PF pendente:** operações e dados autorizados nas dez páginas financeiras; Assistente continua desabilitado. **App PJ pendente:** cadastros, equipes/permissões, receber/pagar, bancos/cartões, fluxo, custos, DRE, OFX/CSV e obrigações com isolamento validado. **CMS pendente:** oito seções visuais exigem autenticação administrativa, CSRF, RBAC, auditoria e CRUD; prévia local continua bloqueada publicamente.
 - Nenhuma mudança em rotas, banco, migrações, produção, WhatsApp, cobranças ou controles de acesso ao CMS.
+
+
+## APP-A11Y-068 — menu parcial e fallback seguro (29/10/2026)
+
+- A navegação móvel PF/PJ só ativa a classe `app-js`, os listeners do menu e o atributo `inert` quando os cinco elementos essenciais existem. Uma falha parcial na renderização não deixa os links visíveis porém inacessíveis ao teclado.
+- `tests/ui-003-mobile-menu.js` inclui regressões para a ausência individual de shell, sidebar, botão de abertura, botão de fechamento e backdrop. Sem integração financeira, alteração de sessão ou novas rotas.
+- **App PF pendente:** integração autorizada das dez páginas financeiras, CRUD, filtros reais, relatórios e homologação visual mobile. **App PJ pendente:** onze módulos com serviços, escopo por organização e testes de isolamento. **CMS pendente:** oito seções com autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD; prévia local permanece bloqueada externamente.
+- Ainda faltam inspeção MySQL de homologação, testes HTTP de autenticação/CSRF/isolamento e validação em navegador real. Nenhuma migração, cobrança, WhatsApp ou produção foi alterada.

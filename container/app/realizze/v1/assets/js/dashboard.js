@@ -10,13 +10,14 @@
     const backdrop = $('#sidebar-backdrop');
     // Enhance the mobile navigation only when all disclosure controls exist.
     // If this script cannot load, the CSS fallback keeps the links visible.
-    if (shell && sidebar && toggle && closeButton && backdrop) shell.classList.add('app-js');
+    const navigationReady = Boolean(shell && sidebar && toggle && closeButton && backdrop);
+    if (navigationReady) shell.classList.add('app-js');
     const toast = $('#toast');
     let toastTimer;
     const desktopViewport = window.matchMedia('(min-width: 851px)');
     // Prevent keyboard focus from entering the off-canvas mobile sidebar.
     const updateSidebarInert = () => {
-      if (sidebar) sidebar.inert = !desktopViewport.matches && !shell?.classList.contains('menu-open');
+      if (navigationReady) sidebar.inert = !desktopViewport.matches && !shell.classList.contains('menu-open');
     };
 
     const notify = (message) => {
@@ -50,7 +51,10 @@
       (closeButton || sidebar?.querySelector('a'))?.focus();
     };
 
-    toggle?.addEventListener('click', () => {
+    // A partially rendered shell must keep the CSS fallback usable; do not
+    // install controls that could hide links or move focus without a full menu.
+    if (navigationReady) {
+    toggle.addEventListener('click', () => {
       if (shell?.classList.contains('menu-open')) closeMenu(true);
       else openMenu();
     });
@@ -90,6 +94,7 @@
           updateSidebarInert();
         }
       });
+    }
     }
 
     // Anchors in the PJ workspace move keyboard focus to the selected module.
