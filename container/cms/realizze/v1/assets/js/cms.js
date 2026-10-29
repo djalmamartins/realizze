@@ -23,7 +23,10 @@
       sidebar.classList.remove('cms-menu-open');
       toggle.setAttribute('aria-expanded', 'false');
       toggle.setAttribute('aria-label', 'Abrir navegação');
-      if (restoreFocus && !desktop.matches) toggle.focus();
+      // Closing a mobile disclosure must not strand keyboard focus in a
+      // navigation link that becomes display:none. Preserve focus if it has
+      // already moved into the page or if the navigation stays visible.
+      if (!desktop.matches && (restoreFocus || nav.contains(document.activeElement))) toggle.focus();
     };
     toggle.addEventListener('click', () => {
       const open = !sidebar.classList.contains('cms-menu-open');

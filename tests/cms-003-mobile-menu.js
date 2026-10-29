@@ -54,7 +54,10 @@ assert.equal(classes.has('cms-menu-open'), false, 'menu starts closed');
 events['toggle:click']();
 assert.equal(attrs['aria-expanded'], 'true', 'menu expanded');
 assert.equal(linkFocus, 1, 'first navigation link receives focus');
-events.focusin({ target: {} });
+const outsideContent = {};
+document.activeElement = outsideContent;
+events.focusin({ target: outsideContent });
+assert.equal(document.activeElement, outsideContent, 'Tabbing into content preserves external focus');
 assert.equal(classes.has('cms-menu-open'), false, 'Tabbing into content closes menu');
 assert.equal(attrs['aria-expanded'], 'false', 'ARIA state resets after focus leaves');
 events['toggle:click']();
@@ -63,8 +66,11 @@ events.keydown({ key: 'Escape', preventDefault: () => { prevented = true; } });
 assert.equal(prevented, true, 'Escape handled');
 assert.equal(toggleFocus, 1, 'Escape restores toggle focus');
 events['toggle:click']();
+const pointerFocusBefore = toggleFocus;
 events.pointerdown({ target: {} });
 assert.equal(classes.has('cms-menu-open'), false, 'outside pointer closes menu');
+assert.equal(document.activeElement, toggle, 'outside pointer never leaves focus in hidden navigation');
+assert.equal(toggleFocus, pointerFocusBefore + 1, 'focus returns to the mobile toggle before the nav is hidden');
 events['toggle:click']();
 desktopMatches = true;
 breakpointHandler({ matches: true });
@@ -87,6 +93,7 @@ assert.equal(classes.has('cms-menu-open'), false, 'desktop transition closes mob
 events['toggle:click']();
 events['nav:click']({ target: { closest: (selector) => selector === 'a' ? link : null } });
 assert.equal(classes.has('cms-menu-open'), false, 'navigation link closes menu');
+assert.equal(document.activeElement, toggle, 'closing a mobile navigation link restores visible keyboard focus');
 
 /* CMS-A11Y-069: incomplete startup must never hide the CSS-only navigation. */
 for (const missing of ['cms-sidebar', 'cms-menu-toggle', 'cms-navigation',
