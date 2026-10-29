@@ -244,3 +244,11 @@ php scripts/publish-app-assets.php
 - **App PJ — faltantes:** onze módulos em prévia, sem consultas ou CRUD escopados; auditoria do MySQL de homologação e testes HTTP PF/PJ obrigatórios.
 - **CMS — faltantes:** oito seções em prévia; autenticação administrativa, autorização por papéis, CSRF para mutações, auditoria persistente e CRUD permanecem pendentes. A prévia local continua bloqueada por flags e IP.
 - **Homologação pendente:** teste visual no Docker do Mac, testes HTTP de sessão/CSRF/isolamento e inspeção MySQL. Sem WhatsApp, cobranças, migrações ou alterações de produção.
+
+## CMS-UI/A11Y-058 — fluxos de acesso e planos, menu progressivo (29/10/2026)
+
+- **Usuários e permissões** e **Planos e assinaturas** agora reutilizam `components/workflow-preview.php`, com quatro etapas pendentes específicas para convites/RBAC/auditoria e rascunho/revisão/autorização/publicação futura de ofertas. Nenhum convite, plano, assinatura ou cobrança foi criado.
+- **Navegação móvel CMS sem JavaScript:** o botão de menu só é mostrado após a inicialização do script (`.cms-js`); sem JS, a navegação permanece visível e não há botão inoperante.
+- `tests/cms-001-preview-smoke.php` valida os cinco fluxos e a regra progressiva do menu. Testes HTTP, teclado/leitor de tela e homologação visual no Docker ainda são necessários.
+- **App PF (11 seções):** dez seções financeiras sem CRUD, filtros/dados autorizados e relatórios reais; Assistente Financeiro apenas visual e desabilitado. **App PJ (11 módulos):** serviços e consultas isoladas por organização, equipes, financeiro, DRE e OFX/CSV pendentes. **CMS (8 seções):** interfaces existentes; faltam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD seguro.
+- CMS continua restrito à prévia local por flags/IP. Sem WhatsApp, cobranças, migrações destrutivas ou alterações em produção.

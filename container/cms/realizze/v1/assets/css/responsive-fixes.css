@@ -43,7 +43,8 @@
 .cms-menu-toggle:focus-visible,.cms-brand:focus-visible{outline:3px solid #078e51;outline-offset:3px}
 .cms-nav a{min-height:44px}
 @media(max-width:720px){
-  .cms-menu-toggle{display:inline-flex}
+  /* Only expose the toggle when JavaScript has activated the disclosure. */
+  .cms-sidebar.cms-js .cms-menu-toggle{display:inline-flex}
   .cms-sidebar.cms-js .cms-nav{display:none}
   .cms-sidebar.cms-js.cms-menu-open .cms-nav{display:grid;grid-template-columns:1fr}
   .cms-sidebar.cms-js.cms-menu-open .cms-nav b{grid-column:1}

@@ -169,9 +169,19 @@ if (!str_contains($cmsMobilePreview, 'class="cms-preview-status">Prévia local �
 }
 echo 'OK - CMS-A11Y-049: status da prévia visível e navegação móvel com saída por teclado.' . PHP_EOL;
 
+// CMS-A11Y-058: without JavaScript the navigation remains visible and the toggle is hidden.
+if (!str_contains($cmsMobileCss, '.cms-sidebar.cms-js .cms-menu-toggle{display:inline-flex}')
+    || !str_contains($cmsMobileCss, '.cms-sidebar.cms-js .cms-nav{display:none}')
+    || !str_contains($cmsMobilePreview, 'id="cms-menu-toggle"')) {
+    throw new RuntimeException('CMS-A11Y-058: navegação progressiva sem JavaScript incorreta.');
+}
+echo 'OK - CMS-A11Y-058: menu visível sem JS, botão móvel somente com JS.' . PHP_EOL;
+
 // CMS-UI-057: shared read-only workflows in pages, contents and media.
 foreach (['pages' => 'Fluxo previsto para páginas', 'contents' => 'Fluxo editorial previsto',
-    'media' => 'Fluxo seguro previsto para arquivos'] as $slug => $heading) {
+    'media' => 'Fluxo seguro previsto para arquivos',
+    'users' => 'Fluxo previsto de acesso administrativo',
+    'plans' => 'Fluxo previsto de planos e assinaturas'] as $slug => $heading) {
     $html = $render($slug);
     if (!str_contains($html, $heading)
         || substr_count($html, '<ol class="cms-workflow-steps">') !== 1
@@ -193,4 +203,4 @@ if (str_contains($workflowHtml, '<script>') || str_contains($workflowHtml, '<img
     || !str_contains($workflowHtml, 'Texto &amp; dados')) {
     throw new RuntimeException('CMS-UI-057: fluxo não escapou os metadados.');
 }
-echo 'OK - CMS-UI-057: fluxos de páginas, conteúdos e mídia acessíveis e sem ações.' . PHP_EOL;
+echo 'OK - CMS-UI-058: fluxos de páginas, conteúdos, mídia, usuários e planos sem ações.' . PHP_EOL;

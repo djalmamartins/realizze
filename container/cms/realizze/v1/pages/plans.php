@@ -24,4 +24,13 @@
  <div class="cms-setting-row"><span>Pagamentos</span><strong>Desabilitados</strong></div>
  <div class="cms-section-divider"></div><h2>Publicação segura</h2><p>Alterações em planos exigirão permissões administrativas, CSRF, trilha de auditoria e integração validada.</p><button type="button" disabled>Salvar plano</button>
 </aside></div>
+<?php $cmsWorkflow = [
+    'title' => 'Fluxo previsto de planos e assinaturas',
+    'steps' => [
+        ['title' => 'Rascunho', 'description' => 'Definir público, recursos e condições sem cadastrar cobranças.'],
+        ['title' => 'Revisão', 'description' => 'Validar oferta, transparência e regras de contratação.'],
+        ['title' => 'Autorização', 'description' => 'Exigir papel administrativo, CSRF e trilha de auditoria.'],
+        ['title' => 'Publicação futura', 'description' => 'Disponibilizar apenas após testes e liberação formal, sem cobrança automática.'],
+    ],
+]; require __DIR__ . '/../components/workflow-preview.php'; ?>
 <aside class="cms-notice"><strong>Sem cobrança nesta etapa</strong>Nenhum plano foi publicado e nenhuma assinatura ou cobrança pode ser criada nesta prévia.</aside>
