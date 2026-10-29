@@ -33,4 +33,13 @@
     <div class="cms-setting-row"><span>Retenção de eventos</span><strong>Não definida</strong></div>
   </aside>
 </div>
+<?php $cmsWorkflow = [
+    'title' => 'Fluxo previsto de alterações de configuração',
+    'steps' => [
+        ['title' => 'Solicitação', 'description' => 'Preparar a alteração sem carregar ou modificar preferências reais nesta prévia.'],
+        ['title' => 'Validação', 'description' => 'Conferir domínio, metadados, impactos de publicação e valores permitidos.'],
+        ['title' => 'Autorização', 'description' => 'Exigir sessão administrativa, papel adequado e token CSRF válido.'],
+        ['title' => 'Registro e aplicação', 'description' => 'Auditar autor e resultado antes de aplicar qualquer mudança autorizada.'],
+    ],
+]; require __DIR__ . '/../components/workflow-preview.php'; ?>
 <aside class="cms-notice"><strong>Configurações bloqueadas</strong>Nenhuma preferência é lida ou modificada nesta prévia. O CMS permanece restrito à visualização local até autenticação, CSRF, autorização por papéis e auditoria estarem prontos.</aside>
