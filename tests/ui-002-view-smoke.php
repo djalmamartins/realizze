@@ -342,13 +342,13 @@ if (str_contains($unsafeModule, '<img src=x') || str_contains($unsafeModule, '<s
 }
 echo 'OK - APP-A11Y-057: onze tabelas PJ com legendas visíveis e escape seguro.' . PHP_EOL;
 
- // APP-A11Y-064: initials are complete Unicode graphemes, not partial UTF-8 bytes.
+// APP-A11Y-064: initials are complete Unicode graphemes, not partial UTF-8 bytes.
 foreach ([
     ['Álvaro', 'Á'],
     ['Érica', 'É'],
     ['👩‍💻 Maria', '👩‍💻'],
     ['', 'R'],
-    ["\\xC3\\x28", 'R'],
+    ["\xC3\x28", 'R'],
 ] as [$firstName, $initial]) {
     $profile = ['first_name' => $firstName];
     $expectedAvatar = '<span class="avatar" aria-hidden="true">' . $initial . '</span>';
