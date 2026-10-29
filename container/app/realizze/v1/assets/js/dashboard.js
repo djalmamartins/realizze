@@ -134,6 +134,13 @@
           const target = targetId ? document.getElementById(targetId) : null;
           link.hidden = !target || target.hidden;
         });
+        // Filtering may hide a focused module or shortcut. Return keyboard focus
+        // to the visible search field rather than leaving it inside hidden content.
+        const active = document.activeElement;
+        if (active && (
+          modules.some((module) => module.hidden && module.contains(active)) ||
+          jumpLinks.some((link) => link.hidden && link.contains(active))
+        )) enterpriseSearch.focus();
         if (enterpriseEmpty) enterpriseEmpty.hidden = visible !== 0;
         if (enterpriseJump) enterpriseJump.hidden = visible === 0;
         if (enterpriseClear) enterpriseClear.disabled = enterpriseSearch.value.length === 0;

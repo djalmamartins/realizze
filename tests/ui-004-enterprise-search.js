@@ -16,7 +16,7 @@ const input = {
   value: '',
   focused: false,
   addEventListener: (name, callback) => { callbacks['input:' + name] = callback; },
-  focus() { this.focused = true; },
+  focus() { this.focused = true; document.activeElement = this; },
 };
 const clear = {
   disabled: true,
@@ -41,6 +41,7 @@ function addGroup(name, definitions) {
     const module = {
       id: 'enterprise-' + id,
       hidden: false,
+      contains: (target) => target === module,
       closest: (selector) => selector === '.enterprise-module-group' ? group : null,
       querySelector: (selector) => {
         if (selector === 'h4') return { textContent: title };
@@ -52,6 +53,7 @@ function addGroup(name, definitions) {
     };
     const link = {
       hidden: false,
+      contains: (target) => target === link,
       getAttribute: (name) => name === 'href' ? '#' + module.id : null,
       addEventListener: () => {},
     };
@@ -77,6 +79,7 @@ const selectors = {
 };
 const document = {
   readyState: 'complete',
+  activeElement: null,
   querySelector: (selector) => selectors[selector] || null,
   querySelectorAll: (selector) => ({
     '.enterprise-module-group .enterprise-module': modules,
@@ -146,10 +149,25 @@ assert.equal(groups.every((group) => !group.hidden), true);
 assert.equal(links.every((link) => !link.hidden), true);
 assert.equal(visible().length, 3);
 
+// Focus must never remain inside a filtered-out shortcut or module.
+document.activeElement = links[0];
+input.focused = false;
+search('receber');
+assert.equal(document.activeElement, input, 'focus recovers when a shortcut becomes hidden');
+assert.equal(input.focused, true, 'visible search field receives recovered focus');
+document.activeElement = links[1];
+input.focused = false;
+search('receber');
+assert.equal(document.activeElement, links[1], 'focus remains on a visible shortcut');
+assert.equal(input.focused, false, 'visible results do not trigger unwanted focus changes');
+document.activeElement = modules[1];
+search('pagar');
+assert.equal(document.activeElement, input, 'focus recovers when a module is filtered out');
+
 search('clientes');
 callbacks['clear:click']();
 assert.equal(input.value, '');
 assert.equal(input.focused, true, 'botão limpar devolve foco ao campo');
 assert.equal(visible().length, 3);
 assert.equal(clear.disabled, true, 'botão limpar desabilitado após clique');
-console.log('OK - APP-UI-053: filtro PJ por múltiplos termos, grupo, coluna, links e teclado.');
+console.log('OK - APP-A11Y-062: filtro PJ, atalhos, teclado e recuperação de foco.');
