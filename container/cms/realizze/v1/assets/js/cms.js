@@ -42,8 +42,11 @@
     if (typeof desktop.addEventListener === 'function') {
       desktop.addEventListener('change', (event) => {
         if (event.matches) {
-          // Desktop navigation remains visible; never focus the hidden mobile toggle.
+          // The mobile toggle disappears at this breakpoint. Recover focus to
+          // a visible navigation link only when it was on that toggle.
+          const focusWasOnToggle = document.activeElement === toggle;
           close();
+          if (focusWasOnToggle) nav.querySelector('a')?.focus();
         } else if (nav.contains(document.activeElement)) {
           // Desktop links become hidden when the mobile disclosure is collapsed.
           toggle.focus();

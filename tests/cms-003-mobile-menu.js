@@ -74,8 +74,16 @@ desktopMatches = false;
 breakpointHandler({ matches: false });
 assert.equal(toggleFocus, focusBeforeMobile + 1, 'desktop-to-mobile transition moves focus out of hidden links');
 assert.equal(document.activeElement, toggle, 'mobile toggle receives focus before navigation is hidden');
+// The toggle becomes display:none on desktop; keyboard focus must not be stranded.
+desktopMatches = true;
+breakpointHandler({ matches: true });
+assert.equal(document.activeElement, link, 'desktop transition restores focus from hidden toggle to visible navigation');
+assert.equal(linkFocus, 2, 'visible link is focused after returning to desktop');
+desktopMatches = false;
+breakpointHandler({ matches: false });
+assert.equal(document.activeElement, toggle, 'another desktop-to-mobile transition restores toggle focus');
 assert.equal(classes.has('cms-menu-open'), false, 'desktop transition closes mobile menu');
 events['toggle:click']();
 events['nav:click']({ target: { closest: (selector) => selector === 'a' ? link : null } });
 assert.equal(classes.has('cms-menu-open'), false, 'navigation link closes menu');
-console.log('OK - CMS-A11Y-053: keyboard, outside pointer, bidirectional breakpoint and link navigation.');
+console.log('OK - CMS-A11Y-061: keyboard, pointer, bidirectional breakpoint and hidden-toggle focus recovery.');
