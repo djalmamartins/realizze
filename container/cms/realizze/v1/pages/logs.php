@@ -24,4 +24,13 @@
  <div class="cms-setting-row"><span>Exportação de eventos</span><strong>Bloqueada</strong></div>
  <div class="cms-section-divider"></div><h2>Eventos planejados</h2><p>Login, alterações de conteúdo, permissões, configurações e tentativas de acesso negadas.</p>
 </aside></div>
+<?php $cmsWorkflow = [
+    'title' => 'Fluxo previsto de auditoria administrativa',
+    'steps' => [
+        ['title' => 'Coleta segura', 'description' => 'Registrar no servidor eventos administrativos e acessos negados, sem credenciais ou segredos.'],
+        ['title' => 'Normalização', 'description' => 'Associar data, ação, responsável autorizado, origem e resultado sem dados pessoais excessivos.'],
+        ['title' => 'Integridade e retenção', 'description' => 'Definir proteção contra alteração, prazos de guarda e descarte conforme política aprovada.'],
+        ['title' => 'Consulta autorizada', 'description' => 'Liberar filtros e exportação somente após autenticação, papéis, CSRF e trilha de acesso.'],
+    ],
+]; require __DIR__ . '/../components/workflow-preview.php'; ?>
 <aside class="cms-notice"><strong>Auditoria protegida</strong>Nenhum evento administrativo é exibido sem autenticação, autorização e política de retenção implementadas.</aside>
