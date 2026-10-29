@@ -11,7 +11,7 @@ $firstName = $user['first_name'] ?? null;
 if (!is_string($firstName) || trim($firstName) === '') {
     return 'R';
 }
-if (preg_match('/^\\X/u', trim($firstName), $matches) !== 1) {
+if (preg_match('/^\X/u', trim($firstName), $matches) !== 1) {
     return 'R';
 }
 $initial = $matches[0];
