@@ -76,7 +76,11 @@
     if (typeof desktopViewport.addEventListener === 'function') {
       desktopViewport.addEventListener('change', (event) => {
         if (event.matches) {
+          // Mobile-only controls disappear at the desktop breakpoint.
+          // Move focus to a visible navigation link before hiding them.
+          const focusWasOnMobileControl = document.activeElement === closeButton || document.activeElement === toggle;
           closeMenu();
+          if (focusWasOnMobileControl) sidebar?.querySelector('.nav a[href], .brand')?.focus();
         } else {
           // The desktop sidebar becomes off-canvas; move focus before applying inert.
           if (sidebar?.contains(document.activeElement)) toggle?.focus();

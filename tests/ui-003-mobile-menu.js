@@ -11,6 +11,7 @@ const shellClasses = new Set();
 const bodyClasses = new Set();
 let toggleFocus = 0;
 let closeFocus = 0;
+let navigationFocus = 0;
 let desktopChange;
 const classList = (values) => ({
   add: (name) => values.add(name),
@@ -26,10 +27,14 @@ const closeButton = {
   addEventListener: (name, handler) => { listeners['close:' + name] = handler; },
   focus: () => { closeFocus++; document.activeElement = closeButton; },
 };
+const navigationLink = {
+  focus: () => { navigationFocus++; document.activeElement = navigationLink; },
+};
 const shell = { classList: classList(shellClasses) };
 const sidebar = {
   inert: false,
-  contains: (target) => target === closeButton || target === sidebar,
+  contains: (target) => target === closeButton || target === navigationLink || target === sidebar,
+  querySelector: (selector) => selector === '.nav a[href], .brand' ? navigationLink : null,
   querySelectorAll: () => [],
 };
 const backdrop = {
@@ -86,10 +91,16 @@ desktopChange({ matches: true });
 assert.equal(shellClasses.has('menu-open'), false, 'desktop transition closes mobile menu');
 assert.equal(sidebar.inert, false, 'visible desktop sidebar remains keyboard reachable');
 assert.equal(toggleFocus, focusBeforeDesktop, 'desktop transition never focuses hidden mobile toggle');
-assert.equal(document.activeElement, closeButton, 'desktop transition preserves focus in visible navigation');
+assert.equal(document.activeElement, navigationLink, 'desktop transition moves focus off the now-hidden mobile close button');
+assert.equal(navigationFocus, 1, 'visible desktop navigation receives focus');
 desktopMedia.matches = false;
 desktopChange({ matches: false });
 assert.equal(sidebar.inert, true, 'desktop-to-mobile transition hides closed sidebar from keyboard');
 assert.equal(toggleFocus, focusBeforeDesktop + 1, 'focus moves to visible mobile toggle before sidebar becomes inert');
 assert.equal(document.activeElement, toggle, 'focus stays on visible mobile control');
-console.log('OK - APP-A11Y-051: mobile disclosure, focus, inert and bidirectional breakpoint changes.');
+desktopMedia.matches = true;
+desktopChange({ matches: true });
+assert.equal(document.activeElement, navigationLink, 'desktop transition moves focus off the now-hidden mobile toggle');
+assert.equal(navigationFocus, 2, 'desktop navigation receives focus from both mobile-only buttons');
+assert.equal(sidebar.inert, false, 'desktop sidebar remains reachable after returning to desktop');
+console.log('OK - APP-A11Y-060: mobile disclosure, focus, inert and breakpoint focus recovery.');
