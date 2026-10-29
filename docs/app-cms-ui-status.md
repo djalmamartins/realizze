@@ -233,3 +233,14 @@ php scripts/publish-app-assets.php
 - **App PJ (11 módulos):** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ aguardam serviços escopados e operações seguras.
 - **CMS (8 seções):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações aguardam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD. A prévia continua local e bloqueada ao público.
 - Ainda pendentes: inspeção do MySQL de homologação, testes HTTP reais de sessão/CSRF/isolamento, homologação visual no Docker do Mac e testes com leitor de tela. **Sem migração, cobrança, WhatsApp, alteração de produção ou abertura pública do CMS.**
+
+## CMS-UI-057 / APP-A11Y-057 — fluxos administrativos e tabelas PJ (29/10/2026)
+
+- Novo `container/cms/realizze/v1/components/workflow-preview.php`: componente reutilizável, acessível e somente visual de etapas **pendentes**, sem estados fictícios de conclusão.
+- Páginas, Conteúdos e Mídia apresentam fluxos distintos de rascunho/revisão/autorização/publicação e recebimento/validação/controle de acesso, com layout adaptável a celular e tablet. Nenhum envio, publicação ou persistência foi habilitado.
+- As onze tabelas de módulos empresariais receberam `caption` visível e escapado, mantendo `scope="col"` e região rolável por teclado.
+- Smoke tests do CMS verificam etapas e escape HTML; smoke tests do App verificam onze legendas e metadados PJ maliciosos.
+- **App PF — faltantes:** 11 seções visuais (incluindo Assistente Financeiro), dez páginas financeiras ainda sem integração/CRUD/filtros reais; assistente permanece fora do escopo operacional.
+- **App PJ — faltantes:** onze módulos em prévia, sem consultas ou CRUD escopados; auditoria do MySQL de homologação e testes HTTP PF/PJ obrigatórios.
+- **CMS — faltantes:** oito seções em prévia; autenticação administrativa, autorização por papéis, CSRF para mutações, auditoria persistente e CRUD permanecem pendentes. A prévia local continua bloqueada por flags e IP.
+- **Homologação pendente:** teste visual no Docker do Mac, testes HTTP de sessão/CSRF/isolamento e inspeção MySQL. Sem WhatsApp, cobranças, migrações ou alterações de produção.
