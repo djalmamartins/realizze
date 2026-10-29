@@ -75,10 +75,11 @@ breakpointHandler({ matches: false });
 assert.equal(toggleFocus, focusBeforeMobile + 1, 'desktop-to-mobile transition moves focus out of hidden links');
 assert.equal(document.activeElement, toggle, 'mobile toggle receives focus before navigation is hidden');
 // The toggle becomes display:none on desktop; keyboard focus must not be stranded.
+const linkFocusBeforeDesktop = linkFocus;
 desktopMatches = true;
 breakpointHandler({ matches: true });
 assert.equal(document.activeElement, link, 'desktop transition restores focus from hidden toggle to visible navigation');
-assert.equal(linkFocus, 2, 'visible link is focused after returning to desktop');
+assert.equal(linkFocus, linkFocusBeforeDesktop + 1, 'visible link receives focus exactly once after returning to desktop');
 desktopMatches = false;
 breakpointHandler({ matches: false });
 assert.equal(document.activeElement, toggle, 'another desktop-to-mobile transition restores toggle focus');
