@@ -391,3 +391,12 @@ php scripts/publish-app-assets.php
 - Título e descrição são escapados no componente; contextos inesperados usam o selo PF, sem consultar, selecionar ou divulgar organizações. `tests/ui-002-view-smoke.php` cobre HTML malicioso, semântica e reutilização.
 - **App PF — páginas pendentes de operação:** Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações (Assistente Financeiro desabilitado). **App PJ — módulos pendentes:** Clientes, Fornecedores, Equipes/permissões, Contas a receber/pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ. **CMS — seções pendentes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações; ainda sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD.
 - **Bloqueios mantidos:** CMS somente em prévia local autorizada; sem dados fictícios apresentados como reais, WhatsApp, cobranças, migrações ou produção. Continuam pendentes MySQL de homologação, testes HTTP de isolamento/CSRF/autorização e homologação visual mobile/desktop no Docker.
+
+
+## APP-UI-075 — filtros PF reutilizáveis e sem operações (29/10/2026)
+
+- Criado components/finance-filter-preview.php para padronizar filtros de Receber, Pagar, Movimentações e Categorias. Mantidos os rótulos, IDs e placeholders de cada tela, sem formulários nem chamadas ao servidor.
+- Os campos são sempre desabilitados; a região recebe nome acessível e aviso de que nenhuma consulta ou alteração ocorre. Metadados são escapados, IDs duplicados ou inválidos e tipos de controle inesperados são rejeitados.
+- assets/css/dashboard.css mantém três colunas no desktop e uma no celular; o aviso ocupa a largura da grade. tests/ui-002-view-smoke.php verifica quatro telas, escape de HTML, controles desabilitados, IDs únicos e rejeição de configurações inseguras.
+- App PF — pendentes: integração segura nas dez páginas, filtros reais, CRUD, relatórios, exportações e homologação visual/teclado no Docker. App Empresarial — pendentes: onze módulos ainda sem persistência ou consultas escopadas. CMS — pendentes: oito prévias ainda sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD.
+- Sem alteração de rotas, banco, produção, cobranças, importação OFX/CSV ou WhatsApp.

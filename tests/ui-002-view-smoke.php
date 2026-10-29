@@ -467,3 +467,59 @@ if (str_contains($unsafeHeading, '<img src=x')
     throw new RuntimeException('APP-UI-074: cabeçalho PF/PJ não reutilizado ou sem escape/semântica.');
 }
 echo 'OK - APP-UI-074: cabeçalho PF/PJ compartilhado, acessível e escapado.' . PHP_EOL;
+
+
+// APP-UI-075: reusable preview filters must remain disabled, accessible and
+// never submit PF data; IDs and untrusted metadata are validated/escaped.
+foreach (['receber', 'pagar', 'movimentacoes', 'categorias'] as $page) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    if (!str_contains($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"')
+        || !str_contains($html, 'Nenhuma consulta ou alteração é realizada.')
+        || str_contains($html, '<form')) {
+        throw new RuntimeException('APP-UI-075: filtros da prévia não seguros em ' . $page);
+    }
+    preg_match_all('/<(?:input|select)\b[^>]*>/i', $html, $controls);
+    if (count($controls[0]) !== 3) {
+        throw new RuntimeException('APP-UI-075: quantidade de filtros incorreta em ' . $page);
+    }
+    foreach ($controls[0] as $control) {
+        if (preg_match('/\bdisabled\b/i', $control) !== 1) {
+            throw new RuntimeException('APP-UI-075: filtro habilitado em ' . $page);
+        }
+    }
+    preg_match_all('/\bid="([^"]+)"/', $html, $matches);
+    if (count($matches[1]) !== count(array_unique($matches[1]))) {
+        throw new RuntimeException('APP-UI-075: IDs duplicados em ' . $page);
+    }
+}
+$unsafeFilters = $view->render('components::finance-filter-preview', [
+    'financeFilterFields' => [
+        ['id' => 'filter-safe', 'label' => '<script>rótulo</script>', 'type' => 'search',
+            'placeholder' => '" onfocus="alert(1)'],
+        ['id' => 'filter-other', 'label' => 'Período & ano', 'type' => 'select',
+            'option' => '<img src=x onerror=alert(1)>'],
+    ],
+]);
+foreach (['&lt;script&gt;rótulo&lt;/script&gt;', '&quot; onfocus=&quot;alert(1)',
+    'Período &amp; ano', '&lt;img src=x onerror=alert(1)&gt;'] as $escaped) {
+    if (!str_contains($unsafeFilters, $escaped)) {
+        throw new RuntimeException('APP-UI-075: metadado de filtro não escapado: ' . $escaped);
+    }
+}
+if (str_contains($unsafeFilters, '<script>') || str_contains($unsafeFilters, '<img src=x')) {
+    throw new RuntimeException('APP-UI-075: HTML arbitrário na prévia de filtros.');
+}
+foreach ([
+    [['id' => 'unsafe" id="another', 'label' => 'Filtro', 'type' => 'search']],
+    [['id' => 'duplicate', 'label' => 'A', 'type' => 'search'],
+     ['id' => 'duplicate', 'label' => 'B', 'type' => 'select']],
+    [['id' => 'filter', 'label' => 'Filtro', 'type' => 'submit']],
+] as $invalidFields) {
+    try {
+        $view->render('components::finance-filter-preview', ['financeFilterFields' => $invalidFields]);
+        throw new RuntimeException('APP-UI-075: filtro inválido foi aceito.');
+    } catch (InvalidArgumentException $expected) {
+        // Reject unsafe identifiers, duplicates and interactive control types.
+    }
+}
+echo 'OK - APP-UI-075: filtros PF compartilhados, desabilitados e escapados.' . PHP_EOL;

@@ -268,3 +268,5 @@
 .app-context-badge--enterprise::before{background:#2478a8}
 .page-heading-meta{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;min-width:0}
 @media(max-width:560px){.page-heading-meta{justify-content:flex-start}}
+
+.finance-filter-help{grid-column:1/-1;margin:0;line-height:1.5}
