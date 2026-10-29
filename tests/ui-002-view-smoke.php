@@ -405,7 +405,10 @@ if (!str_contains($scrollCss, '.shell:not(.app-js) .sidebar{')
 }
 $mobileScript = file_get_contents($root . '/assets/js/dashboard.js');
 if (!is_string($mobileScript)
-    || !str_contains($mobileScript, "if (shell && sidebar && toggle && closeButton && backdrop) shell.classList.add('app-js');")) {
+    || !str_contains($mobileScript, "const navigationReady = Boolean(shell && sidebar && toggle && closeButton && backdrop);")
+    || !str_contains($mobileScript, "if (navigationReady) shell.classList.add('app-js');")
+    || !str_contains($mobileScript, "if (navigationReady) sidebar.inert =")
+    || !str_contains($mobileScript, "if (navigationReady) {")) {
     throw new RuntimeException('APP-A11Y-067: ativação progressiva do menu não encontrada.');
 }
 echo 'OK - APP-A11Y-067: navegação PF/PJ permanece visível se o JS não carregar.' . PHP_EOL;
