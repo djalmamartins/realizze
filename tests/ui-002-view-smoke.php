@@ -87,7 +87,7 @@ foreach ([
     '&lt;img src=x onerror=alert(1)&gt;',
     'href="/minha-conta?pagina=overview&amp;test=&quot;x&quot;"',
     'value="&quot; onfocus=&quot;alert(1)"',
-    'class="avatar">&lt;</span>',
+    'class="avatar" aria-hidden="true">&lt;</span>',
     'aria-label="Alternar tema"',
     'aria-label="Ajuda"',
 ] as $needle) {
@@ -341,3 +341,26 @@ if (str_contains($unsafeModule, '<img src=x') || str_contains($unsafeModule, '<s
     throw new RuntimeException('APP-A11Y-057: tabela PJ não escapou os metadados.');
 }
 echo 'OK - APP-A11Y-057: onze tabelas PJ com legendas visíveis e escape seguro.' . PHP_EOL;
+
+ // APP-A11Y-064: initials are complete Unicode graphemes, not partial UTF-8 bytes.
+foreach ([
+    ['Álvaro', 'Á'],
+    ['Érica', 'É'],
+    ['👩‍💻 Maria', '👩‍💻'],
+    ['', 'R'],
+    ["\\xC3\\x28", 'R'],
+] as [$firstName, $initial]) {
+    $profile = ['first_name' => $firstName];
+    $expectedAvatar = '<span class="avatar" aria-hidden="true">' . $initial . '</span>';
+    $sidebarHtml = $view->render('components::sidebar', [
+        'items' => $items, 'sections' => $sections, 'section' => 'overview',
+        'icon' => $icon, 'name' => $firstName, 'user' => $profile, 'csrf' => 'test-token',
+    ]);
+    $headerHtml = $view->render('components::dashboard-header', [
+        'name' => $firstName, 'user' => $profile,
+    ]);
+    if (!str_contains($sidebarHtml, $expectedAvatar) || !str_contains($headerHtml, $expectedAvatar)) {
+        throw new RuntimeException('APP-A11Y-064: inicial Unicode inválida ou avatar inacessível.');
+    }
+}
+echo 'OK - APP-A11Y-064: avatar compartilhado preserva grafemas e fallback UTF-8.' . PHP_EOL;
