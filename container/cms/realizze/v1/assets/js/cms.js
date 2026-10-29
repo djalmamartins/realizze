@@ -16,7 +16,8 @@
     } catch (_error) {
       return;
     }
-    if (!desktop || typeof desktop.matches !== 'boolean') return;
+    if (!desktop || typeof desktop.matches !== 'boolean' ||
+        (typeof desktop.addEventListener !== 'function' && typeof desktop.addListener !== 'function')) return;
     sidebar.classList.add('cms-js');
     const close = (restoreFocus = false) => {
       sidebar.classList.remove('cms-menu-open');

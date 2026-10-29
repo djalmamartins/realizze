@@ -35,8 +35,8 @@ $checks = [
         ['new-logo-realizze.svg', 'aria-current="page"', 'csrf_token'],
     ],
     'header' => [
-        $view->render('components::dashboard-header', ['name' => 'Teste', 'user' => $user]),
-        ['Sem dados integrados.', 'sidebar-toggle'],
+        $view->render('components::dashboard-header', ['name' => 'Teste', 'user' => $user, 'appView' => $view]),
+        ['Sem dados integrados.', 'sidebar-toggle', 'Pessoal · PF'],
     ],
     'summary' => [
         $view->render('components::overview-summary'),
@@ -72,6 +72,27 @@ foreach ($checks as $name => [$html, $expected]) {
     }
     echo 'OK - ' . $name . PHP_EOL;
 }
+// APP-UI-070: the page context badge is static, accessible and never echoes
+// a supplied company name or an untrusted context type.
+$personalBadge = $view->render('components::context-badge', ['contextType' => 'personal']);
+$enterpriseBadge = $view->render('components::context-badge', ['contextType' => 'enterprise']);
+$untrustedBadge = $view->render('components::context-badge', ['contextType' => '<script>alert(1)</script>']);
+if (!str_contains($personalBadge, 'Pessoal · PF')
+    || !str_contains($personalBadge, 'Área pessoal (prévia)')
+    || !str_contains($enterpriseBadge, 'Empresarial · MEI/PJ')
+    || !str_contains($enterpriseBadge, 'Área empresarial (prévia)')
+    || str_contains($untrustedBadge, '<script>')
+    || !str_contains($untrustedBadge, 'Pessoal · PF')) {
+    throw new RuntimeException('APP-UI-070: contexto visual PF/PJ inconsistente.');
+}
+$dashboardLayout = file_get_contents($root . '/pages/dashboard.php');
+if (!is_string($dashboardLayout)
+    || !str_contains($dashboardLayout, "\$section === 'empresarial' ? 'enterprise' : 'personal'")
+    || !str_contains($dashboardLayout, 'class="page-heading-meta"')) {
+    throw new RuntimeException('APP-UI-070: indicador de contexto não aplicado ao cabeçalho das páginas.');
+}
+echo 'OK - APP-UI-070: contexto PF/PJ explícito sem selecionar ou revelar empresas.' . PHP_EOL;
+
 // APP-SEC-043: sidebar escapes profile text, navigation attributes and logout CSRF.
 $maliciousSidebar = $view->render('components::sidebar', [
     'items' => [['house', '<script>menu</script>', '/minha-conta?pagina=overview&test="x"']],

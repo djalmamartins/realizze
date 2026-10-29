@@ -96,13 +96,13 @@ $icon = static function (string $name) use ($iconPaths): string {
 <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
 <main class="main" id="overview" tabindex="-1">
 <?php if ($section === 'overview'): ?>
-<?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user]) ?>
+<?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user, 'appView' => $appView]) ?>
 <?= $appView->render('components::getting-started', ['icon' => $icon]) ?>
 <?= $appView->render('components::overview-summary') ?>
 <?= $appView->render('components::overview-panels') ?>
 <?php else: ?>
 <div class="section-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Abrir menu" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
-<section class="page-heading"><div><p class="eyebrow">Meu financeiro / <?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></p><h1><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h1><p class="muted"><?= htmlspecialchars($sections[$section][1], ENT_QUOTES, 'UTF-8') ?></p></div><span class="preview-chip">Prévia de interface</span></section>
+<section class="page-heading"><div><p class="eyebrow">Meu financeiro / <?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></p><h1><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h1><p class="muted"><?= htmlspecialchars($sections[$section][1], ENT_QUOTES, 'UTF-8') ?></p></div><div class="page-heading-meta"><?= $appView->render('components::context-badge', ['contextType' => $section === 'empresarial' ? 'enterprise' : 'personal']) ?><span class="preview-chip">Prévia de interface</span></div></section>
 <?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'assistente', 'configuracoes', 'empresarial'], true)): ?>
 <?= $appView->render('pages/' . $section, ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php else: ?>

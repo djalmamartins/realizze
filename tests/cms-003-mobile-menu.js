@@ -90,7 +90,7 @@ assert.equal(classes.has('cms-menu-open'), false, 'navigation link closes menu')
 
 /* CMS-A11Y-069: incomplete startup must never hide the CSS-only navigation. */
 for (const missing of ['cms-sidebar', 'cms-menu-toggle', 'cms-navigation',
-  'matchMedia', 'first-link', 'matchMedia-throws', 'matchMedia-invalid']) {
+  'matchMedia', 'first-link', 'matchMedia-throws', 'matchMedia-invalid', 'matchMedia-no-listener']) {
   const fallbackClasses = new Set();
   const fallbackEvents = {};
   const fallbackSidebar = { classList: { add: (name) => fallbackClasses.add(name) } };
