@@ -88,7 +88,8 @@ if (!str_contains($personalBadge, 'Pessoal · PF')
 $dashboardLayout = file_get_contents($root . '/pages/dashboard.php');
 if (!is_string($dashboardLayout)
     || !str_contains($dashboardLayout, "\$section === 'empresarial' ? 'enterprise' : 'personal'")
-    || !str_contains($dashboardLayout, 'class="page-heading-meta"')) {
+    || !str_contains($dashboardLayout, "components::page-heading")
+    || !str_contains((string) file_get_contents($root . '/components/page-heading.php'), 'class="page-heading-meta"')) {
     throw new RuntimeException('APP-UI-070: indicador de contexto não aplicado ao cabeçalho das páginas.');
 }
 echo 'OK - APP-UI-070: contexto PF/PJ explícito sem selecionar ou revelar empresas.' . PHP_EOL;
