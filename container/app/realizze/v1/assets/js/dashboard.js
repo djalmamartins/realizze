@@ -8,6 +8,9 @@
     const toggle = $('#sidebar-toggle');
     const closeButton = $('#sidebar-close');
     const backdrop = $('#sidebar-backdrop');
+    // Enhance the mobile navigation only when all disclosure controls exist.
+    // If this script cannot load, the CSS fallback keeps the links visible.
+    if (shell && sidebar && toggle && closeButton && backdrop) shell.classList.add('app-js');
     const toast = $('#toast');
     let toastTimer;
     const desktopViewport = window.matchMedia('(min-width: 851px)');

@@ -326,3 +326,11 @@ php scripts/publish-app-assets.php
 - Regressão estática adicionada a `tests/ui-002-view-smoke.php`; validação em navegador móvel real e leitor de tela continua pendente.
 - **App PF — pendentes:** integração segura e CRUD de Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente Financeiro desabilitado. **App Empresarial — pendentes:** clientes, fornecedores, equipes/permissões, contas a receber/pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, conciliação OFX/CSV e obrigações MEI/PJ. **CMS — pendentes:** autenticação administrativa, autorização por papéis, CSRF nas mutações, auditoria persistente e operações de Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs e Configurações.
 - Sem alterações em rotas, banco, contexto PF/PJ, operações financeiras, cobranças, WhatsApp ou produção. CMS continua com prévia local bloqueada.
+
+## APP-A11Y-067 — navegação progressiva quando o JavaScript não carrega (29/10/2026)
+
+- No App PF/PJ, o menu lateral agora fica **visível e navegável no celular** enquanto a classe `app-js` não estiver presente; não há botão de menu sem ação. Isso cobre indisponibilidade do arquivo JavaScript, além do caso já coberto por `<noscript>`.
+- `assets/js/dashboard.js` só ativa o comportamento off-canvas depois de encontrar shell, sidebar, botão de abrir, botão de fechar e backdrop. Com JavaScript ativo, o comportamento anterior (inert, Escape, foco, rolagem própria e responsividade) permanece.
+- Regressões adicionadas a `tests/ui-003-mobile-menu.js` e `tests/ui-002-view-smoke.php`. A homologação visual e de teclado em navegador móvel real continua pendente.
+- **App PF pendente:** operações e dados autorizados nas dez páginas financeiras; Assistente continua desabilitado. **App PJ pendente:** cadastros, equipes/permissões, receber/pagar, bancos/cartões, fluxo, custos, DRE, OFX/CSV e obrigações com isolamento validado. **CMS pendente:** oito seções visuais exigem autenticação administrativa, CSRF, RBAC, auditoria e CRUD; prévia local continua bloqueada publicamente.
+- Nenhuma mudança em rotas, banco, migrações, produção, WhatsApp, cobranças ou controles de acesso ao CMS.

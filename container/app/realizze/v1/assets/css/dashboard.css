@@ -238,3 +238,24 @@
     padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* APP-A11Y-067: progressive enhancement for the PF/PJ navigation.
+   Without a loaded script, keep every route link visible instead of
+   displaying an off-canvas sidebar with an inoperable toggle. */
+@media(max-width:850px){
+  .shell:not(.app-js){display:block}
+  .shell:not(.app-js) .sidebar{
+    position:static;
+    width:auto;
+    height:auto;
+    max-height:none;
+    transform:none;
+    transition:none;
+    overflow:visible;
+    padding:20px 18px;
+    box-shadow:none;
+  }
+  .shell:not(.app-js) .sidebar-toggle,
+  .shell:not(.app-js) .sidebar-close,
+  .shell:not(.app-js) .sidebar-backdrop{display:none!important}
+}

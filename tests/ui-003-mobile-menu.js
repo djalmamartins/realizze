@@ -58,6 +58,7 @@ const desktopMedia = {
 };
 const window = { matchMedia: () => desktopMedia };
 vm.runInNewContext(script, { document, window });
+assert.equal(shellClasses.has('app-js'), true, 'mobile disclosure activates only after the script initializes');
 assert.equal(sidebar.inert, true, 'mobile navigation is inert while closed');
 listeners['toggle:click']();
 assert.equal(shellClasses.has('menu-open'), true, 'menu opens');

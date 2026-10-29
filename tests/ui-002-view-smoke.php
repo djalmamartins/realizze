@@ -394,3 +394,18 @@ if (!str_contains($scrollCss, 'body.app-menu-locked{overflow:hidden;overscroll-b
     throw new RuntimeException('APP-A11Y-066: rolagem do menu ou quebra de textos longos indisponível.');
 }
 echo 'OK - APP-A11Y-066: sidebar móvel rolável por toque, viewport dinâmico e nomes longos.' . PHP_EOL;
+
+// APP-A11Y-067: navigation stays reachable if the JS bundle fails to load.
+// The off-canvas layout must only apply after the script marks a complete shell.
+if (!str_contains($scrollCss, '.shell:not(.app-js) .sidebar{')
+    || !str_contains($scrollCss, 'max-height:none;')
+    || !str_contains($scrollCss, '.shell:not(.app-js) .sidebar-toggle,')
+    || !str_contains($scrollCss, '.shell:not(.app-js) .sidebar-backdrop{display:none!important}')) {
+    throw new RuntimeException('APP-A11Y-067: fallback de navegação sem JS incompleto.');
+}
+$mobileScript = file_get_contents($root . '/assets/js/dashboard.js');
+if (!is_string($mobileScript)
+    || !str_contains($mobileScript, "if (shell && sidebar && toggle && closeButton && backdrop) shell.classList.add('app-js');")) {
+    throw new RuntimeException('APP-A11Y-067: ativação progressiva do menu não encontrada.');
+}
+echo 'OK - APP-A11Y-067: navegação PF/PJ permanece visível se o JS não carregar.' . PHP_EOL;
