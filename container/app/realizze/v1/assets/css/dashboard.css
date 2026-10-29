@@ -213,3 +213,6 @@
 .assistant-empty strong{font-size:16px;color:#234b34}
 .assistant-empty p{margin:0;line-height:1.65;font-size:13px}
 @media(max-width:650px){.assistant-empty{padding:22px 8px}}
+
+/* APP-A11Y-057: every enterprise preview table has a visible, descriptive caption. */
+.enterprise-module-caption{caption-side:top;text-align:left;padding:12px 14px 8px;color:#536b5b;font-size:12px;font-weight:650;white-space:normal}

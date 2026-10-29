@@ -88,3 +88,15 @@
   .cms-topbar { height: auto; min-height: 60px; flex-wrap: wrap; align-content: center; padding: 12px 18px; gap: 5px 10px; }
   .cms-topbar .cms-preview-status { display: inline-flex; max-width: 100%; white-space: normal; line-height: 1.4; font-size: 11px; padding: 4px 9px; border-radius: 12px; background: #fff4e8; color: #7a461b; }
 }
+
+/* CMS-UI-057: reusable, read-only editorial/media workflow on desktop and mobile. */
+.cms-workflow-preview{margin-top:18px}
+.cms-workflow-steps{counter-reset:cms-workflow;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;margin:18px 0 0;padding:0}
+.cms-workflow-steps li{counter-increment:cms-workflow;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;padding:15px;border:1px solid #e6eee8;border-radius:12px;background:#fafcfb}
+.cms-workflow-steps li>div{min-width:0}
+.cms-workflow-steps strong{display:block;color:#2a4c37;font-size:13px;overflow-wrap:anywhere}
+.cms-workflow-steps strong::before{content:counter(cms-workflow) ". ";color:#087d49}
+.cms-workflow-steps p{margin:6px 0 0;overflow-wrap:anywhere}
+.cms-workflow-state{flex:none;padding:5px 8px;border-radius:999px;background:#eef2ef;color:#62776a;font-size:11px;font-weight:700}
+@media(max-width:850px){.cms-workflow-steps{grid-template-columns:1fr}}
+@media(max-width:480px){.cms-workflow-steps li{flex-wrap:wrap}.cms-workflow-state{margin-left:auto}}

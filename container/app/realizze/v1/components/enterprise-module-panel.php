@@ -18,6 +18,7 @@ $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOT
   </header>
   <div class="enterprise-module-table-wrap" role="region" aria-label="Estrutura da tabela de <?= $escape($moduleTitle) ?>" tabindex="0">
     <table class="enterprise-module-table">
+      <caption class="enterprise-module-caption">Estrutura de <?= $escape($moduleTitle) ?> — prévia sem dados</caption>
       <thead><tr><?php foreach ($moduleColumns as $column): ?><th scope="col"><?= $escape((string) $column) ?></th><?php endforeach; ?></tr></thead>
       <tbody><tr><td colspan="<?= count($moduleColumns) ?>">
         <div class="enterprise-module-empty"><strong>Nenhum registro consultado</strong><span>Integração indisponível. Nenhum dado financeiro ou cadastral é exibido.</span></div>

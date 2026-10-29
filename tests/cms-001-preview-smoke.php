@@ -168,3 +168,29 @@ if (!str_contains($cmsMobilePreview, 'class="cms-preview-status">Prévia local �
     throw new RuntimeException('CMS-A11Y-049: status móvel ou fechamento por foco ausente.');
 }
 echo 'OK - CMS-A11Y-049: status da prévia visível e navegação móvel com saída por teclado.' . PHP_EOL;
+
+// CMS-UI-057: shared read-only workflows in pages, contents and media.
+foreach (['pages' => 'Fluxo previsto para páginas', 'contents' => 'Fluxo editorial previsto',
+    'media' => 'Fluxo seguro previsto para arquivos'] as $slug => $heading) {
+    $html = $render($slug);
+    if (!str_contains($html, $heading)
+        || substr_count($html, '<ol class="cms-workflow-steps">') !== 1
+        || substr_count($html, 'class="cms-workflow-state">Pendente</span>') !== 4
+        || !str_contains($html, 'Nenhuma etapa foi executada.')) {
+        throw new RuntimeException("CMS-UI-057: fluxo visual incompleto em {$slug}");
+    }
+}
+$cmsWorkflow = [
+    'title' => '<script>unsafe</script>',
+    'steps' => [['title' => '<img src=x onerror=alert(1)>', 'description' => 'Texto & dados']],
+];
+ob_start();
+require $root . '/components/workflow-preview.php';
+$workflowHtml = (string) ob_get_clean();
+if (str_contains($workflowHtml, '<script>') || str_contains($workflowHtml, '<img')
+    || !str_contains($workflowHtml, '&lt;script&gt;')
+    || !str_contains($workflowHtml, '&lt;img')
+    || !str_contains($workflowHtml, 'Texto &amp; dados')) {
+    throw new RuntimeException('CMS-UI-057: fluxo não escapou os metadados.');
+}
+echo 'OK - CMS-UI-057: fluxos de páginas, conteúdos e mídia acessíveis e sem ações.' . PHP_EOL;

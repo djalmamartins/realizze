@@ -318,3 +318,26 @@ if (!str_contains($dashboardLayout, '<noscript>')
     throw new RuntimeException('APP-A11Y-056: navegação sem JavaScript ou indicação da prévia ausente.');
 }
 echo 'OK - APP-A11Y-056: menu móvel acessível sem JS e assistente descrito como prévia.' . PHP_EOL;
+
+// APP-A11Y-057: all eleven PJ tables expose visible captions; no raw HTML injection.
+if (substr_count($enterpriseHtml, '<caption class="enterprise-module-caption">') !== 11
+    || !str_contains($enterpriseHtml, 'Estrutura de Clientes — prévia sem dados')) {
+    throw new RuntimeException('APP-A11Y-057: legendas de tabelas PJ ausentes.');
+}
+$unsafeModule = $view->render('components::enterprise-module-panel', [
+    'module' => [
+        'id' => 'unsafe',
+        'title' => '<img src=x onerror=alert(1)>',
+        'description' => '<script>alert(1)</script>',
+        'icon' => 'building',
+        'columns' => ['Empresa & nome'],
+    ],
+    'icon' => $icon,
+]);
+if (str_contains($unsafeModule, '<img src=x') || str_contains($unsafeModule, '<script>')
+    || !str_contains($unsafeModule, '&lt;img src=x')
+    || !str_contains($unsafeModule, '&lt;script&gt;')
+    || !str_contains($unsafeModule, 'Empresa &amp; nome')) {
+    throw new RuntimeException('APP-A11Y-057: tabela PJ não escapou os metadados.');
+}
+echo 'OK - APP-A11Y-057: onze tabelas PJ com legendas visíveis e escape seguro.' . PHP_EOL;
