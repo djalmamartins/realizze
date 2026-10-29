@@ -181,7 +181,9 @@ echo 'OK - CMS-A11Y-058: menu visível sem JS, botão móvel somente com JS.' . 
 foreach (['pages' => 'Fluxo previsto para páginas', 'contents' => 'Fluxo editorial previsto',
     'media' => 'Fluxo seguro previsto para arquivos',
     'users' => 'Fluxo previsto de acesso administrativo',
-    'plans' => 'Fluxo previsto de planos e assinaturas'] as $slug => $heading) {
+    'plans' => 'Fluxo previsto de planos e assinaturas',
+    'logs' => 'Fluxo previsto de auditoria administrativa',
+    'settings' => 'Fluxo previsto de alterações de configuração'] as $slug => $heading) {
     $html = $render($slug);
     if (!str_contains($html, $heading)
         || substr_count($html, '<ol class="cms-workflow-steps">') !== 1
@@ -203,4 +205,4 @@ if (str_contains($workflowHtml, '<script>') || str_contains($workflowHtml, '<img
     || !str_contains($workflowHtml, 'Texto &amp; dados')) {
     throw new RuntimeException('CMS-UI-057: fluxo não escapou os metadados.');
 }
-echo 'OK - CMS-UI-058: fluxos de páginas, conteúdos, mídia, usuários e planos sem ações.' . PHP_EOL;
+echo 'OK - CMS-UI-059: sete fluxos de prévia do CMS sem ações administrativas.' . PHP_EOL;
