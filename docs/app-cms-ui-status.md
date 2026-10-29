@@ -252,3 +252,14 @@ php scripts/publish-app-assets.php
 - `tests/cms-001-preview-smoke.php` valida os cinco fluxos e a regra progressiva do menu. Testes HTTP, teclado/leitor de tela e homologação visual no Docker ainda são necessários.
 - **App PF (11 seções):** dez seções financeiras sem CRUD, filtros/dados autorizados e relatórios reais; Assistente Financeiro apenas visual e desabilitado. **App PJ (11 módulos):** serviços e consultas isoladas por organização, equipes, financeiro, DRE e OFX/CSV pendentes. **CMS (8 seções):** interfaces existentes; faltam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD seguro.
 - CMS continua restrito à prévia local por flags/IP. Sem WhatsApp, cobranças, migrações destrutivas ou alterações em produção.
+
+## CMS-UI-059 — fluxos seguros de logs e configurações (29/10/2026)
+
+- **Logs e auditoria:** adicionadas quatro etapas visuais usando `components/workflow-preview.php`: coleta segura, normalização, integridade/retenção e consulta autorizada. Nenhum evento real é lido, filtrado ou exportado.
+- **Configurações:** quatro etapas visuais para solicitação, validação, autorização e registro/aplicação futura. Nenhuma preferência é consultada ou alterada.
+- O mesmo componente de fluxo agora é reutilizado em **sete seções** do CMS (Páginas, Conteúdos, Mídia, Usuários, Planos, Logs e Configurações); Visão geral mantém sua prévia. Os passos permanecem explicitamente pendentes.
+- `tests/cms-001-preview-smoke.php` valida o fluxo único e as quatro etapas pendentes em cada uma das sete seções, além dos testes existentes de controles desabilitados, HTML escapado e bloqueio estático.
+- **App PF — faltantes:** integração segura de Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações. Assistente Financeiro continua somente visual e desabilitado.
+- **App PJ — faltantes:** operações autorizadas e isoladas por empresa em Clientes, Fornecedores, Equipes, Receber, Pagar, Bancos/Cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ.
+- **CMS — faltantes:** integração administrativa segura das oito seções, autenticação, RBAC, CSRF nas mutações, auditoria persistente e CRUD. Nenhuma rota pública ou operação administrativa foi ativada.
+- **Homologação pendente:** CI do novo commit, teste visual real em Docker desktop/mobile, inspeção MySQL de homologação, testes HTTP de bloqueio do CMS, sessão, CSRF e isolamento PF/PJ. Sem WhatsApp, cobranças, migrations destrutivas ou produção.
