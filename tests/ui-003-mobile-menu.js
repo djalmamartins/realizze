@@ -139,3 +139,56 @@ for (const missing of ['#shell', '#app-sidebar', '#sidebar-toggle', '#sidebar-cl
   assert.equal(fallbackListeners.keydown, undefined, 'no incomplete menu keyboard handler: ' + missing);
 }
 console.log('OK - APP-A11Y-068: incomplete navigation keeps accessible no-JS fallback.');
+
+
+// APP-A11Y-069: invalid or unavailable viewport APIs must preserve the CSS
+// fallback; legacy MediaQueryList listeners must track both breakpoints.
+const runViewportScenario = (mediaFactory) => {
+  const classes = new Set();
+  const events = {};
+  const mobile = { inert: false, contains: (target) => target === link, querySelector: () => link, querySelectorAll: () => [] };
+  const link = { focus: () => { doc.activeElement = link; } };
+  const button = { addEventListener: (name, handler) => { events['toggle:' + name] = handler; },
+    setAttribute: () => {}, focus: () => { doc.activeElement = button; } };
+  const close = { addEventListener: () => {}, focus: () => { doc.activeElement = close; } };
+  const shade = { addEventListener: () => {}, setAttribute: () => {} };
+  const wrapper = { classList: classList(classes) };
+  const nodes = { '#shell': wrapper, '#app-sidebar': mobile, '#sidebar-toggle': button,
+    '#sidebar-close': close, '#sidebar-backdrop': shade };
+  const doc = { readyState: 'complete', activeElement: null,
+    body: { classList: classList(new Set()) },
+    querySelector: (selector) => nodes[selector] || null, querySelectorAll: () => [],
+    addEventListener: () => {} };
+  const win = { matchMedia: mediaFactory };
+  vm.runInNewContext(script, { document: doc, window: win });
+  return { classes, events, mobile, link, button, doc };
+};
+for (const [label, factory] of [
+  ['missing', undefined],
+  ['throwing', () => { throw Error('unsupported'); }],
+  ['invalid', () => ({ matches: undefined, addEventListener: () => {} })],
+  ['no listener', () => ({ matches: false })],
+]) {
+  const state = runViewportScenario(factory);
+  assert.equal(state.classes.has('app-js'), false, 'fallback remains visible: ' + label);
+  assert.equal(state.mobile.inert, false, 'fallback remains focusable: ' + label);
+  assert.equal(state.events['toggle:click'], undefined, 'no broken disclosure: ' + label);
+}
+let legacyChange;
+const legacy = { matches: false, addListener: (handler) => { legacyChange = handler; } };
+const legacyState = runViewportScenario(() => legacy);
+assert.equal(legacyState.classes.has('app-js'), true, 'legacy viewport supports enhancement');
+assert.equal(legacyState.mobile.inert, true, 'collapsed mobile navigation is inert');
+legacyState.events['toggle:click']();
+assert.equal(legacyState.mobile.inert, false, 'legacy mobile menu opens');
+legacyState.doc.activeElement = legacyState.button;
+legacy.matches = true;
+legacyChange({ matches: true });
+assert.equal(legacyState.classes.has('menu-open'), false, 'legacy desktop transition closes menu');
+assert.equal(legacyState.mobile.inert, false, 'desktop links remain accessible');
+assert.equal(legacyState.doc.activeElement, legacyState.link, 'legacy desktop focus is restored');
+legacy.matches = false;
+legacyChange({ matches: false });
+assert.equal(legacyState.mobile.inert, true, 'legacy mobile transition restores inert');
+assert.equal(legacyState.doc.activeElement, legacyState.button, 'legacy mobile toggle receives focus');
+console.log('OK - APP-A11Y-069: viewport fallback and legacy MediaQueryList transitions.');

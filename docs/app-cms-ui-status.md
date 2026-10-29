@@ -350,3 +350,11 @@ php scripts/publish-app-assets.php
 - Adicionado suporte a `MediaQueryList.addListener` para mudanças de largura em navegadores antigos, preservando foco e fechamento do menu. Testes Node cobrem sete cenários de inicialização incompleta e a API legada, além dos cenários de teclado existentes.
 - **Inventário inalterado:** App PF — dez páginas com layout de prévia, ainda sem CRUD, filtros reais, relatórios operacionais e homologação móvel; App Empresarial — onze módulos sem serviços financeiros, permissões operacionais e consultas isoladas; CMS — oito páginas visuais sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD.
 - Sem alterações de rotas, banco, migrations, produção, cobranças, upload ou WhatsApp. O CMS continua limitado à prévia local e o PR permanece draft.
+
+
+## APP-A11Y-069 — compatibilidade de viewport do App PF/PJ (29/10/2026)
+
+- O menu responsivo só ativa a classe `app-js` quando os cinco controles essenciais e a API `matchMedia` estão disponíveis, retornam `matches` booleano e oferecem notificação de mudança de viewport. Falhas preservam a navegação CSS visível e focável, sem ativar `inert`.
+- A mudança entre mobile e desktop também funciona com `MediaQueryList.addListener` legado, preservando o foco nos controles visíveis e o fechamento do menu. `tests/ui-003-mobile-menu.js` cobre API ausente, exceção, resultado inválido, ausência de listener e transições legadas.
+- **Páginas ainda sem integração real:** App PF — Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias, Configurações (Assistente desabilitado); App PJ — clientes, fornecedores, equipes/permissões, receber, pagar, bancos/cartões, fluxo, custos, DRE, OFX/CSV e obrigações; CMS — Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria, Configurações.
+- **Ainda pendente:** validação visual em navegadores reais e Docker, auditoria MySQL de homologação, testes HTTP de autenticação/CSRF/isolamento e autorização administrativa. CMS continua bloqueado fora da prévia local. Nenhuma alteração em banco, produção, cobrança ou WhatsApp.

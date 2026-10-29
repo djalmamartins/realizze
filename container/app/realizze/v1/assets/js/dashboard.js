@@ -8,13 +8,24 @@
     const toggle = $('#sidebar-toggle');
     const closeButton = $('#sidebar-close');
     const backdrop = $('#sidebar-backdrop');
-    // Enhance the mobile navigation only when all disclosure controls exist.
-    // If this script cannot load, the CSS fallback keeps the links visible.
-    const navigationReady = Boolean(shell && sidebar && toggle && closeButton && backdrop);
+    // Keep the CSS fallback accessible if the viewport API is absent, broken
+    // or cannot notify us about changes between mobile and desktop.
+    let desktopViewport = null;
+    if (shell && sidebar && toggle && closeButton && backdrop && typeof window.matchMedia === 'function') {
+      try {
+        const candidate = window.matchMedia('(min-width: 851px)');
+        if (candidate && typeof candidate.matches === 'boolean' &&
+          (typeof candidate.addEventListener === 'function' || typeof candidate.addListener === 'function')) {
+          desktopViewport = candidate;
+        }
+      } catch (_error) {
+        // Do not activate the off-canvas navigation after a failed media query.
+      }
+    }
+    const navigationReady = Boolean(desktopViewport);
     if (navigationReady) shell.classList.add('app-js');
     const toast = $('#toast');
     let toastTimer;
-    const desktopViewport = window.matchMedia('(min-width: 851px)');
     // Prevent keyboard focus from entering the off-canvas mobile sidebar.
     const updateSidebarInert = () => {
       if (navigationReady) sidebar.inert = !desktopViewport.matches && !shell.classList.contains('menu-open');
@@ -80,20 +91,24 @@
       }
     });
     updateSidebarInert();
+    const onViewportChange = (event) => {
+      if (event.matches) {
+        // Mobile-only controls disappear at the desktop breakpoint.
+        // Move focus to a visible navigation link before hiding them.
+        const focusWasOnMobileControl = document.activeElement === closeButton || document.activeElement === toggle;
+        closeMenu();
+        if (focusWasOnMobileControl) sidebar?.querySelector('.nav a[href], .brand')?.focus();
+      } else {
+        // The desktop sidebar becomes off-canvas; move focus before applying inert.
+        if (sidebar?.contains(document.activeElement)) toggle?.focus();
+        updateSidebarInert();
+      }
+    };
     if (typeof desktopViewport.addEventListener === 'function') {
-      desktopViewport.addEventListener('change', (event) => {
-        if (event.matches) {
-          // Mobile-only controls disappear at the desktop breakpoint.
-          // Move focus to a visible navigation link before hiding them.
-          const focusWasOnMobileControl = document.activeElement === closeButton || document.activeElement === toggle;
-          closeMenu();
-          if (focusWasOnMobileControl) sidebar?.querySelector('.nav a[href], .brand')?.focus();
-        } else {
-          // The desktop sidebar becomes off-canvas; move focus before applying inert.
-          if (sidebar?.contains(document.activeElement)) toggle?.focus();
-          updateSidebarInert();
-        }
-      });
+      desktopViewport.addEventListener('change', onViewportChange);
+    } else {
+      // Legacy MediaQueryList implementations use addListener(callback).
+      desktopViewport.addListener(onViewportChange);
     }
     }
 
