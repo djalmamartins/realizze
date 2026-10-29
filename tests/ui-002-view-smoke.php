@@ -128,6 +128,7 @@ echo 'OK - APP-SEC-043: sidebar escapa perfil, links e token CSRF.' . PHP_EOL;
 $maliciousHeader = $view->render('components::dashboard-header', [
     'name' => '<img src=x onerror=alert(1)>',
     'user' => ['first_name' => 'Teste'],
+    'appView' => $view,
 ]);
 if (str_contains($maliciousHeader, '<img src=x onerror=alert(1)>')
     || !str_contains($maliciousHeader, '&lt;img src=x onerror=alert(1)&gt;')) {
@@ -378,7 +379,7 @@ foreach ([
         'icon' => $icon, 'name' => $firstName, 'user' => $profile, 'csrf' => 'test-token',
     ]);
     $headerHtml = $view->render('components::dashboard-header', [
-        'name' => $firstName, 'user' => $profile,
+        'name' => $firstName, 'user' => $profile, 'appView' => $view,
     ]);
     if (!str_contains($sidebarHtml, $expectedAvatar) || !str_contains($headerHtml, $expectedAvatar)) {
         throw new RuntimeException('APP-A11Y-064: inicial Unicode inválida ou avatar inacessível.');
