@@ -10,8 +10,10 @@
     const backdrop = $('#sidebar-backdrop');
     // Keep the CSS fallback accessible if the viewport API is absent, broken
     // or cannot notify us about changes between mobile and desktop.
+    // Without native inert, off-canvas links can still receive keyboard focus:
+    // keep the visible CSS-only navigation instead of activating the drawer.
     let desktopViewport = null;
-    if (shell && sidebar && toggle && closeButton && backdrop && typeof window.matchMedia === 'function') {
+    if (shell && sidebar && 'inert' in sidebar && toggle && closeButton && backdrop && typeof window.matchMedia === 'function') {
       try {
         const candidate = window.matchMedia('(min-width: 851px)');
         if (candidate && typeof candidate.matches === 'boolean' &&

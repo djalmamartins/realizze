@@ -376,3 +376,10 @@ php scripts/publish-app-assets.php
 - **App PJ — pendentes:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ exigem serviços escopados por empresa, autorização e testes de isolamento.
 - **CMS — pendentes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações exigem autenticação administrativa, RBAC, CSRF, auditoria persistente e CRUD. A prévia continua restrita por ambiente e IP.
 - **Homologação pendente:** navegador real/teclado/leitor de tela, Docker do Mac, auditoria do MySQL de homologação e testes HTTP de autenticação/CSRF/isolamento PF/PJ e bloqueio CMS. Sem WhatsApp, cobranças, migrações ou alterações de produção.
+
+## APP-A11Y-073 — navegação móvel sem suporte nativo a `inert` (29/10/2026)
+
+- A gaveta móvel PF/PJ só é ativada quando o elemento lateral oferece a propriedade nativa `inert`. Sem esse recurso, o CSS mantém a navegação visível e alcançável por teclado, em vez de ocultar visualmente links que ainda receberiam foco.
+- `tests/ui-003-mobile-menu.js` cobre o fallback sem `inert`, além das verificações anteriores de foco, Escape, Tab, componentes incompletos e mudanças de viewport. Nenhuma rota, permissão, dado financeiro ou sessão foi modificada.
+- **App PF — faltam operações:** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente Financeiro desabilitado. **App PJ — faltam operações:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ. **CMS — faltam operações:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações.
+- Permanecem pendentes a homologação visual no Docker do Mac, a inspeção MySQL de homologação e testes HTTP de autenticação, CSRF, autorização, isolamento PF/PJ e bloqueio CMS. A prévia do CMS continua restrita; sem WhatsApp, cobrança, migração ou produção.

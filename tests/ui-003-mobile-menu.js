@@ -143,10 +143,11 @@ console.log('OK - APP-A11Y-068: incomplete navigation keeps accessible no-JS fal
 
 // APP-A11Y-069: invalid or unavailable viewport APIs must preserve the CSS
 // fallback; legacy MediaQueryList listeners must track both breakpoints.
-const runViewportScenario = (mediaFactory) => {
+const runViewportScenario = (mediaFactory, supportsInert = true) => {
   const classes = new Set();
   const events = {};
-  const mobile = { inert: false, contains: (target) => target === link, querySelector: () => link, querySelectorAll: () => [] };
+  const mobile = { contains: (target) => target === link, querySelector: () => link, querySelectorAll: () => [] };
+  if (supportsInert) mobile.inert = false;
   const link = { focus: () => { doc.activeElement = link; } };
   const button = { addEventListener: (name, handler) => { events['toggle:' + name] = handler; },
     setAttribute: () => {}, focus: () => { doc.activeElement = button; } };
@@ -192,3 +193,11 @@ legacyChange({ matches: false });
 assert.equal(legacyState.mobile.inert, true, 'legacy mobile transition restores inert');
 assert.equal(legacyState.doc.activeElement, legacyState.button, 'legacy mobile toggle receives focus');
 console.log('OK - APP-A11Y-069: viewport fallback and legacy MediaQueryList transitions.');
+
+// APP-A11Y-073: native inert is required before hiding a keyboard-focusable drawer.
+// Older browsers must keep the CSS fallback visible instead of tabbing off-screen.
+const noInert = runViewportScenario(() => ({ matches: false, addEventListener: () => {} }), false);
+assert.equal(noInert.classes.has('app-js'), false, 'no inert support leaves visible CSS navigation');
+assert.equal(noInert.events['toggle:click'], undefined, 'no inert support does not install off-canvas controls');
+assert.equal(Object.hasOwn(noInert.mobile, 'inert'), false, 'unsupported inert is not assigned as an ineffective property');
+console.log('OK - APP-A11Y-073: browsers without native inert retain keyboard-reachable fallback.');
