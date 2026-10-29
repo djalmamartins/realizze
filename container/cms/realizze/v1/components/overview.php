@@ -8,3 +8,17 @@ $cmsMetrics = ['Páginas', 'Conteúdos', 'Arquivos de mídia', 'Publicações pe
 </section>
 <div class="cms-grid"><section class="cms-card"><h2>Conteúdos recentes</h2><p>Histórico de edições e publicações do site institucional.</p><ul class="cms-list"><li><div><strong>Nenhum conteúdo disponível</strong><small>A listagem será ativada após a integração segura.</small></div><span class="cms-status">Prévia</span></li></ul></section><section class="cms-card"><h2>Atividade da plataforma</h2><p>Auditoria de alterações, permissões e publicações.</p><div class="cms-skeleton"></div><div class="cms-skeleton"></div><div class="cms-skeleton"></div><p>Nenhum log administrativo é consultado nesta tela.</p></section></div>
 <aside class="cms-notice"><strong>Prévia protegida: sem funções administrativas</strong>Este layout não permite login, edição, publicação ou leitura de dados privados. A rota permanece indisponível até a implantação da autenticação e das permissões específicas do CMS.</aside>
+
+<?php
+// CMS-UI-064: o painel inicial também documenta os bloqueios antes de qualquer operação.
+$cmsWorkflow = [
+    'title' => 'Preparação obrigatória para operar o CMS',
+    'steps' => [
+        ['title' => 'Autenticação administrativa', 'description' => 'Validar sessão administrativa separada antes de liberar qualquer função.'],
+        ['title' => 'Autorização por papéis', 'description' => 'Restringir leitura e alterações por permissão e escopo.'],
+        ['title' => 'Proteção CSRF', 'description' => 'Exigir token validado em cada operação administrativa de escrita.'],
+        ['title' => 'Auditoria persistente', 'description' => 'Registrar autoria, contexto e resultado das alterações autorizadas.'],
+    ],
+];
+require __DIR__ . '/workflow-preview.php';
+?>
