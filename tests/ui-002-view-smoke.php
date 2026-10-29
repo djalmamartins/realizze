@@ -405,7 +405,9 @@ if (!str_contains($scrollCss, '.shell:not(.app-js) .sidebar{')
 }
 $mobileScript = file_get_contents($root . '/assets/js/dashboard.js');
 if (!is_string($mobileScript)
-    || !str_contains($mobileScript, "const navigationReady = Boolean(shell && sidebar && toggle && closeButton && backdrop);")
+    || !str_contains($mobileScript, "const navigationReady = Boolean(desktopViewport);")
+    || !str_contains($mobileScript, "typeof window.matchMedia === 'function'")
+    || !str_contains($mobileScript, "typeof candidate.addListener === 'function'")
     || !str_contains($mobileScript, "if (navigationReady) shell.classList.add('app-js');")
     || !str_contains($mobileScript, "if (navigationReady) sidebar.inert =")
     || !str_contains($mobileScript, "if (navigationReady) {")) {
