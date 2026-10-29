@@ -87,4 +87,73 @@ assert.equal(classes.has('cms-menu-open'), false, 'desktop transition closes mob
 events['toggle:click']();
 events['nav:click']({ target: { closest: (selector) => selector === 'a' ? link : null } });
 assert.equal(classes.has('cms-menu-open'), false, 'navigation link closes menu');
+
+/* CMS-A11Y-069: incomplete startup must never hide the CSS-only navigation. */
+for (const missing of ['cms-sidebar', 'cms-menu-toggle', 'cms-navigation',
+  'matchMedia', 'first-link', 'matchMedia-throws', 'matchMedia-invalid']) {
+  const fallbackClasses = new Set();
+  const fallbackEvents = {};
+  const fallbackSidebar = { classList: { add: (name) => fallbackClasses.add(name) } };
+  const fallbackToggle = { addEventListener: (name) => { fallbackEvents['toggle:' + name] = true; } };
+  const fallbackNav = {
+    querySelector: () => missing === 'first-link' ? null : { focus: () => {} },
+    addEventListener: (name) => { fallbackEvents['nav:' + name] = true; },
+  };
+  const fallbackDocument = {
+    readyState: 'complete',
+    getElementById: (id) => id === missing ? null : ({
+      'cms-sidebar': fallbackSidebar,
+      'cms-menu-toggle': fallbackToggle,
+      'cms-navigation': fallbackNav,
+    })[id],
+    addEventListener: (name) => { fallbackEvents[name] = true; },
+  };
+  const fallbackWindow = missing === 'matchMedia' ? {} : {
+    matchMedia: () => {
+      if (missing === 'matchMedia-throws') throw new Error('viewport API unavailable');
+      return missing === 'matchMedia-invalid' ? {} : { matches: false };
+    },
+  };
+  vm.runInNewContext(script, { document: fallbackDocument, window: fallbackWindow });
+  assert.equal(fallbackClasses.has('cms-js'), false,
+    'incomplete initialization keeps CSS navigation visible: ' + missing);
+  assert.equal(fallbackEvents['toggle:click'], undefined,
+    'incomplete initialization does not install a broken disclosure: ' + missing);
+}
+// Legacy MediaQueryList.addListener remains supported without changing security gates.
+let legacyBreakpoint = null;
+const legacyClasses = new Set();
+const legacyNav = {
+  querySelector: () => ({ focus: () => {} }),
+  addEventListener: () => {},
+  contains: () => false,
+};
+const legacySidebar = {
+  classList: {
+    add: (name) => legacyClasses.add(name),
+    remove: (name) => legacyClasses.delete(name),
+    contains: (name) => legacyClasses.has(name),
+    toggle: (name, enabled) => enabled ? legacyClasses.add(name) : legacyClasses.delete(name),
+  },
+  contains: () => false,
+};
+const legacyToggle = { setAttribute: () => {}, addEventListener: () => {}, focus: () => {} };
+const legacyDocument = {
+  readyState: 'complete', activeElement: null,
+  getElementById: (id) => ({
+    'cms-sidebar': legacySidebar,
+    'cms-menu-toggle': legacyToggle,
+    'cms-navigation': legacyNav,
+  })[id],
+  addEventListener: () => {},
+};
+vm.runInNewContext(script, {
+  document: legacyDocument,
+  window: { matchMedia: () => ({ matches: false, addListener: (handler) => { legacyBreakpoint = handler; } }) },
+});
+assert.equal(legacyClasses.has('cms-js'), true, 'legacy viewport API activates complete navigation');
+assert.equal(typeof legacyBreakpoint, 'function', 'legacy viewport changes remain observed');
+legacyBreakpoint({ matches: true });
+assert.equal(legacyClasses.has('cms-menu-open'), false, 'legacy desktop transition closes mobile menu');
+
 console.log('OK - CMS-A11Y-061: keyboard, pointer, bidirectional breakpoint and hidden-toggle focus recovery.');

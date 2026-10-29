@@ -342,3 +342,11 @@ php scripts/publish-app-assets.php
 - `tests/ui-003-mobile-menu.js` inclui regressões para a ausência individual de shell, sidebar, botão de abertura, botão de fechamento e backdrop. Sem integração financeira, alteração de sessão ou novas rotas.
 - **App PF pendente:** integração autorizada das dez páginas financeiras, CRUD, filtros reais, relatórios e homologação visual mobile. **App PJ pendente:** onze módulos com serviços, escopo por organização e testes de isolamento. **CMS pendente:** oito seções com autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD; prévia local permanece bloqueada externamente.
 - Ainda faltam inspeção MySQL de homologação, testes HTTP de autenticação/CSRF/isolamento e validação em navegador real. Nenhuma migração, cobrança, WhatsApp ou produção foi alterada.
+
+
+## CMS-A11Y-069 — inicialização progressiva da navegação (29/10/2026)
+
+- O JavaScript da navegação CMS agora ativa a classe `cms-js` **somente após** encontrar sidebar, botão, navegação, primeiro link e uma API `matchMedia` funcional. Se o navegador não fornecer esses recursos, a navegação CSS permanece visível e acessível, sem botão incompleto.
+- Adicionado suporte a `MediaQueryList.addListener` para mudanças de largura em navegadores antigos, preservando foco e fechamento do menu. Testes Node cobrem sete cenários de inicialização incompleta e a API legada, além dos cenários de teclado existentes.
+- **Inventário inalterado:** App PF — dez páginas com layout de prévia, ainda sem CRUD, filtros reais, relatórios operacionais e homologação móvel; App Empresarial — onze módulos sem serviços financeiros, permissões operacionais e consultas isoladas; CMS — oito páginas visuais sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD.
+- Sem alterações de rotas, banco, migrations, produção, cobranças, upload ou WhatsApp. O CMS continua limitado à prévia local e o PR permanece draft.
