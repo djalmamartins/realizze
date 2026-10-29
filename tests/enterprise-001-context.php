@@ -55,6 +55,31 @@ $check(!OrganizationContext::select(10, 'token-invalido'), 'CSRF inválido bloqu
 $check(!OrganizationContext::select(20, $token), 'Não seleciona empresa de outro usuário');
 $check(OrganizationContext::select(10, $token), 'Seleção autorizada por POST/CSRF');
 $check((int) (OrganizationContext::current()['id'] ?? 0) === 10, 'Contexto de sessão revalidado');
+// ENT-SEC-056: regressões de revogação e troca de papéis em memória, sem MySQL real.
+$pdo->exec("UPDATE organization_members SET status = 'inactive' WHERE organization_id = 10 AND user_id = 1");
+$check(OrganizationContext::current() === null, 'Vínculo revogado limpa contexto imediatamente');
+$pdo->exec("UPDATE organization_members SET status = 'active' WHERE organization_id = 10 AND user_id = 1");
+$check(OrganizationContext::select(10, $token), 'Vínculo restaurado exige nova seleção');
+$pdo->exec("UPDATE organization_members SET role_id = 200 WHERE organization_id = 10 AND user_id = 1");
+$check(OrganizationContext::current() === null, 'Papel de outra empresa não concede acesso');
+$pdo->exec("UPDATE organization_members SET role_id = 100 WHERE organization_id = 10 AND user_id = 1");
+$check(OrganizationContext::select(10, $token), 'Papel correto exige nova seleção');
+$pdo->exec("UPDATE organizations SET status = 'inactive' WHERE id = 10");
+$check(OrganizationContext::current() === null, 'Empresa inativa invalida contexto');
+$pdo->exec("UPDATE organizations SET status = 'active' WHERE id = 10");
+$check(OrganizationContext::select(10, $token), 'Empresa reativada exige nova seleção');
+$_SESSION['realizze_organization_context'] = [
+    'organization_id' => 20,
+    'user_id' => 1,
+    'auth_version' => 1,
+];
+$check(OrganizationContext::current() === null, 'Contexto forjado de empresa alheia é rejeitado');
+$check(OrganizationContext::select(10, $token), 'Seleção legítima após tentativa forjada');
+putenv('REALIZZE_ENTERPRISE_CONTEXT_ENABLED=0');
+$check(OrganizationContext::current() === null, 'Desligar feature flag elimina contexto PJ');
+putenv('REALIZZE_ENTERPRISE_CONTEXT_ENABLED=1');
+$check(OrganizationContext::select(10, $token), 'Reativação exige seleção autorizada');
+
 $pdo->exec("DELETE FROM organization_role_permissions WHERE role_id = 100 AND permission_key = 'organization.view'");
 $check(OrganizationContext::current() === null, 'Revogação de permissão invalida contexto');
 $pdo->exec("INSERT INTO organization_role_permissions VALUES (100, 'organization.view')");

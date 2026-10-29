@@ -305,3 +305,16 @@ if (!is_string($dashboardLayout) || !str_contains($dashboardLayout, '<main class
     throw new RuntimeException('APP-A11Y-055: destino do link de pular navegação não é focável.');
 }
 echo 'OK - APP-A11Y-055: assistente sem dados fictícios, canais ou operações; skip link focável.' . PHP_EOL;
+
+// APP-A11Y-056: fallback mobile must not hide the navigation when JS is disabled.
+if (!str_contains($dashboardLayout, '<noscript>')
+    || !str_contains($dashboardLayout, '@media(max-width:850px)')
+    || !str_contains($dashboardLayout, '.sidebar{position:static;transform:none;')
+    || !str_contains($dashboardLayout, '.sidebar-close,.sidebar-toggle,.sidebar-backdrop{display:none!important}')
+    || !str_contains($dashboardLayout, 'JavaScript desativado: o menu permanece visível.')
+    || !str_contains($dashboardLayout, 'Prévia sem envio ou registro de movimentações')
+    || !str_contains($checks['sidebar'][0], 'id="app-sidebar"')
+    || !str_contains($checks['sidebar'][0], 'action="/sair"')) {
+    throw new RuntimeException('APP-A11Y-056: navegação sem JavaScript ou indicação da prévia ausente.');
+}
+echo 'OK - APP-A11Y-056: menu móvel acessível sem JS e assistente descrito como prévia.' . PHP_EOL;

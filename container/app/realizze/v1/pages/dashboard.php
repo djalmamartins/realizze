@@ -21,7 +21,7 @@ $sections = [
     'planejamento' => ['Planejamento', 'Planeje seu futuro financeiro'],
     'metas' => ['Metas', 'Acompanhe seus objetivos'],
     'categorias' => ['Categorias', 'Organize seus lançamentos'],
-    'assistente' => ['Assistente Financeiro', 'Registre e confirme movimentações por conversa'],
+    'assistente' => ['Assistente Financeiro', 'Prévia sem envio ou registro de movimentações'],
     'configuracoes' => ['Configurações', 'Personalize sua experiência'],
     'empresarial' => ['Empresarial', 'Gestão financeira para MEI e empresas'],
 ];
@@ -68,9 +68,21 @@ $icon = static function (string $name) use ($iconPaths): string {
 <?php else: ?>
 <style><?= file_get_contents(dirname(__DIR__) . '/assets/css/dashboard.css') ?></style>
 <?php endif; ?>
+<noscript>
+<style>
+/* APP-A11Y-056: on small screens keep navigation reachable without JavaScript. */
+.app-nojs-note{margin:0;padding:12px 18px;background:#eaf7ef;color:#145c3a}
+@media(max-width:850px){
+  .shell{display:block}
+  .sidebar{position:static;transform:none;width:auto;height:auto;overflow:visible;padding:20px 18px}
+  .sidebar-close,.sidebar-toggle,.sidebar-backdrop{display:none!important}
+}
+</style>
+</noscript>
 </head>
 <body>
 <a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
+<noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros interativos não estão disponíveis nesta prévia.</p></noscript>
 <div class="shell" id="shell">
 <?= $appView->render('components::sidebar', [
     'items' => $items,
