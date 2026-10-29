@@ -82,7 +82,7 @@ $icon = static function (string $name) use ($iconPaths): string {
     'csrf' => $csrf,
  ]) ?>
 <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
-<main class="main" id="overview">
+<main class="main" id="overview" tabindex="-1">
 <?php if ($section === 'overview'): ?>
 <?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user]) ?>
 <?= $appView->render('components::getting-started', ['icon' => $icon]) ?>

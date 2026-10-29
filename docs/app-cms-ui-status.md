@@ -204,3 +204,12 @@ php scripts/publish-app-assets.php
 - CSS respeita o atributo `hidden` mesmo nas áreas com `display: grid/flex`; regressões de interface e comportamento são verificadas em `tests/ui-002-view-smoke.php` e `tests/ui-004-enterprise-search.js`.
 - **App PF:** 10 páginas visuais, pendentes CRUD, dados autorizados, filtros reais, relatórios e homologação visual. **App PJ:** 11 módulos de prévia, pendentes serviços, isolamento de consultas, operações, DRE e OFX/CSV. **CMS:** 8 prévias, pendentes autenticação administrativa, RBAC, CSRF, auditoria persistente e CRUD.
 - Não houve consultas financeiras, migrações, cobrança, WhatsApp, exposição do CMS ou alteração de produção.
+
+## APP-A11Y/SEC-055 — prévia do assistente sem lançamentos inventados (28/10/2026)
+
+- A tela **Assistente Financeiro** mantém a composição responsiva e o estado desabilitado, mas deixa de exibir uma conversa simulada com valor monetário, categoria e data. Agora apresenta um estado vazio inequívoco: **Nenhuma conversa iniciada**. Nenhum dado é carregado, enviado ou persistido.
+- Retirada da prévia a ação de conexão com canal externo. Integração de mensagens, processamento automatizado, cobranças e WhatsApp permanecem fora do escopo desta fase.
+- O destino do link **Ir para o conteúdo principal** recebe `tabindex="-1"`, permitindo foco programático sem adicionar o `main` à sequência normal de Tab.
+- `tests/ui-002-view-smoke.php` verifica a ausência de valores financeiros fictícios, mensagens simuladas e controles ativos no assistente, além do destino focável do skip link.
+- **Inventário corrigido:** App PF tem **11 seções visuais**, contando **Assistente Financeiro** (Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias, Assistente Financeiro e Configurações). As onze ainda dependem de integrações seguras, dados autorizados e homologação visual; o assistente fica somente como prévia, sem integração nesta fase. App PJ tem **11 módulos em prévia** sem operações escopadas. CMS tem **8 seções em prévia** sem autenticação administrativa completa, RBAC, CSRF nas mutações, auditoria persistente e CRUD.
+- Ainda faltam auditoria do MySQL de homologação, testes HTTP de sessão/CSRF/isolamento e homologação com teclado, leitor de tela e Docker. Nenhuma migração, upload, operação financeira, cobrança, integração externa ou alteração de produção foi feita.

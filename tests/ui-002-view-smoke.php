@@ -60,7 +60,7 @@ $checks = [
     ],
     'assistente' => [
         $view->render('pages/assistente', ['icon' => $icon]),
-        ['Assistente Realizze', 'Aguardando confirmação', 'Nenhuma movimentação será registrada', 'Provedor de mensagens não conectado'],
+        ['Assistente Realizze', 'Nenhuma conversa iniciada', 'Nenhuma conversa ou movimentação será registrada', 'Integração de mensagens não habilitada'],
     ],
 ];
 
@@ -285,3 +285,23 @@ if (!is_string($settingsCss) || !str_contains($settingsCss, '.finance-settings-g
     throw new RuntimeException('APP-UI-048: estilos responsivos de configurações ausentes.');
 }
 echo 'OK - APP-UI-048: configurações PF responsivas, sem mutações ou dados inventados.' . PHP_EOL;
+
+// APP-A11Y-055: no fictitious transactions, chat messages or out-of-scope channel actions.
+$assistantHtml = $checks['assistente'][0];
+if (preg_match('/R\\$\\s*[0-9]/u', $assistantHtml) === 1
+    || str_contains($assistantHtml, 'assistant-message-user')
+    || stripos($assistantHtml, 'WhatsApp') !== false
+    || str_contains($assistantHtml, '<form')) {
+    throw new RuntimeException('APP-A11Y-055: assistente exibe dados fictícios ou ação fora de escopo.');
+}
+preg_match_all('/<(?:button|input|select|textarea)\\b[^>]*>/i', $assistantHtml, $assistantControls);
+foreach ($assistantControls[0] as $control) {
+    if (preg_match('/\\bdisabled\\b/i', $control) !== 1) {
+        throw new RuntimeException('APP-A11Y-055: controle do assistente habilitado: ' . $control);
+    }
+}
+$dashboardLayout = file_get_contents($root . '/pages/dashboard.php');
+if (!is_string($dashboardLayout) || !str_contains($dashboardLayout, '<main class="main" id="overview" tabindex="-1">')) {
+    throw new RuntimeException('APP-A11Y-055: destino do link de pular navegação não é focável.');
+}
+echo 'OK - APP-A11Y-055: assistente sem dados fictícios, canais ou operações; skip link focável.' . PHP_EOL;
