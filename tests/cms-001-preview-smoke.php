@@ -178,7 +178,8 @@ if (!str_contains($cmsMobileCss, '.cms-sidebar.cms-js .cms-menu-toggle{display:i
 echo 'OK - CMS-A11Y-058: menu visível sem JS, botão móvel somente com JS.' . PHP_EOL;
 
 // CMS-UI-057: shared read-only workflows in pages, contents and media.
-foreach (['pages' => 'Fluxo previsto para páginas', 'contents' => 'Fluxo editorial previsto',
+foreach (['overview' => 'Preparação obrigatória para operar o CMS',
+    'pages' => 'Fluxo previsto para páginas', 'contents' => 'Fluxo editorial previsto',
     'media' => 'Fluxo seguro previsto para arquivos',
     'users' => 'Fluxo previsto de acesso administrativo',
     'plans' => 'Fluxo previsto de planos e assinaturas',
@@ -205,4 +206,4 @@ if (str_contains($workflowHtml, '<script>') || str_contains($workflowHtml, '<img
     || !str_contains($workflowHtml, 'Texto &amp; dados')) {
     throw new RuntimeException('CMS-UI-057: fluxo não escapou os metadados.');
 }
-echo 'OK - CMS-UI-059: sete fluxos de prévia do CMS sem ações administrativas.' . PHP_EOL;
+echo 'OK - CMS-UI-059: oito fluxos de prévia do CMS sem ações administrativas.' . PHP_EOL;
