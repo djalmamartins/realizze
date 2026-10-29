@@ -288,3 +288,13 @@ php scripts/publish-app-assets.php
 - **App Empresarial — faltantes:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, Conciliação OFX/CSV e Obrigações MEI/PJ exigem operações reais com autorização e isolamento por organização.
 - **CMS — faltantes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações exigem autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações seguras. A prévia permanece bloqueada fora do ambiente local autorizado.
 - **Homologação pendente:** teste em navegador real/Docker do Mac com teclado/leitor de tela, auditoria do MySQL de homologação, testes HTTP de sessão, CSRF, isolamento PF/PJ e bloqueio do CMS. Nenhuma migração, cobrança, WhatsApp ou produção foi alterado.
+
+
+## APP-A11Y-063 — foco preservado antes de ocultar resultados (29/10/2026)
+
+- Corrigida uma condição de corrida de acessibilidade na pesquisa do App Empresarial: o navegador pode limpar `document.activeElement` ao ocultar o módulo ou atalho focado. A busca agora captura o foco **antes** de aplicar `hidden`, e o devolve ao campo de pesquisa somente se o elemento ativo ficou invisível. Resultados visíveis preservam o foco.
+- `tests/ui-004-enterprise-search.js` simula o navegador apagando `activeElement` ao ocultar módulo e atalho; verifica a recuperação em ambos os casos. Não há acesso a dados financeiros, mudanças de contexto PF/PJ, novos formulários nem novas rotas.
+- **App PF (11 seções visuais):** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações aguardam dados autorizados, CRUD, filtros e relatórios; Assistente Financeiro continua desabilitado.
+- **App Empresarial (11 módulos):** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ aguardam serviços com autorização por operação e isolamento de organização.
+- **CMS (8 seções):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações aguardam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD. Prévia local continua bloqueada fora das flags e IPs permitidos.
+- **Homologação ainda necessária:** testes visuais/teclado/leitor de tela no Docker do Mac, MySQL de homologação e testes HTTP de sessão/CSRF/isolamento e bloqueio CMS. Nenhum WhatsApp, cobrança, migração destrutiva ou alteração em produção.

@@ -170,4 +170,31 @@ assert.equal(input.value, '');
 assert.equal(input.focused, true, 'botão limpar devolve foco ao campo');
 assert.equal(visible().length, 3);
 assert.equal(clear.disabled, true, 'botão limpar desabilitado após clique');
-console.log('OK - APP-A11Y-062: filtro PJ, atalhos, teclado e recuperação de foco.');
+
+// Simulate browsers that clear document.activeElement immediately when hidden
+// is applied. Recovery must use the focus captured before changing visibility.
+for (const target of [modules[1], links[0]]) {
+  let hidden = target.hidden;
+  Object.defineProperty(target, 'hidden', {
+    configurable: true,
+    get() { return hidden; },
+    set(value) {
+      hidden = value;
+      if (value && document.activeElement === target) document.activeElement = null;
+    },
+  });
+}
+document.activeElement = modules[1];
+input.focused = false;
+search('clientes');
+assert.equal(document.activeElement, input,
+  'focused module recovers even when browser clears activeElement on hide');
+assert.equal(input.focused, true);
+document.activeElement = links[0];
+input.focused = false;
+search('pagar');
+assert.equal(document.activeElement, input,
+  'focused shortcut recovers even when browser clears activeElement on hide');
+assert.equal(input.focused, true);
+
+console.log('OK - APP-A11Y-063: filtro PJ recupera foco antes do navegador ocultar o elemento.');

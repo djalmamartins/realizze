@@ -113,6 +113,9 @@
       const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
       const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
       const applyFilter = () => {
+        // Browsers can reset activeElement when a focused node becomes hidden.
+        // Capture focus before changing visibility, then recover it if necessary.
+        const focusedBeforeFilter = document.activeElement;
         const terms = normalize(enterpriseSearch.value).split(' ').filter(Boolean);
         let visible = 0;
         modules.forEach((module) => {
@@ -136,7 +139,7 @@
         });
         // Filtering may hide a focused module or shortcut. Return keyboard focus
         // to the visible search field rather than leaving it inside hidden content.
-        const active = document.activeElement;
+        const active = focusedBeforeFilter;
         if (active && (
           modules.some((module) => module.hidden && module.contains(active)) ||
           jumpLinks.some((link) => link.hidden && link.contains(active))
