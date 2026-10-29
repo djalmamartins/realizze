@@ -436,3 +436,33 @@ if (!is_string($mobileScript)
     throw new RuntimeException('APP-A11Y-067: ativação progressiva do menu não encontrada.');
 }
 echo 'OK - APP-A11Y-067: navegação PF/PJ permanece visível se o JS não carregar.' . PHP_EOL;
+
+
+// APP-UI/A11Y-074: shared PF/PJ heading escapes untrusted metadata and
+// keeps one labelled heading, with no organization selection or data access.
+$unsafeHeading = $view->render('components::page-heading', [
+    'pageHeading' => [
+        'title' => '<img src=x onerror=alert(1)>',
+        'description' => '<script>alert(1)</script> & informações',
+        'context' => 'enterprise',
+    ],
+    'appView' => $view,
+]);
+$personalHeading = $view->render('components::page-heading', [
+    'pageHeading' => ['title' => 'Contas e Cartões', 'description' => 'Área pessoal', 'context' => '<script>'],
+    'appView' => $view,
+]);
+if (str_contains($unsafeHeading, '<img src=x')
+    || str_contains($unsafeHeading, '<script>')
+    || !str_contains($unsafeHeading, '&lt;img src=x onerror=alert(1)&gt;')
+    || !str_contains($unsafeHeading, '&lt;script&gt;alert(1)&lt;/script&gt; &amp; informações')
+    || !str_contains($unsafeHeading, 'aria-labelledby="app-page-title"')
+    || substr_count($unsafeHeading, '<h1 id="app-page-title">') !== 1
+    || !str_contains($unsafeHeading, 'Empresarial · MEI/PJ')
+    || !str_contains($personalHeading, 'Pessoal · PF')
+    || !str_contains($personalHeading, '<h1 id="app-page-title">Contas e Cartões</h1>')
+    || !str_contains($dashboardLayout, "components::page-heading")
+    || str_contains($dashboardLayout, '<section class="page-heading"><div>')) {
+    throw new RuntimeException('APP-UI-074: cabeçalho PF/PJ não reutilizado ou sem escape/semântica.');
+}
+echo 'OK - APP-UI-074: cabeçalho PF/PJ compartilhado, acessível e escapado.' . PHP_EOL;
