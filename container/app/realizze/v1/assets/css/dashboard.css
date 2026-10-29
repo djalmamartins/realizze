@@ -140,7 +140,7 @@
 }
 
 /* APP-A11Y-030: prevent background scroll while the mobile menu has focus. */
-@media(max-width:850px){body.app-menu-locked{overflow:hidden;touch-action:none}}
+@media(max-width:850px){body.app-menu-locked{overflow:hidden;overscroll-behavior:contain}}
 
 /* APP-A11Y-036: visible destination for keyboard navigation in PJ workspace. */
 .enterprise-module:focus{outline:3px solid #087d49;outline-offset:3px}
@@ -221,3 +221,20 @@
 .finance-scroll-hint,.enterprise-scroll-hint{display:none;margin:0;padding:8px 14px 2px;color:#526b5b;font-size:12px;line-height:1.5}
 @media(max-width:850px){.finance-scroll-hint,.enterprise-scroll-hint{display:block}}
 .finance-table-wrap:focus-visible>.finance-scroll-hint,.enterprise-module-table-wrap:focus-visible>.enterprise-scroll-hint{display:block}
+
+
+/* APP-A11Y-066: let tall off-canvas navigation scroll by touch while the page stays locked.
+   100dvh follows the changing browser chrome; 100vh is the fallback. */
+.top>div:first-child,.top h1,.profile,.profile>div,.page-heading>div{min-width:0}
+.top h1,.profile strong,.page-heading h1,.nav a{overflow-wrap:anywhere}
+@media(max-width:850px){
+  .sidebar{
+    height:100vh;
+    height:100dvh;
+    max-height:100dvh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+}

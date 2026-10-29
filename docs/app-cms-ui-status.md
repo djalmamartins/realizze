@@ -317,3 +317,12 @@ php scripts/publish-app-assets.php
 - Testes de renderização adicionados a `tests/ui-002-view-smoke.php` e `tests/cms-001-preview-smoke.php`. Teste visual e com leitor de tela no Docker do Mac ainda pendente.
 - **App PF:** 10 áreas visuais (mais Assistente em prévia desabilitada); operações reais, filtros e relatórios ainda faltam. **App PJ:** 11 módulos visuais; faltam CRUD, consultas isoladas e importação OFX/CSV. **CMS:** 8 seções visuais; faltam autenticação administrativa, autorização por papéis, CSRF nas mutações, auditoria persistente e CRUD. A prévia permanece bloqueada fora do ambiente local permitido.
 - Sem migrações, cobranças, WhatsApp, operações financeiras ou alterações em produção.
+
+
+## APP-A11Y-066 — rolagem do menu móvel e nomes longos (29/10/2026)
+
+- Corrigido o bloqueio de gestos de toque no menu lateral aberto: o `touch-action:none` aplicado ao `body` podia impedir a rolagem de uma sidebar alta em celulares. O fundo permanece bloqueado por `overflow:hidden`, enquanto a sidebar aceita `pan-y`.
+- A sidebar usa `100dvh` com fallback `100vh`, respeita a área segura inferior e mantém a rolagem vertical. Nomes de perfil e títulos longos passam a quebrar linha sem ampliar a largura da interface.
+- Regressão estática adicionada a `tests/ui-002-view-smoke.php`; validação em navegador móvel real e leitor de tela continua pendente.
+- **App PF — pendentes:** integração segura e CRUD de Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente Financeiro desabilitado. **App Empresarial — pendentes:** clientes, fornecedores, equipes/permissões, contas a receber/pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, conciliação OFX/CSV e obrigações MEI/PJ. **CMS — pendentes:** autenticação administrativa, autorização por papéis, CSRF nas mutações, auditoria persistente e operações de Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs e Configurações.
+- Sem alterações em rotas, banco, contexto PF/PJ, operações financeiras, cobranças, WhatsApp ou produção. CMS continua com prévia local bloqueada.

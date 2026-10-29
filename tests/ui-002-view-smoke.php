@@ -383,3 +383,14 @@ if (!is_string($scrollCss)
     throw new RuntimeException('APP-A11Y-065: orientação responsiva/foco das tabelas ausente.');
 }
 echo 'OK - APP-A11Y-065: tabelas PF/PJ com orientação de rolagem responsiva.' . PHP_EOL;
+
+// APP-A11Y-066: a tall mobile menu must remain scrollable by touch and within dynamic viewport.
+if (!str_contains($scrollCss, 'body.app-menu-locked{overflow:hidden;overscroll-behavior:contain}')
+    || str_contains($scrollCss, 'body.app-menu-locked{overflow:hidden;touch-action:none}')
+    || !str_contains($scrollCss, 'height:100dvh;')
+    || !str_contains($scrollCss, 'touch-action:pan-y;')
+    || !str_contains($scrollCss, 'env(safe-area-inset-bottom, 0px)')
+    || !str_contains($scrollCss, '.profile strong,.page-heading h1,.nav a{overflow-wrap:anywhere}')) {
+    throw new RuntimeException('APP-A11Y-066: rolagem do menu ou quebra de textos longos indisponível.');
+}
+echo 'OK - APP-A11Y-066: sidebar móvel rolável por toque, viewport dinâmico e nomes longos.' . PHP_EOL;
