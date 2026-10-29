@@ -400,3 +400,14 @@ php scripts/publish-app-assets.php
 - assets/css/dashboard.css mantém três colunas no desktop e uma no celular; o aviso ocupa a largura da grade. tests/ui-002-view-smoke.php verifica quatro telas, escape de HTML, controles desabilitados, IDs únicos e rejeição de configurações inseguras.
 - App PF — pendentes: integração segura nas dez páginas, filtros reais, CRUD, relatórios, exportações e homologação visual/teclado no Docker. App Empresarial — pendentes: onze módulos ainda sem persistência ou consultas escopadas. CMS — pendentes: oito prévias ainda sem autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD.
 - Sem alteração de rotas, banco, produção, cobranças, importação OFX/CSV ou WhatsApp.
+
+
+## APP-UI-076 — filtros compartilhados em Relatórios e Planejamento (29/10/2026)
+
+- **Relatórios** e **Planejamento** reutilizam `components/finance-filter-preview.php`, inspecionado na branch: os três seletores de período, conta e categoria preservam IDs, rótulos e opções anteriores.
+- Os controles permanecem desabilitados e sem `form`, chamadas de rede, consulta ao banco ou dados simulados. O componente apresenta aviso acessível e aplica escape de metadados; o CSS responsivo existente continua compartilhado.
+- `tests/ui-002-view-smoke.php` cobre as duas páginas, seis rótulos/IDs, ausência de controles ativos, IDs duplicados e valores fictícios.
+- **App PF — páginas ainda sem integração funcional:** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações. Assistente Financeiro desabilitado.
+- **App Empresarial — módulos ainda sem integração:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, Conciliação OFX/CSV e Obrigações MEI/PJ.
+- **CMS — seções ainda sem integração administrativa:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. A prévia continua restrita a ambiente/IP local; faltam autenticação administrativa, RBAC, CSRF em mutações, auditoria e CRUD.
+- **Homologação pendente:** Docker/navegadores reais, MySQL de homologação, testes HTTP de autenticação, CSRF, isolamento PF/PJ e bloqueio CMS. Sem WhatsApp, cobranças, migrações destrutivas ou produção.

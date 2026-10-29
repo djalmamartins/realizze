@@ -523,3 +523,39 @@ foreach ([
     }
 }
 echo 'OK - APP-UI-075: filtros PF compartilhados, desabilitados e escapados.' . PHP_EOL;
+
+
+// APP-UI-076: reports and planning reuse the same non-operational PF filters.
+// Keep all original IDs/labels and reject enabled controls or duplicated IDs.
+foreach ([
+    'relatorios' => ['relatorios-period', 'relatorios-account', 'relatorios-category'],
+    'planejamento' => ['planejamento-period', 'planejamento-account', 'planejamento-category'],
+] as $page => $expectedIds) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    if (substr_count($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"') !== 1
+        || !str_contains($html, 'Nenhuma consulta ou alteração é realizada.')
+        || str_contains($html, '<form')) {
+        throw new RuntimeException('APP-UI-076: filtros compartilhados ausentes/inseguros em ' . $page);
+    }
+    preg_match_all('/<(?:input|select)\\b[^>]*>/i', $html, $filterControls);
+    if (count($filterControls[0]) !== 3) {
+        throw new RuntimeException('APP-UI-076: quantidade de filtros alterada em ' . $page);
+    }
+    foreach ($filterControls[0] as $control) {
+        if (preg_match('/\\bdisabled\\b/i', $control) !== 1) {
+            throw new RuntimeException('APP-UI-076: controle habilitado em ' . $page);
+        }
+    }
+    foreach ($expectedIds as $id) {
+        if (substr_count($html, 'id="' . $id . '"') !== 1
+            || substr_count($html, 'for="' . $id . '"') !== 1) {
+            throw new RuntimeException('APP-UI-076: ID ou label inconsistente: ' . $id);
+        }
+    }
+    preg_match_all('/\\bid="([^"]+)"/', $html, $filterIds);
+    if (count($filterIds[1]) !== count(array_unique($filterIds[1]))
+        || preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
+        throw new RuntimeException('APP-UI-076: IDs duplicados ou dados financeiros fictícios em ' . $page);
+    }
+}
+echo 'OK - APP-UI-076: filtros de relatórios e planejamento reutilizados sem operações.' . PHP_EOL;
