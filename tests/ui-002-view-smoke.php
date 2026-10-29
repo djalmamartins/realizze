@@ -147,6 +147,12 @@ foreach (['id="enterprise-module-search"', 'type="search"', 'aria-controls="ente
         throw new RuntimeException('APP-UI-035: filtro PJ incompleto: ' . $needle);
     }
 }
+// APP-A11Y-054: sem JavaScript, a busca não funcional fica oculta; os módulos permanecem visíveis.
+if (!str_contains($enterpriseHtml, 'aria-label="Filtrar áreas empresariais" hidden')
+    || !str_contains($enterpriseHtml, 'id="enterprise-module-clear" type="button" class="enterprise-secondary" disabled')) {
+    throw new RuntimeException('APP-A11Y-054: filtro progressivo ou botão inicial não configurado.');
+}
+echo 'OK - APP-A11Y-054: busca PJ progressiva, sem controles inoperantes quando JS está ausente.' . PHP_EOL;
 // APP-UI-040: a busca tem estado vazio explícito e mantém controles acessíveis.
 foreach (['id="enterprise-search-empty"', 'id="enterprise-search-empty-title"',
     'Nenhum módulo encontrado', 'hidden aria-labelledby="enterprise-search-empty-title"'] as $needle) {

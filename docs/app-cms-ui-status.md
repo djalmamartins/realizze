@@ -196,3 +196,11 @@ php scripts/publish-app-assets.php
 - Testes de regressão ampliados em `tests/ui-004-enterprise-search.js` e `tests/cms-003-mobile-menu.js`. Testes com navegador real, teclado e leitor de tela continuam necessários.
 - **App PF:** dez páginas existentes ainda dependem de dados autorizados, operações financeiras, filtros persistentes, relatórios e homologação visual. **App PJ:** onze módulos em prévia ainda dependem de serviços escopados, CRUD e importação OFX/CSV segura. **CMS:** oito seções em prévia ainda dependem de autenticação administrativa, autorização por papéis, CSRF, auditoria persistente e operações reais.
 - Sem alterações em banco, migrations, produção, cobranças ou WhatsApp.
+
+## APP-A11Y-054 — filtro PJ com aprimoramento progressivo (28/10/2026)
+
+- A pesquisa local de módulos empresariais só aparece quando o JavaScript inicializa; sem JavaScript, os onze módulos e seus atalhos continuam visíveis, sem controles de busca inoperantes.
+- O botão **Limpar filtro** fica desabilitado quando o campo está vazio. Quando não há correspondências, a navegação de atalhos é ocultada junto dos cartões, e retorna ao limpar a pesquisa. O aviso de estado vazio continua acessível.
+- CSS respeita o atributo `hidden` mesmo nas áreas com `display: grid/flex`; regressões de interface e comportamento são verificadas em `tests/ui-002-view-smoke.php` e `tests/ui-004-enterprise-search.js`.
+- **App PF:** 10 páginas visuais, pendentes CRUD, dados autorizados, filtros reais, relatórios e homologação visual. **App PJ:** 11 módulos de prévia, pendentes serviços, isolamento de consultas, operações, DRE e OFX/CSV. **CMS:** 8 prévias, pendentes autenticação administrativa, RBAC, CSRF, auditoria persistente e CRUD.
+- Não houve consultas financeiras, migrações, cobrança, WhatsApp, exposição do CMS ou alteração de produção.

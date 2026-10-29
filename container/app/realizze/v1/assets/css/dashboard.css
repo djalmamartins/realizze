@@ -200,3 +200,8 @@
 .finance-settings-notice{margin:0 28px 26px;padding:14px 16px;border-radius:10px;background:#f0f8f3;color:#22563c;line-height:1.6;font-size:12px}
 @media(max-width:900px){.finance-settings-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.finance-settings-grid{padding:0 20px 20px}.finance-settings-fields{grid-template-columns:1fr}.finance-settings-panel{padding:18px}.finance-settings-notice{margin:0 20px 20px}}
+
+/* APP-A11Y-054: no-JS search is hidden; empty jump navigation is not exposed. */
+.enterprise-module-filter[hidden],.enterprise-jump[hidden]{display:none!important}
+.enterprise-module-filter button:disabled{opacity:.55;cursor:not-allowed}
+.enterprise-module-filter button:disabled:hover{background:#fff}

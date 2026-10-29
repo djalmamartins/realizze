@@ -80,12 +80,12 @@ $enterpriseGroups = [
     <div><h3 id="enterprise-modules-title">Áreas de gestão</h3><p>Conheça os módulos planejados. Todas as tabelas abaixo são apenas estruturas visuais, sem dados de clientes ou empresas.</p></div>
     <span class="enterprise-readonly-label">Somente visualização</span>
   </div>
-  <div class="enterprise-module-filter" role="search" aria-label="Filtrar áreas empresariais">
+  <div class="enterprise-module-filter" role="search" aria-label="Filtrar áreas empresariais" hidden>
     <div class="enterprise-filter-field">
       <label for="enterprise-module-search">Localizar módulo</label>
       <input id="enterprise-module-search" type="search" autocomplete="off" placeholder="Ex.: clientes, fluxo de caixa, DRE" aria-controls="enterprise-module-groups" aria-describedby="enterprise-search-help">
     </div>
-    <button id="enterprise-module-clear" type="button" class="enterprise-secondary">Limpar filtro</button>
+    <button id="enterprise-module-clear" type="button" class="enterprise-secondary" disabled>Limpar filtro</button>
     <p id="enterprise-search-help" class="muted">Pesquise por módulo, área de gestão ou nome de coluna. O filtro atua somente nesta página. Não consulta empresas ou lançamentos.</p>
     <p id="enterprise-search-status" class="muted" role="status" aria-live="polite" aria-atomic="true">11 módulos disponíveis.</p>
   </div>

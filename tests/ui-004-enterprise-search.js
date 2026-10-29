@@ -19,10 +19,13 @@ const input = {
   focus() { this.focused = true; },
 };
 const clear = {
+  disabled: true,
   addEventListener: (name, callback) => { callbacks['clear:' + name] = callback; },
 };
 const status = { textContent: '' };
 const empty = { hidden: true };
+const filter = { hidden: true };
+const jump = { hidden: false };
 const groups = [];
 const modules = [];
 const links = [];
@@ -69,6 +72,8 @@ const selectors = {
   '#enterprise-module-clear': clear,
   '#enterprise-search-status': status,
   '#enterprise-search-empty': empty,
+  '.enterprise-module-filter': filter,
+  '.enterprise-jump': jump,
 };
 const document = {
   readyState: 'complete',
@@ -93,10 +98,14 @@ const visible = () => modules.filter((module) => !module.hidden).map((module) =>
 assert.deepEqual(visible(), ['enterprise-clientes', 'enterprise-receber', 'enterprise-pagar']);
 assert.equal(status.textContent, '3 módulos encontrados.');
 assert.equal(empty.hidden, true);
+assert.equal(filter.hidden, false, 'JavaScript habilita o filtro de forma progressiva');
+assert.equal(clear.disabled, true, 'limpar inicia desabilitado sem texto');
+assert.equal(jump.hidden, false, 'atalhos disponíveis com resultados');
 
 search('GESTAO FINANCEIRA');
 assert.deepEqual(visible(), ['enterprise-receber', 'enterprise-pagar'],
   'nome do grupo é pesquisável sem acentos');
+assert.equal(clear.disabled, false, 'digitar habilita o botão de limpar');
 assert.equal(groups[0].hidden, true);
 assert.equal(groups[1].hidden, false);
 assert.equal(links[0].hidden, true, 'atalho oculto não aponta para módulo filtrado');
@@ -120,6 +129,7 @@ assert.deepEqual(visible(), []);
 assert.equal(groups.every((group) => group.hidden), true);
 assert.equal(links.every((link) => link.hidden), true);
 assert.equal(empty.hidden, false);
+assert.equal(jump.hidden, true, 'navegação sem links não permanece exposta');
 assert.equal(status.textContent, 'Nenhum módulo corresponde à pesquisa.');
 
 let prevented = false;
@@ -130,6 +140,8 @@ callbacks['input:keydown']({
 assert.equal(prevented, true, 'Escape limpa filtro ativo');
 assert.equal(input.value, '');
 assert.equal(empty.hidden, true);
+assert.equal(jump.hidden, false, 'atalhos voltam após limpar');
+assert.equal(clear.disabled, true, 'botão limpar volta a ficar desabilitado');
 assert.equal(groups.every((group) => !group.hidden), true);
 assert.equal(links.every((link) => !link.hidden), true);
 assert.equal(visible().length, 3);
@@ -139,4 +151,5 @@ callbacks['clear:click']();
 assert.equal(input.value, '');
 assert.equal(input.focused, true, 'botão limpar devolve foco ao campo');
 assert.equal(visible().length, 3);
+assert.equal(clear.disabled, true, 'botão limpar desabilitado após clique');
 console.log('OK - APP-UI-053: filtro PJ por múltiplos termos, grupo, coluna, links e teclado.');
