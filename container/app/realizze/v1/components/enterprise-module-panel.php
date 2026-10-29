@@ -17,6 +17,7 @@ $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOT
     <span class="enterprise-module-status">Prévia</span>
   </header>
   <div class="enterprise-module-table-wrap" role="region" aria-label="Estrutura da tabela de <?= $escape($moduleTitle) ?>" tabindex="0">
+    <p class="enterprise-scroll-hint">Role horizontalmente para ver todas as colunas. Com teclado, foque esta região e use as setas.</p>
     <table class="enterprise-module-table">
       <caption class="enterprise-module-caption">Estrutura de <?= $escape($moduleTitle) ?> — prévia sem dados</caption>
       <thead><tr><?php foreach ($moduleColumns as $column): ?><th scope="col"><?= $escape((string) $column) ?></th><?php endforeach; ?></tr></thead>

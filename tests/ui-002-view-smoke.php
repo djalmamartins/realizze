@@ -364,3 +364,22 @@ foreach ([
     }
 }
 echo 'OK - APP-A11Y-064: avatar compartilhado preserva grafemas e fallback UTF-8.' . PHP_EOL;
+
+// APP-A11Y-065: PF/PJ tables must explain horizontal scrolling without enabling actions.
+foreach (['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias'] as $page) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    if (!str_contains($html, 'class="finance-scroll-hint"')
+        || !str_contains($html, 'Com teclado, foque esta região e use as setas.')) {
+        throw new RuntimeException('APP-A11Y-065: orientação de rolagem ausente em ' . $page);
+    }
+}
+if (substr_count($enterpriseHtml, 'class="enterprise-scroll-hint"') !== 11) {
+    throw new RuntimeException('APP-A11Y-065: orientação de rolagem PJ ausente em algum módulo.');
+}
+$scrollCss = file_get_contents($root . '/assets/css/dashboard.css');
+if (!is_string($scrollCss)
+    || !str_contains($scrollCss, '@media(max-width:850px){.finance-scroll-hint,.enterprise-scroll-hint{display:block}}')
+    || !str_contains($scrollCss, '.enterprise-module-table-wrap:focus-visible>.enterprise-scroll-hint')) {
+    throw new RuntimeException('APP-A11Y-065: orientação responsiva/foco das tabelas ausente.');
+}
+echo 'OK - APP-A11Y-065: tabelas PF/PJ com orientação de rolagem responsiva.' . PHP_EOL;

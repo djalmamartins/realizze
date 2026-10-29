@@ -216,3 +216,8 @@
 
 /* APP-A11Y-057: every enterprise preview table has a visible, descriptive caption. */
 .enterprise-module-caption{caption-side:top;text-align:left;padding:12px 14px 8px;color:#536b5b;font-size:12px;font-weight:650;white-space:normal}
+
+/* APP-A11Y-065: discoverable horizontal table scrolling on small screens and keyboard focus. */
+.finance-scroll-hint,.enterprise-scroll-hint{display:none;margin:0;padding:8px 14px 2px;color:#526b5b;font-size:12px;line-height:1.5}
+@media(max-width:850px){.finance-scroll-hint,.enterprise-scroll-hint{display:block}}
+.finance-table-wrap:focus-visible>.finance-scroll-hint,.enterprise-module-table-wrap:focus-visible>.enterprise-scroll-hint{display:block}

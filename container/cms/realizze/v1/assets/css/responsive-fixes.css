@@ -101,3 +101,8 @@
 .cms-workflow-state{flex:none;padding:5px 8px;border-radius:999px;background:#eef2ef;color:#62776a;font-size:11px;font-weight:700}
 @media(max-width:850px){.cms-workflow-steps{grid-template-columns:1fr}}
 @media(max-width:480px){.cms-workflow-steps li{flex-wrap:wrap}.cms-workflow-state{margin-left:auto}}
+
+/* CMS-A11Y-065: guidance for keyboard and touch scrolling in read-only tables. */
+.cms-scroll-hint{display:none;margin:0;padding:8px 10px 2px;color:#526b5b;font-size:12px;line-height:1.5}
+@media(max-width:720px){.cms-scroll-hint{display:block}}
+.cms-table-wrap:focus-visible>.cms-scroll-hint{display:block}

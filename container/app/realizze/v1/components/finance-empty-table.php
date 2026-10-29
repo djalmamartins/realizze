@@ -14,6 +14,7 @@ $escapeFinance = static fn (mixed $value): string => htmlspecialchars((string) $
 $iconName = $table['icon'] ?? null;
 ?>
 <div class="finance-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?>">
+  <p class="finance-scroll-hint">Role horizontalmente para ver todas as colunas. Com teclado, foque esta região e use as setas.</p>
   <table class="finance-table">
     <caption class="finance-table-caption"><?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?></caption>
     <thead><tr><?php foreach ($columns as $column): ?><th scope="col"><?= $escapeFinance($column) ?></th><?php endforeach; ?></tr></thead>

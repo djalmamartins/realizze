@@ -207,3 +207,15 @@ if (str_contains($workflowHtml, '<script>') || str_contains($workflowHtml, '<img
     throw new RuntimeException('CMS-UI-057: fluxo não escapou os metadados.');
 }
 echo 'OK - CMS-UI-059: oito fluxos de prévia do CMS sem ações administrativas.' . PHP_EOL;
+
+// CMS-A11Y-065: all shared inventory tables explain horizontal scrolling.
+foreach (['pages', 'users', 'plans', 'logs', 'contents', 'media'] as $slug) {
+    if (!str_contains($render($slug), 'class="cms-scroll-hint"')) {
+        throw new RuntimeException('CMS-A11Y-065: orientação de rolagem ausente em ' . $slug);
+    }
+}
+if (!str_contains($cmsMobileCss, '@media(max-width:720px){.cms-scroll-hint{display:block}}')
+    || !str_contains($cmsMobileCss, '.cms-table-wrap:focus-visible>.cms-scroll-hint')) {
+    throw new RuntimeException('CMS-A11Y-065: orientação de rolagem responsiva/foco ausente.');
+}
+echo 'OK - CMS-A11Y-065: tabelas administrativas com orientação de rolagem.' . PHP_EOL;

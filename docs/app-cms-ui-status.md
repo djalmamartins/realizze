@@ -309,3 +309,11 @@ php scripts/publish-app-assets.php
 - **App Empresarial — faltam operações nos módulos:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, Conciliação OFX/CSV e Obrigações MEI/PJ; dependem de autorização e isolamento por organização.
 - **CMS — faltam operações nas oito seções:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. O gate local continua obrigatório até autenticação administrativa, RBAC, CSRF nas mutações e auditoria persistente serem implementados e testados.
 - **Homologação ainda pendente:** testes visuais reais no Docker do Mac, teclado/leitor de tela, inspeção MySQL de homologação e testes HTTP de sessão, CSRF, isolamento PF/PJ e bloqueio do CMS. Nenhum WhatsApp, cobrança, migração, upload ou alteração em produção foi realizado.
+
+## APP/CMS-A11Y-065 — descoberta da rolagem horizontal (29/10/2026)
+
+- Tabelas vazias do App PF (Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas e Categorias), dos 11 módulos PJ e das seis seções CMS com inventário compartilham orientação textual de rolagem horizontal.
+- A orientação aparece em telas estreitas ou ao focar a região de tabela com teclado; mantém as legendas, o foco visível, o estado vazio e a ausência de dados fictícios.
+- Testes de renderização adicionados a `tests/ui-002-view-smoke.php` e `tests/cms-001-preview-smoke.php`. Teste visual e com leitor de tela no Docker do Mac ainda pendente.
+- **App PF:** 10 áreas visuais (mais Assistente em prévia desabilitada); operações reais, filtros e relatórios ainda faltam. **App PJ:** 11 módulos visuais; faltam CRUD, consultas isoladas e importação OFX/CSV. **CMS:** 8 seções visuais; faltam autenticação administrativa, autorização por papéis, CSRF nas mutações, auditoria persistente e CRUD. A prévia permanece bloqueada fora do ambiente local permitido.
+- Sem migrações, cobranças, WhatsApp, operações financeiras ou alterações em produção.
