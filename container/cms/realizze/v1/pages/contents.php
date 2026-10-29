@@ -25,4 +25,13 @@
       'description' => 'A prévia não carrega artigos, autores, versões ou agendamentos reais.',
   ]; require __DIR__ . '/../components/empty-table.php'; ?>
 </section>
+<?php $cmsWorkflow = [
+    'title' => 'Fluxo editorial previsto',
+    'steps' => [
+        ['title' => 'Redação', 'description' => 'Preparar conteúdo e metadados em rascunho.'],
+        ['title' => 'Revisão', 'description' => 'Conferir links, mídia, acessibilidade e versões.'],
+        ['title' => 'Aprovação', 'description' => 'Validar autoria e papel autorizado antes de qualquer alteração.'],
+        ['title' => 'Publicação', 'description' => 'Registrar auditoria e publicar somente após aprovação.'],
+    ],
+]; require __DIR__ . '/../components/workflow-preview.php'; ?>
 <aside class="cms-notice"><strong>Editor indisponível</strong>Esta tela é apenas uma prévia. Nenhuma alteração é salva, publicada ou enviada ao servidor.</aside>

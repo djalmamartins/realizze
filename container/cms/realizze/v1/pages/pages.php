@@ -12,4 +12,13 @@
     'description' => 'A prévia não consulta páginas, versões ou conteúdo do banco.',
 ]; require __DIR__ . '/../components/empty-table.php'; ?></section>
 <aside class="cms-card cms-detail-side"><h2>Publicação</h2><p>Opções deste módulo serão habilitadas depois da integração.</p><div class="cms-setting-row"><span>Controle de acesso</span><strong>Obrigatório</strong></div><div class="cms-setting-row"><span>Auditoria</span><strong>Planejada</strong></div><div class="cms-setting-row"><span>Persistência</span><strong>Desativada</strong></div><button type="button" disabled>Criar página</button></aside></div>
+<?php $cmsWorkflow = [
+    'title' => 'Fluxo previsto para páginas',
+    'steps' => [
+        ['title' => 'Rascunho', 'description' => 'Preparar estrutura e endereço da página sem publicação.'],
+        ['title' => 'Revisão', 'description' => 'Validar conteúdo, acessibilidade e histórico de versões.'],
+        ['title' => 'Autorização', 'description' => 'Exigir papel administrativo, CSRF e registro de auditoria.'],
+        ['title' => 'Publicação', 'description' => 'Disponibilizar somente após aprovação e validação de permissões.'],
+    ],
+]; require __DIR__ . '/../components/workflow-preview.php'; ?>
 <aside class="cms-notice"><strong>Funcionalidade indisponível</strong>A edição e a publicação de páginas exigirão revisão de permissões e histórico de versões.</aside>

@@ -17,4 +17,13 @@
       'description' => 'A prévia não lê arquivos, miniaturas, caminhos ou dados de usuários.',
   ]; require __DIR__ . '/../components/empty-table.php'; ?>
 </section>
+<?php $cmsWorkflow = [
+    'title' => 'Fluxo seguro previsto para arquivos',
+    'steps' => [
+        ['title' => 'Recebimento', 'description' => 'Exigir sessão administrativa e permissão antes do envio.'],
+        ['title' => 'Validação', 'description' => 'Verificar tipo real, tamanho e conteúdo do arquivo em área isolada.'],
+        ['title' => 'Controle de acesso', 'description' => 'Aplicar regras de armazenamento e visibilidade por papel.'],
+        ['title' => 'Disponibilização', 'description' => 'Registrar auditoria e liberar arquivos somente após validação.'],
+    ],
+]; require __DIR__ . '/../components/workflow-preview.php'; ?>
 <aside class="cms-notice"><strong>Envio desativado</strong>Uploads exigirão autenticação, validação de tipo e tamanho, armazenamento seguro e verificação de permissões.</aside>
