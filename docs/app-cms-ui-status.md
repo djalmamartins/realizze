@@ -223,3 +223,13 @@ php scripts/publish-app-assets.php
 - **Pendências App PJ (11 módulos):** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, Conciliação OFX/CSV e Obrigações MEI/PJ ainda sem persistência ou consultas financeiras autorizadas.
 - **Pendências CMS (8 seções):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações continuam prévias sem CRUD; exigem autenticação administrativa, RBAC, CSRF, auditoria persistente e testes HTTP antes de exposição.
 - Nenhuma migração, acesso a produção, cobrança, upload ou integração WhatsApp. Inspeção do MySQL de homologação e testes HTTP de isolamento continuam pendentes.
+
+## SECURITY-001 — validação CSRF resiliente a sessão inválida (29/10/2026)
+
+- Auditada a implementação real de `Moves\\Services\\Csrf`, usada pelo App no logout e na seleção PF/PJ por POST. Antes, um valor não textual em `$_SESSION['csrf_token']` podia causar `TypeError` durante `hash_equals`, interrompendo a requisição em vez de negar o acesso.
+- `Csrf::validate()` agora **nega por padrão** se a sessão, o token recebido ou o token armazenado forem inválidos; tokens armazenados devem seguir o formato criptográfico de 32 bytes aleatórios em hexadecimal. `Csrf::token()` regenera valores corrompidos/fracos e invalida o anterior.
+- Novo teste isolado `tests/security-001-csrf-session.php`, sem acesso ao MySQL, verifica token válido, entrada em array, token de sessão em array, token fraco, ausência de token e sessão encerrada. Workflow de PR atualizado para executar a regressão.
+- **App PF (11 seções):** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações aguardam dados/CRUD autorizados; Assistente Financeiro permanece apenas visual e desabilitado.
+- **App PJ (11 módulos):** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ aguardam serviços escopados e operações seguras.
+- **CMS (8 seções):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações aguardam autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD. A prévia continua local e bloqueada ao público.
+- Ainda pendentes: inspeção do MySQL de homologação, testes HTTP reais de sessão/CSRF/isolamento, homologação visual no Docker do Mac e testes com leitor de tela. **Sem migração, cobrança, WhatsApp, alteração de produção ou abertura pública do CMS.**

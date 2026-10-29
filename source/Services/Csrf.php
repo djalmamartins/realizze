@@ -11,7 +11,9 @@ final class Csrf
             throw new \RuntimeException('Sessão não iniciada.');
         }
 
-        if (!isset($_SESSION['csrf_token'])) {
+        $stored = $_SESSION['csrf_token'] ?? null;
+        // Rejeitar tokens de sessão corrompidos ou fracos, sem expor TypeError.
+        if (!is_string($stored) || preg_match('/\\A[a-f0-9]{64}\\z/D', $stored) !== 1) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
 
@@ -20,9 +22,13 @@ final class Csrf
 
     public static function validate(mixed $token): bool
     {
-        return session_status() === PHP_SESSION_ACTIVE
-            && is_string($token)
-            && isset($_SESSION['csrf_token'])
-            && hash_equals($_SESSION['csrf_token'], $token);
+        if (session_status() !== PHP_SESSION_ACTIVE || !is_string($token)) {
+            return false;
+        }
+
+        $stored = $_SESSION['csrf_token'] ?? null;
+        return is_string($stored)
+            && preg_match('/\\A[a-f0-9]{64}\\z/D', $stored) === 1
+            && hash_equals($stored, $token);
     }
 }

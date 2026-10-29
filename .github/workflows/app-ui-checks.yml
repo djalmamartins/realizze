@@ -15,6 +15,7 @@ on:
       - 'tests/cms-001-preview-smoke.php'
       - 'tests/cms-002-preview-access.php'
       - 'tests/enterprise-001-context.php'
+      - 'tests/security-001-csrf-session.php'
       - 'source/Services/OrganizationAccess.php'
       - 'source/Services/OrganizationContext.php'
       - 'source/Services/Authorization.php'
@@ -58,6 +59,8 @@ jobs:
           php -l tests/cms-001-preview-smoke.php
           php -l tests/cms-002-preview-access.php
           php -l tests/enterprise-001-context.php
+          php -l source/Services/Csrf.php
+          php -l tests/security-001-csrf-session.php
           php tests/core-007-environment-router.php
           php tests/core-008-environments.php
       - name: Smoke-test MovesCode View components
@@ -68,6 +71,8 @@ jobs:
           php tests/cms-002-preview-access.php
       - name: Verify enterprise session and permission isolation
         run: php tests/enterprise-001-context.php
+      - name: Verify CSRF session-state resilience
+        run: php tests/security-001-csrf-session.php
       - name: Check source JavaScript syntax
         run: |
           node --check container/web/realizze/v1/assets/js/main.js
