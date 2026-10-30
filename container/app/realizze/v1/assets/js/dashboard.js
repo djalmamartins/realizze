@@ -114,17 +114,22 @@
     }
     }
 
+    // Only the most recent shortcut may move focus after a deferred click.
+    // Rapid keyboard activation must not return focus to an older module.
+    let enterpriseFocusRequest = 0;
     // Anchors in the PJ workspace move keyboard focus to the selected module.
     document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]').forEach((link) => {
       link.addEventListener('click', () => {
+        const request = ++enterpriseFocusRequest;
         const targetId = link.getAttribute('href')?.slice(1);
         const target = targetId ? document.getElementById(targetId) : null;
         // A filter can hide a module between click and the deferred focus.
         // Never move keyboard focus into hidden content.
         if (target && !target.hidden && !target.closest('.enterprise-module-group')?.hidden) {
           window.setTimeout(() => {
-            if (target.isConnected && !target.hidden && !target.closest('.enterprise-module-group')?.hidden &&
-                !link.hidden && link.isConnected) {
+            if (request === enterpriseFocusRequest && target.isConnected && !target.hidden &&
+                !target.closest('.enterprise-module-group')?.hidden && !link.hidden && link.isConnected &&
+                link.getAttribute('href') === '#' + targetId) {
               target.focus({ preventScroll: true });
             }
           }, 0);
