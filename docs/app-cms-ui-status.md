@@ -538,3 +538,13 @@ php scripts/publish-app-assets.php
 - **App PJ pendente de integração:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, Conciliação OFX/CSV e Obrigações MEI/PJ.
 - **CMS pendente de integração:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. A prévia deve permanecer bloqueada até autenticação administrativa, CSRF, RBAC e auditoria.
 - Antes de persistir: auditoria do MySQL de homologação, migrations, SessionAuth, papéis e isolamento PF/PJ; testes HTTP de autorização entre organizações. Sem WhatsApp, cobranças, migrações destrutivas ou produção.
+
+## APP-A11Y-091 — orientação de atalhos PJ no celular (30/10/2026)
+
+- A navegação horizontal dos 11 módulos empresariais agora tem orientação visível em telas de até 650px e descrição acessível associada por `aria-describedby`; usuários de teclado recebem instrução de navegação por Tab.
+- Quando a pesquisa local não encontra módulos, o texto de orientação desaparece junto dos atalhos e retorna ao limpar o filtro. O atributo `hidden` permanece efetivo mesmo com CSS responsivo.
+- Testes de regressão em `tests/ui-004-enterprise-search.js` e `tests/ui-002-view-smoke.php` verificam associação, estados e estilos. Homologação visual e com leitor de tela em navegador real continua pendente.
+- **App PF faltante:** integração autorizada de Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente desabilitado.
+- **App PJ faltante:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ, todos sem serviços reais escopados por organização.
+- **CMS faltante:** autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD das oito prévias: Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações.
+- Inspeção MySQL de homologação, migrations, SessionAuth e testes HTTP de isolamento PF/PJ e bloqueio do CMS ainda pendentes. Nenhuma alteração em produção, cobrança, migração destrutiva ou integração WhatsApp.

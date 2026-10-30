@@ -130,6 +130,7 @@
     const enterpriseEmpty = $('#enterprise-search-empty');
     const enterpriseFilter = document.querySelector('.enterprise-module-filter');
     const enterpriseJump = document.querySelector('.enterprise-jump');
+    const enterpriseJumpHelp = $('#enterprise-jump-help');
     const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
     const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
     const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
@@ -145,7 +146,7 @@
     // A partial DOM, invalid navigation or unsupported browser keeps all modules
     // available through the ordinary visible links and headings.
     if (enterpriseSearch && enterpriseClear && enterpriseStatus && enterpriseEmpty &&
-        enterpriseFilter && enterpriseJump && groups.length > 0 && shortcutsReady &&
+        enterpriseFilter && enterpriseJump && enterpriseJumpHelp && groups.length > 0 && shortcutsReady &&
         typeof ''.normalize === 'function') {
       const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
       const applyFilter = () => {
@@ -182,6 +183,7 @@
         )) enterpriseSearch.focus();
         if (enterpriseEmpty) enterpriseEmpty.hidden = visible !== 0;
         if (enterpriseJump) enterpriseJump.hidden = visible === 0;
+        enterpriseJumpHelp.hidden = visible === 0;
         if (enterpriseClear) enterpriseClear.disabled = enterpriseSearch.value.length === 0;
         enterpriseStatus.textContent = visible === 0
           ? 'Nenhum módulo corresponde à pesquisa.'

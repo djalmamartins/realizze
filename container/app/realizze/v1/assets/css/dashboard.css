@@ -322,3 +322,9 @@
     scroll-snap-align:start;
   }
 }
+
+/* APP-A11Y-091: explain the horizontal PJ shortcut row on small screens. */
+.enterprise-jump-help{display:none}
+.enterprise-jump-help[hidden]{display:none!important}
+@media(max-width:650px){.enterprise-jump-help{display:block;margin:0 18px 6px;font-size:12px;line-height:1.5;color:#536d5c}}
+@media(forced-colors:active){.enterprise-jump-help{color:CanvasText}}

@@ -93,7 +93,8 @@ $enterpriseGroups = [
     <strong id="enterprise-search-empty-title">Nenhum módulo encontrado</strong>
     <p>Experimente outro termo ou use “Limpar filtro” para ver todas as áreas de gestão.</p>
   </div>
-  <nav class="enterprise-jump" aria-label="Ir para módulo empresarial">
+  <p id="enterprise-jump-help" class="enterprise-jump-help">No celular, deslize horizontalmente para ver mais módulos. Com teclado, use Tab para navegar pelos atalhos.</p>
+  <nav class="enterprise-jump" aria-label="Ir para módulo empresarial" aria-describedby="enterprise-jump-help">
     <?php foreach ($enterpriseGroups as $modules): ?>
       <?php foreach ($modules as $module): ?>
         <a href="#enterprise-<?= $escapeEnterprise($module['id']) ?>"><?= $escapeEnterprise($module['title']) ?></a>

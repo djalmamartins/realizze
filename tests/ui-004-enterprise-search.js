@@ -33,6 +33,7 @@ const status = { textContent: '' };
 const empty = { hidden: true };
 const filter = { hidden: true };
 const jump = { hidden: false };
+const jumpHelp = { hidden: false };
 const groups = [];
 const modules = [];
 const links = [];
@@ -83,6 +84,7 @@ const selectors = {
   '#enterprise-search-empty': empty,
   '.enterprise-module-filter': filter,
   '.enterprise-jump': jump,
+  '#enterprise-jump-help': jumpHelp,
 };
 const document = {
   readyState: 'complete',
@@ -111,6 +113,7 @@ assert.equal(empty.hidden, true);
 assert.equal(filter.hidden, false, 'JavaScript habilita o filtro de forma progressiva');
 assert.equal(clear.disabled, true, 'limpar inicia desabilitado sem texto');
 assert.equal(jump.hidden, false, 'atalhos disponíveis com resultados');
+assert.equal(jumpHelp.hidden, false, 'orientação disponível junto dos atalhos');
 
 search('GESTAO FINANCEIRA');
 assert.deepEqual(visible(), ['enterprise-receber', 'enterprise-pagar'],
@@ -140,6 +143,7 @@ assert.equal(groups.every((group) => group.hidden), true);
 assert.equal(links.every((link) => link.hidden), true);
 assert.equal(empty.hidden, false);
 assert.equal(jump.hidden, true, 'navegação sem links não permanece exposta');
+assert.equal(jumpHelp.hidden, true, 'orientação não permanece quando não há atalhos');
 assert.equal(status.textContent, 'Nenhum módulo corresponde à pesquisa.');
 
 let prevented = false;
@@ -151,6 +155,7 @@ assert.equal(prevented, true, 'Escape limpa filtro ativo');
 assert.equal(input.value, '');
 assert.equal(empty.hidden, true);
 assert.equal(jump.hidden, false, 'atalhos voltam após limpar');
+assert.equal(jumpHelp.hidden, false, 'orientação volta junto dos atalhos');
 assert.equal(clear.disabled, true, 'botão limpar volta a ficar desabilitado');
 assert.equal(groups.every((group) => !group.hidden), true);
 assert.equal(links.every((link) => !link.hidden), true);
@@ -212,7 +217,7 @@ console.log('OK - APP-A11Y-063: filtro PJ recupera foco antes do navegador ocult
 for (const missing of [
   '#enterprise-module-search', '#enterprise-module-clear',
   '#enterprise-search-status', '#enterprise-search-empty',
-  '.enterprise-module-filter', '.enterprise-jump',
+  '.enterprise-module-filter', '.enterprise-jump', '#enterprise-jump-help',
 ]) {
   const fallbackFilter = { hidden: true };
   const partialNodes = { ...selectors, '.enterprise-module-filter': fallbackFilter };
@@ -310,3 +315,11 @@ assert.match(mobileShortcuts[1], /\.enterprise-jump a\s*\{[^}]*flex:\s*0 0 auto;
 assert.doesNotMatch(mobileShortcuts[1], /scrollbar-width:\s*none|display:\s*none|visibility:\s*hidden/,
   'the native scrollbar and links must remain visible');
 console.log('OK - APP-A11Y-090: atalhos PJ compactos, roláveis e com alvos de toque de 44px.');
+
+// APP-A11Y-091: hint is visible only on narrow screens and never lingers
+// after search removes all shortcuts.
+assert.match(css, /\.enterprise-jump-help\[hidden\]\{display:none!important\}/,
+  'hidden mobile hint stays hidden even when media query sets display:block');
+assert.match(css, /@media\(max-width:650px\)\{\.enterprise-jump-help\{display:block;/,
+  'mobile users receive a visible horizontal scrolling hint');
+console.log('OK - APP-A11Y-091: orientação PJ acompanha a navegação filtrada.');

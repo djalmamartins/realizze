@@ -165,6 +165,7 @@ if (substr_count($enterpriseHtml, 'class="enterprise-module"') !== 11
 foreach (['id="enterprise-module-search"', 'type="search"', 'aria-controls="enterprise-module-groups"',
     'id="enterprise-module-groups"', 'id="enterprise-module-clear"',
     'id="enterprise-search-status"', 'aria-live="polite"',
+    'id="enterprise-jump-help"', 'aria-describedby="enterprise-jump-help"',
     'Não consulta empresas ou lançamentos'] as $needle) {
     if (!str_contains($enterpriseHtml, $needle)) {
         throw new RuntimeException('APP-UI-035: filtro PJ incompleto: ' . $needle);
