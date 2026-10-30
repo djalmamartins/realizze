@@ -528,3 +528,13 @@ php scripts/publish-app-assets.php
 - **Módulos pendentes no App PJ:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, OFX/CSV e Obrigações MEI/PJ.
 - **Páginas pendentes no CMS (integração administrativa):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. Antes de qualquer operação real: autenticação administrativa, RBAC, CSRF, auditoria persistente e validação HTTP do bloqueio local.
 - Ainda pendentes: auditoria de MySQL/migrations/SessionAuth em homologação, testes HTTP de isolamento PF/PJ, validação visual responsiva no Docker do Mac. Sem alteração em produção.
+
+
+## APP-A11Y-090 — atalhos empresariais no celular (30/10/2026)
+
+- A navegação dos 11 módulos PJ passa a usar uma linha com rolagem horizontal em telas de até 650px, preservando a barra de rolagem nativa, foco por teclado e alvos de toque de no mínimo 44px. Em desktop, os atalhos continuam com quebra de linha.
+- Teste estático de regressão incluído em `tests/ui-004-enterprise-search.js`. Homologação visual/tátil no Docker e com leitores de tela continua pendente. Nenhuma consulta ou persistência foi ativada.
+- **App PF pendente de integração:** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente desabilitado.
+- **App PJ pendente de integração:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, Conciliação OFX/CSV e Obrigações MEI/PJ.
+- **CMS pendente de integração:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. A prévia deve permanecer bloqueada até autenticação administrativa, CSRF, RBAC e auditoria.
+- Antes de persistir: auditoria do MySQL de homologação, migrations, SessionAuth, papéis e isolamento PF/PJ; testes HTTP de autorização entre organizações. Sem WhatsApp, cobranças, migrações destrutivas ou produção.

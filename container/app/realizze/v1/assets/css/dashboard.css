@@ -302,3 +302,23 @@
 .nav-group-heading{margin:12px 12px 4px;padding:8px 4px 3px;font-size:11px;line-height:1.5;font-weight:750;letter-spacing:.035em;color:#526a5a;overflow-wrap:anywhere}
 .nav-group-heading:first-child{margin-top:0}
 @media(forced-colors:active){.nav-group-heading{color:CanvasText}}
+
+/* APP-A11Y-090: on narrow phones, eleven PJ shortcuts stay in a single
+   horizontally scrollable row instead of pushing the actual modules far down.
+   Keep the native scrollbar and keyboard-reachable links visible. */
+@media (max-width:650px) {
+  .enterprise-jump {
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-inline:contain;
+    -webkit-overflow-scrolling:touch;
+    scroll-padding-inline:18px;
+    scroll-snap-type:x proximity;
+  }
+  .enterprise-jump a {
+    flex:0 0 auto;
+    min-height:44px;
+    scroll-snap-align:start;
+  }
+}

@@ -297,3 +297,16 @@ assert.match(css, /\.enterprise-module:target[^}]*outline:\s*3px solid Highlight
 assert.match(css, /\.app-context-badge[^}]*border:\s*1px solid CanvasText/s,
   'PF/PJ visual badge remains outlined');
 console.log('OK - APP-A11Y-083: foco, contexto e âncoras preservados em alto contraste.');
+
+ 
+// APP-A11Y-090: eleven shortcuts must remain touch-friendly and horizontally
+// scrollable on narrow phones, without hiding the native scrollbar or links.
+const mobileShortcuts = css.match(/\/\* APP-A11Y-090:[\s\S]*?@media\s*\(max-width:650px\)\s*\{([\s\S]*?)\n\}/);
+assert.ok(mobileShortcuts, 'mobile enterprise shortcut rules exist');
+assert.match(mobileShortcuts[1], /\.enterprise-jump\s*\{[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto;/s,
+  'enterprise shortcuts scroll horizontally rather than stacking on narrow phones');
+assert.match(mobileShortcuts[1], /\.enterprise-jump a\s*\{[^}]*flex:\s*0 0 auto;[^}]*min-height:\s*44px;/s,
+  'each shortcut remains keyboard-reachable and at least 44px tall');
+assert.doesNotMatch(mobileShortcuts[1], /scrollbar-width:\s*none|display:\s*none|visibility:\s*hidden/,
+  'the native scrollbar and links must remain visible');
+console.log('OK - APP-A11Y-090: atalhos PJ compactos, roláveis e com alvos de toque de 44px.');
