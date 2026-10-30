@@ -113,3 +113,15 @@
 .cms-status-list dt{min-width:0;color:#65766b;overflow-wrap:anywhere}
 .cms-status-list dd{min-width:0;margin:0;color:#748a7b;font-size:11px;font-weight:700;text-align:right;overflow-wrap:anywhere}
 @media(max-width:480px){.cms-status-list .cms-setting-row{align-items:flex-start;flex-wrap:wrap}.cms-status-list dd{margin-left:auto}}
+
+/* CMS-UI-080: shared, non-operational inventory filters; fluid and readable on phones. */
+.cms-preview-filters{min-width:0;margin:18px 0;padding:18px;border:1px solid #e3ece6;border-radius:12px;background:#f9fcfa}
+.cms-preview-filters-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.cms-preview-filters-head h3{margin:0;font-size:14px;color:#29543a}
+.cms-preview-filters-help{margin:8px 0 0;overflow-wrap:anywhere}
+.cms-preview-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.cms-preview-filter-field{min-width:0}
+.cms-preview-filter-field .cms-field-label{margin:0 0 7px;overflow-wrap:anywhere}
+.cms-preview-filter-field .cms-field{min-width:0;max-width:100%}
+@media(max-width:1050px){.cms-preview-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.cms-preview-filters{padding:14px}.cms-preview-filter-grid{grid-template-columns:1fr}}

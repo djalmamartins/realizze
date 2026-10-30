@@ -253,3 +253,68 @@ if (!$rejected || !str_contains($cmsMobileCss, '.cms-status-list dd')) {
     throw new RuntimeException('CMS-UI-078: validação ou CSS responsivo ausente.');
 }
 echo 'OK - CMS-UI-078: estados semânticos, reutilizáveis, escapados e responsivos.' . PHP_EOL;
+
+// CMS-UI-080: four inventory screens share disabled, labelled, responsive filters.
+foreach ([
+    'pages' => ['cms-pages-search', 'cms-pages-filter-status', 'cms-pages-filter-model'],
+    'contents' => ['cms-contents-search', 'cms-contents-type', 'cms-contents-status'],
+    'media' => ['cms-media-search', 'cms-media-filter', 'cms-media-access'],
+    'logs' => ['cms-audit-search', 'cms-audit-type', 'cms-audit-date', 'cms-audit-actor'],
+] as $slug => $ids) {
+    $html = $render($slug);
+    if (substr_count($html, 'class="cms-preview-filters"') !== 1 ||
+        !str_contains($html, 'Somente prévia · filtros bloqueados')) {
+        throw new RuntimeException("CMS-UI-080: filtros compartilhados ausentes em {$slug}");
+    }
+    foreach ($ids as $id) {
+        if (substr_count($html, 'id="' . $id . '"') !== 1 ||
+            !str_contains($html, 'for="' . $id . '"') ||
+            preg_match('/<(?:input|select)\\b[^>]*\\bid="' . preg_quote($id, '/') . '"[^>]*\\bdisabled\\b/i', $html) !== 1) {
+            throw new RuntimeException("CMS-UI-080: filtro inacessível ou habilitado: {$id}");
+        }
+    }
+}
+$cmsPreviewFilters = [
+    'title' => '<script>unsafe</script>',
+    'description' => 'Texto & descrição',
+    'fields' => [
+        ['id' => 'cms-filter-safe', 'label' => '<img src=x onerror=alert(1)>', 'type' => 'search', 'placeholder' => '" autofocus onfocus="alert(1)'],
+        ['id' => 'cms-filter-select', 'label' => 'Situação', 'type' => 'select', 'options' => ['<b>todas</b>']],
+    ],
+];
+ob_start();
+require $root . '/components/preview-filters.php';
+$filterHtml = (string) ob_get_clean();
+if (str_contains($filterHtml, '<script>') || str_contains($filterHtml, '<img') ||
+    str_contains($filterHtml, '<b>todas</b>') ||
+    !str_contains($filterHtml, '&lt;script&gt;unsafe&lt;/script&gt;') ||
+    !str_contains($filterHtml, 'Texto &amp; descrição') ||
+    !str_contains($filterHtml, '&lt;img src=x onerror=alert(1)&gt;') ||
+    !str_contains($filterHtml, '&quot; autofocus onfocus=&quot;alert(1)') ||
+    !str_contains($filterHtml, '&lt;b&gt;todas&lt;/b&gt;')) {
+    throw new RuntimeException('CMS-UI-080: metadados de filtros sem escape.');
+}
+foreach ([
+    [['id' => 'cms-repeat', 'label' => 'A', 'type' => 'search'], ['id' => 'cms-repeat', 'label' => 'B', 'type' => 'text']],
+    [['id' => 'unsafe" onclick="alert(1)', 'label' => 'A', 'type' => 'search']],
+    [['id' => 'cms-invalid', 'label' => 'A', 'type' => 'file']],
+] as $invalidFields) {
+    $cmsPreviewFilters = ['title' => 'Teste', 'description' => 'Teste', 'fields' => $invalidFields];
+    $rejected = false;
+    ob_start();
+    try {
+        require $root . '/components/preview-filters.php';
+    } catch (InvalidArgumentException $expected) {
+        $rejected = true;
+    } finally {
+        ob_end_clean();
+    }
+    if (!$rejected) {
+        throw new RuntimeException('CMS-UI-080: configuração insegura de filtro aceita.');
+    }
+}
+if (!str_contains($cmsMobileCss, '.cms-preview-filter-grid') ||
+    !str_contains($cmsMobileCss, '@media(max-width:540px){.cms-preview-filters')) {
+    throw new RuntimeException('CMS-UI-080: filtros sem layout responsivo.');
+}
+echo 'OK - CMS-UI-080: quatro inventários com filtros acessíveis, desabilitados e escapados.' . PHP_EOL;

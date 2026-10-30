@@ -436,3 +436,11 @@ php scripts/publish-app-assets.php
 - **App PJ — pendentes:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ exigem serviços escopados por empresa e testes de autorização.
 - **CMS — pendentes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações ainda precisam de autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD. A prévia permanece restrita a ambiente/IP local.
 - Ainda faltam testes em navegadores reais/Docker do Mac, auditoria do MySQL de homologação e testes HTTP de sessão, CSRF e isolamento. Sem WhatsApp, cobrança, migração destrutiva ou alteração de produção.
+
+## CMS-UI-080 — filtros reutilizáveis nos inventários (30/10/2026)
+
+- Criado `container/cms/realizze/v1/components/preview-filters.php`, com validação de IDs únicos, tipos permitidos e escape de metadados; **sem formulário, JavaScript de consulta ou ações habilitadas**.
+- Aplicado a **Páginas, Conteúdos, Mídia e Logs**. Pesquisa, situação, tipo, modelo, visibilidade, período e responsável são apenas campos desabilitados de prévia. Os campos existentes de mídia e auditoria preservam seus IDs.
+- Estilos fluidos para desktop, tablet e celular em `assets/css/responsive-fixes.css`; `tests/cms-001-preview-smoke.php` verifica rótulos, IDs, bloqueio de controles, escape de HTML e rejeição de configurações inseguras.
+- **App PF:** dez páginas visuais ainda dependem de dados autorizados, CRUD, filtros operacionais, relatórios e homologação responsiva real. **App Empresarial:** onze módulos visuais ainda exigem auditoria MySQL, escopo por empresa, papéis e operações seguras. **CMS:** oito páginas visuais; todas ainda sem autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente e CRUD. Não habilitar acesso público.
+- Sem banco, uploads, cobranças, WhatsApp, migrations destrutivas, publicação ou alterações em produção.

@@ -18,6 +18,15 @@
     <div><h2 id="cms-contents-inventory-title">Inventário editorial</h2><p>Os conteúdos autorizados aparecerão aqui após a integração.</p></div>
     <span class="cms-status">Sem consulta ao banco</span>
   </div>
+  <?php $cmsPreviewFilters = [
+    'title' => 'Filtros do inventário editorial',
+    'description' => 'Nenhum conteúdo ou autor é consultado nesta prévia.',
+    'fields' => [
+        ['id' => 'cms-contents-search', 'label' => 'Pesquisar conteúdo', 'type' => 'search', 'placeholder' => 'Título ou endereço'],
+        ['id' => 'cms-contents-type', 'label' => 'Tipo de conteúdo', 'type' => 'select', 'options' => ['Todos os tipos']],
+        ['id' => 'cms-contents-status', 'label' => 'Situação editorial', 'type' => 'select', 'options' => ['Todas as situações']],
+    ],
+]; require __DIR__ . '/../components/preview-filters.php'; ?>
   <?php $cmsEmptyTable = [
       'caption' => 'Conteúdos editoriais',
       'columns' => ['Título', 'Tipo', 'Responsável', 'Situação', 'Atualização'],

@@ -3,12 +3,16 @@
 <div class="cms-detail-layout">
 <section class="cms-card" aria-labelledby="cms-audit-title">
  <div class="cms-module-head"><div><h2 id="cms-audit-title">Histórico de eventos</h2><p>Filtros de auditoria disponíveis após autenticação e autorização.</p></div><button type="button" disabled>Exportar registros</button></div>
- <div class="cms-form-preview">
-  <div><label class="cms-field-label" for="cms-audit-search">Pesquisar evento</label><input class="cms-field" id="cms-audit-search" type="search" placeholder="Ação ou identificador" disabled></div>
-  <div><label class="cms-field-label" for="cms-audit-type">Tipo de evento</label><select class="cms-field" id="cms-audit-type" disabled><option>Todos os tipos</option></select></div>
-  <div><label class="cms-field-label" for="cms-audit-date">Período</label><select class="cms-field" id="cms-audit-date" disabled><option>Selecione um período</option></select></div>
-  <div><label class="cms-field-label" for="cms-audit-actor">Responsável</label><input class="cms-field" id="cms-audit-actor" placeholder="Usuário autorizado" disabled></div>
- </div>
+ <?php $cmsPreviewFilters = [
+    'title' => 'Filtros do histórico',
+    'description' => 'Eventos e identidades não são consultados sem autenticação administrativa.',
+    'fields' => [
+        ['id' => 'cms-audit-search', 'label' => 'Pesquisar evento', 'type' => 'search', 'placeholder' => 'Ação ou identificador'],
+        ['id' => 'cms-audit-type', 'label' => 'Tipo de evento', 'type' => 'select', 'options' => ['Todos os tipos']],
+        ['id' => 'cms-audit-date', 'label' => 'Período', 'type' => 'select', 'options' => ['Selecione um período']],
+        ['id' => 'cms-audit-actor', 'label' => 'Responsável', 'type' => 'text', 'placeholder' => 'Usuário autorizado'],
+    ],
+]; require __DIR__ . '/../components/preview-filters.php'; ?>
  <div class="cms-section-divider"></div>
  <?php $cmsEmptyTable = [
     'caption' => 'Histórico de eventos administrativos',
