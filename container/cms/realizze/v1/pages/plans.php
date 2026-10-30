@@ -11,6 +11,17 @@
  </div>
  <div class="cms-section-divider"></div>
  <div class="cms-module-head"><div><h2>Ofertas cadastradas</h2><p>Os planos autorizados aparecerão aqui.</p></div></div>
+ <?php // CMS-UI-081: catálogo somente visual, sem assinaturas ou cobrança.
+$cmsPreviewFilters = [
+    'title' => 'Filtrar catálogo de planos',
+    'description' => 'Organização visual das ofertas previstas, sem consultar assinaturas, preços ou clientes.',
+    'fields' => [
+        ['id' => 'cms-plans-filter-search', 'label' => 'Pesquisar plano', 'type' => 'search', 'placeholder' => 'Nome do plano'],
+        ['id' => 'cms-plans-filter-audience', 'label' => 'Público', 'type' => 'select', 'options' => ['Todos os públicos', 'Pessoa física', 'Empresarial']],
+        ['id' => 'cms-plans-filter-cycle', 'label' => 'Ciclo', 'type' => 'select', 'options' => ['Todos os ciclos', 'Mensal', 'Anual']],
+        ['id' => 'cms-plans-filter-status', 'label' => 'Situação', 'type' => 'select', 'options' => ['Todas as situações', 'Rascunho', 'Publicado', 'Arquivado']],
+    ],
+]; require __DIR__ . '/../components/preview-filters.php'; ?>
  <?php $cmsEmptyTable = [
     'caption' => 'Ofertas cadastradas',
     'columns' => ['Plano', 'Público', 'Ciclo', 'Situação'],

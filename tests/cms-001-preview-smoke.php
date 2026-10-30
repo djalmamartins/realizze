@@ -318,3 +318,28 @@ if (!str_contains($cmsMobileCss, '.cms-preview-filter-grid') ||
     throw new RuntimeException('CMS-UI-080: filtros sem layout responsivo.');
 }
 echo 'OK - CMS-UI-080: quatro inventários com filtros acessíveis, desabilitados e escapados.' . PHP_EOL;
+
+
+// CMS-UI-081: users and plans share non-operational filters with unique labels.
+foreach ([
+    'users' => ['cms-users-filter-search', 'cms-users-filter-role', 'cms-users-filter-status'],
+    'plans' => ['cms-plans-filter-search', 'cms-plans-filter-audience', 'cms-plans-filter-cycle', 'cms-plans-filter-status'],
+] as $slug => $ids) {
+    $html = $render($slug);
+    if (substr_count($html, 'class="cms-preview-filters"') !== 1
+        || !str_contains($html, 'Somente prévia · filtros bloqueados')
+        || preg_match('/<form\\b/i', $html) === 1) {
+        throw new RuntimeException("CMS-UI-081: filtros bloqueados ausentes ou formulário ativo em {$slug}");
+    }
+    foreach ($ids as $id) {
+        if (substr_count($html, 'id="' . $id . '"') !== 1
+            || substr_count($html, 'for="' . $id . '"') !== 1
+            || preg_match('/<(?:input|select)\\b[^>]*\\bid="' . preg_quote($id, '/') . '"[^>]*\\bdisabled\\b/i', $html) !== 1) {
+            throw new RuntimeException("CMS-UI-081: controle duplicado, sem rótulo ou habilitado: {$id}");
+        }
+    }
+    if (preg_match('/<(?:input|select)\\b[^>]*\\bid="cms-(?:users|plans)-filter-[^"]+"[^>]*\\bname=/i', $html) === 1) {
+        throw new RuntimeException("CMS-UI-081: filtros não devem enviar parâmetros.");
+    }
+}
+echo 'OK - CMS-UI-081: usuários e planos com filtros compartilhados e bloqueados.' . PHP_EOL;

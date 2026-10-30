@@ -444,3 +444,13 @@ php scripts/publish-app-assets.php
 - Estilos fluidos para desktop, tablet e celular em `assets/css/responsive-fixes.css`; `tests/cms-001-preview-smoke.php` verifica rótulos, IDs, bloqueio de controles, escape de HTML e rejeição de configurações inseguras.
 - **App PF:** dez páginas visuais ainda dependem de dados autorizados, CRUD, filtros operacionais, relatórios e homologação responsiva real. **App Empresarial:** onze módulos visuais ainda exigem auditoria MySQL, escopo por empresa, papéis e operações seguras. **CMS:** oito páginas visuais; todas ainda sem autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente e CRUD. Não habilitar acesso público.
 - Sem banco, uploads, cobranças, WhatsApp, migrations destrutivas, publicação ou alterações em produção.
+
+
+## CMS-UI-081 — filtros de Usuários e Planos/assinaturas (30/10/2026)
+
+- As seções **Usuários** e **Planos e assinaturas** reutilizam `components/preview-filters.php` com busca, papel/situação e público/ciclo/situação. São prévias desabilitadas, sem formulário, parâmetros de envio, consultas, gravação ou cobrança.
+- `tests/cms-001-preview-smoke.php` verifica IDs únicos, rótulos associados, campos bloqueados e ausência de formulários. O CSS responsivo existente é reutilizado.
+- **App PF — páginas pendentes de integração:** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente desabilitado. Faltam dados autorizados, CRUD, filtros reais e homologação visual.
+- **App Empresarial — módulos pendentes:** Clientes, Fornecedores, Equipes/permissões, Contas a receber/pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, Conciliação OFX/CSV e Obrigações MEI/PJ. Faltam serviços isolados por organização, autorização e testes HTTP.
+- **CMS — seções pendentes de operação:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. Antes de acesso público, exigem autenticação administrativa, RBAC, CSRF, auditoria persistente e CRUD.
+- **Homologação pendente:** navegador real/Docker, MySQL de homologação e HTTP de sessão, CSRF, RBAC e isolamento PF/PJ. Sem WhatsApp, cobrança, migração destrutiva ou alteração de produção.
