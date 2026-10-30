@@ -125,3 +125,14 @@
 .cms-preview-filter-field .cms-field{min-width:0;max-width:100%}
 @media(max-width:1050px){.cms-preview-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:540px){.cms-preview-filters{padding:14px}.cms-preview-filter-grid{grid-template-columns:1fr}}
+
+/* CMS-A11Y-083: keyboard and selected-state affordances in forced-color mode. */
+@media (forced-colors: active) {
+  .cms-nav a.selected { outline: 2px solid Highlight; outline-offset: -2px; }
+  .cms-skip-link:focus-visible, .cms-menu-toggle:focus-visible,
+  .cms-nav a:focus-visible, .cms-table-wrap:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+  .cms-preview-status, .cms-workflow-state { border: 1px solid CanvasText; }
+}

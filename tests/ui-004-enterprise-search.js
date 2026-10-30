@@ -284,3 +284,16 @@ assert.match(css, /enterprise-module-header h4,.*enterprise-module-table th/,
   'long enterprise headings and table labels use the same responsive rule');
 assert.match(css, /overflow-wrap:anywhere;/, 'long labels wrap inside narrow cards');
 console.log('OK - APP-A11Y-082: PJ search validates links/IDs and preserves a responsive fallback.');
+
+// APP-A11Y-083: high-contrast mode must preserve focus and active PF/PJ navigation.
+assert.match(css, /@media\s*\(forced-colors:\s*active\)/,
+  'App supports Windows forced-color accessibility mode');
+assert.match(css, /\.nav a\.active[^}]*outline:\s*2px solid Highlight/s,
+  'active sidebar link remains distinguishable without background colors');
+assert.match(css, /\.app-skip-link:focus-visible[^}]*outline:\s*3px solid Highlight/s,
+  'skip link has system-color focus outline');
+assert.match(css, /\.enterprise-module:target[^}]*outline:\s*3px solid Highlight/s,
+  'enterprise anchor target remains visible in high contrast');
+assert.match(css, /\.app-context-badge[^}]*border:\s*1px solid CanvasText/s,
+  'PF/PJ visual badge remains outlined');
+console.log('OK - APP-A11Y-083: foco, contexto e âncoras preservados em alto contraste.');

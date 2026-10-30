@@ -278,3 +278,22 @@
   overflow-wrap:anywhere;
 }
 .enterprise-module-header > div{min-width:0}
+
+/* APP-A11Y-083: system colors retain visible keyboard focus and selected context
+   in Windows High Contrast without forcing decorative brand colors. */
+@media (forced-colors: active) {
+  .nav a.active, .enterprise-jump a:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+  .app-skip-link:focus-visible, .sidebar-toggle:focus-visible,
+  .sidebar-close:focus-visible, .nav a:focus-visible,
+  .enterprise-filter-field input:focus-visible,
+  .enterprise-module:target, .finance-table-wrap:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+  .app-context-badge, .preview-chip, .enterprise-readonly-label,
+  .enterprise-notice { border: 1px solid CanvasText; }
+  .enterprise-module-filter button:disabled { border: 1px solid GrayText; }
+}

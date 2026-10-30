@@ -465,3 +465,10 @@ php scripts/publish-app-assets.php
 - **App PJ — ainda sem integração:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, Conciliação OFX/CSV e Obrigações MEI/PJ; faltam serviços com escopo organizacional e autorização.
 - **CMS — ainda sem integração administrativa:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações; exige autenticação administrativa, RBAC, CSRF e auditoria antes de acesso público.
 - **Pendente:** homologação visual em navegador real/Docker, auditoria MySQL de homologação, testes HTTP de sessão, CSRF e isolamento PF/PJ. Nenhum banco, cobrança, WhatsApp, migração ou produção foi alterado.
+
+## APP/CMS-A11Y-083 — contraste forçado (30/10/2026)
+
+- App PF/PJ: estilos `forced-colors: active` para foco no menu, salto ao conteúdo, busca empresarial, tabelas roláveis e âncoras; indicador PF/PJ e avisos recebem contorno do sistema. Não dependem apenas de cores de fundo para indicar a seleção.
+- CMS: foco de navegação e tabelas, item selecionado e aviso de prévia legíveis em modo de alto contraste. Testes de regressão em `tests/ui-004-enterprise-search.js` e `tests/cms-003-mobile-menu.js` verificam as regras sem depender de dados reais.
+- **Homologação manual ainda necessária** em Windows High Contrast, navegadores reais, zoom e leitores de tela. Esta alteração não habilita operações, banco, migrações, WhatsApp ou cobrança; o gate local do CMS permanece inalterado.
+- **Páginas ainda pendentes:** App PF — Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias, Configurações (integração real e testes visuais); App PJ — clientes, fornecedores, equipes/permissões, receber, pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, OFX/CSV, obrigações MEI/PJ (serviços escopados por organização); CMS — visão geral, páginas, conteúdos, mídia, usuários, planos/assinaturas, logs, configurações (autenticação administrativa, RBAC, CSRF, auditoria e CRUD).
