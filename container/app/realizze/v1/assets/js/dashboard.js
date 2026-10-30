@@ -123,7 +123,8 @@
         // Never move keyboard focus into hidden content.
         if (target && !target.hidden && !target.closest('.enterprise-module-group')?.hidden) {
           window.setTimeout(() => {
-            if (!target.hidden && !target.closest('.enterprise-module-group')?.hidden) {
+            if (target.isConnected && !target.hidden && !target.closest('.enterprise-module-group')?.hidden &&
+                !link.hidden && link.isConnected) {
               target.focus({ preventScroll: true });
             }
           }, 0);
