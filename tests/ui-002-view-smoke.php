@@ -735,3 +735,33 @@ if (!str_contains($validHtml, 'href="/minha-conta?pagina=overview&amp;ref=&quot;
     throw new RuntimeException('APP-SEC-088: rota interna válida ou escape de atributos regrediu.');
 }
 echo 'OK - APP-SEC-088: navegação rejeita URLs externas e protocolos executáveis.' . PHP_EOL;
+
+
+// APP-A11Y-089: keyboard-scroll guidance is explicitly associated with each
+// financial/PJ region, with distinct IDs when multiple tables share a page.
+foreach (['receber' => 1, 'pagar' => 1, 'movimentacoes' => 1,
+    'contas' => 2, 'relatorios' => 1, 'planejamento' => 1,
+    'metas' => 1, 'categorias' => 1] as $page => $expectedCount) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    preg_match_all('/class="finance-table-wrap"[^>]*aria-describedby="(finance-scroll-hint-[a-f0-9]+)"/', $html, $hints);
+    if (count($hints[1]) !== $expectedCount || count(array_unique($hints[1])) !== $expectedCount) {
+        throw new RuntimeException('APP-A11Y-089: descrições de tabela PF ausentes ou duplicadas: ' . $page);
+    }
+    foreach ($hints[1] as $hintId) {
+        if (substr_count($html, 'id="' . $hintId . '"') !== 1
+            || !str_contains($html, 'class="finance-scroll-hint" id="' . $hintId . '"')) {
+            throw new RuntimeException('APP-A11Y-089: dica PF sem destino acessível: ' . $page);
+        }
+    }
+}
+preg_match_all('/class="enterprise-module-table-wrap"[^>]*aria-describedby="(enterprise-scroll-hint-[a-f0-9]+)"/', $enterpriseHtml, $pjHints);
+if (count($pjHints[1]) !== 11 || count(array_unique($pjHints[1])) !== 11) {
+    throw new RuntimeException('APP-A11Y-089: descrições PJ ausentes ou duplicadas.');
+}
+foreach ($pjHints[1] as $hintId) {
+    if (substr_count($enterpriseHtml, 'id="' . $hintId . '"') !== 1
+        || !str_contains($enterpriseHtml, 'class="enterprise-scroll-hint" id="' . $hintId . '"')) {
+        throw new RuntimeException('APP-A11Y-089: dica PJ não associada à região.');
+    }
+}
+echo 'OK - APP-A11Y-089: dicas de rolagem associadas por ARIA nas tabelas PF/PJ.' . PHP_EOL;

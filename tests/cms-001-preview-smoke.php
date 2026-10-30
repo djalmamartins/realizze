@@ -358,3 +358,28 @@ if (!str_contains((string) file_get_contents($root . '/assets/css/responsive-fix
     throw new RuntimeException('CMS-A11Y-084: cabeçalhos de navegação sem estilos responsivos.');
 }
 echo 'OK - CMS-A11Y-084: grupos administrativos com títulos semânticos.' . PHP_EOL;
+
+
+// CMS-A11Y-089: the six shared inventory tables describe horizontal scrolling
+// through a unique ARIA reference, including when rendered repeatedly.
+foreach (['pages', 'contents', 'media', 'users', 'plans', 'logs'] as $slug) {
+    $html = $render($slug);
+    preg_match_all('/class="cms-table-wrap"[^>]*aria-describedby="(cms-scroll-hint-[a-f0-9]+)"/', $html, $hints);
+    if (count($hints[1]) !== 1 || substr_count($html, 'id="' . $hints[1][0] . '"') !== 1
+        || !str_contains($html, 'class="cms-scroll-hint" id="' . $hints[1][0] . '"')) {
+        throw new RuntimeException('CMS-A11Y-089: descrição de rolagem ausente: ' . $slug);
+    }
+}
+$cmsEmptyTable = ['caption' => 'Repetição', 'columns' => ['Coluna']];
+ob_start();
+require $root . '/components/empty-table.php';
+$firstTable = (string) ob_get_clean();
+ob_start();
+require $root . '/components/empty-table.php';
+$secondTable = (string) ob_get_clean();
+preg_match('/aria-describedby="(cms-scroll-hint-[a-f0-9]+)"/', $firstTable, $firstHint);
+preg_match('/aria-describedby="(cms-scroll-hint-[a-f0-9]+)"/', $secondTable, $secondHint);
+if (empty($firstHint[1]) || empty($secondHint[1]) || $firstHint[1] === $secondHint[1]) {
+    throw new RuntimeException('CMS-A11Y-089: IDs de dica duplicados entre tabelas.');
+}
+echo 'OK - CMS-A11Y-089: tabelas CMS associam dicas e evitam IDs repetidos.' . PHP_EOL;

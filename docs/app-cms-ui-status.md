@@ -518,3 +518,13 @@ php scripts/publish-app-assets.php
 - App PJ pendente: Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ (serviços escopados e autorização).
 - CMS pendente: Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações (autenticação administrativa, RBAC, CSRF, auditoria e CRUD).
 - Homologação visual no Docker, auditoria MySQL de homologação e testes HTTP de isolamento, sessão e bloqueio do CMS ainda pendentes. Sem WhatsApp, cobranças, migrações destrutivas ou produção.
+
+
+## APP/CMS-A11Y-089 — orientação de tabelas para leitores de tela (30/10/2026)
+
+- As tabelas vazias compartilhadas do **App PF** (incluindo as duas tabelas de Contas e Cartões), dos **11 módulos PJ** e dos **seis inventários do CMS** agora ligam a região rolável à orientação de teclado/rolagem via `aria-describedby` e IDs exclusivos por renderização.
+- A alteração é exclusivamente de marcação acessível: não habilita filtros, uploads, persistência, contexto empresarial, cobranças ou WhatsApp. Testes de regressão validam referências e IDs distintos; homologação com leitor de tela e navegadores reais ainda é necessária.
+- **Páginas pendentes no App PF (integração real):** Visão geral, Receber, Pagar, Movimentações, Contas e Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente permanece desabilitado.
+- **Módulos pendentes no App PJ:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, OFX/CSV e Obrigações MEI/PJ.
+- **Páginas pendentes no CMS (integração administrativa):** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. Antes de qualquer operação real: autenticação administrativa, RBAC, CSRF, auditoria persistente e validação HTTP do bloqueio local.
+- Ainda pendentes: auditoria de MySQL/migrations/SessionAuth em homologação, testes HTTP de isolamento PF/PJ, validação visual responsiva no Docker do Mac. Sem alteração em produção.

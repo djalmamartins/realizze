@@ -12,9 +12,12 @@ if (!is_array($columns) || $columns === []) {
 }
 $escapeFinance = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $iconName = $table['icon'] ?? null;
+// Unique per render: Contas e Cartões can include two tables on one page.
+// This is an accessibility reference, never a security token.
+$scrollHintId = uniqid('finance-scroll-hint-', false);
 ?>
-<div class="finance-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?>">
-  <p class="finance-scroll-hint">Role horizontalmente para ver todas as colunas. Com teclado, foque esta região e use as setas.</p>
+<div class="finance-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?>" aria-describedby="<?= $scrollHintId ?>">
+  <p class="finance-scroll-hint" id="<?= $scrollHintId ?>">Role horizontalmente para ver todas as colunas. Com teclado, foque esta região e use as setas.</p>
   <table class="finance-table">
     <caption class="finance-table-caption"><?= $escapeFinance($table['caption'] ?? 'Registros financeiros indisponíveis') ?></caption>
     <thead><tr><?php foreach ($columns as $column): ?><th scope="col"><?= $escapeFinance($column) ?></th><?php endforeach; ?></tr></thead>

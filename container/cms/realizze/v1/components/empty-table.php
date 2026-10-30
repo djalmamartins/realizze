@@ -9,9 +9,10 @@ if (!is_array($columns) || $columns === []) {
     throw new InvalidArgumentException('A tabela de prévia exige colunas.');
 }
 $escapeTable = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$scrollHintId = uniqid('cms-scroll-hint-', false);
 ?>
-<div class="cms-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeTable($table['caption'] ?? 'Registros indisponíveis') ?>">
-  <p class="cms-scroll-hint">Role horizontalmente para ver todas as colunas. Com teclado, foque esta região e use as setas.</p>
+<div class="cms-table-wrap" role="region" tabindex="0" aria-label="<?= $escapeTable($table['caption'] ?? 'Registros indisponíveis') ?>" aria-describedby="<?= $scrollHintId ?>">
+  <p class="cms-scroll-hint" id="<?= $scrollHintId ?>">Role horizontalmente para ver todas as colunas. Com teclado, foque esta região e use as setas.</p>
   <table class="cms-table">
     <caption class="cms-table-caption"><?= $escapeTable($table['caption'] ?? 'Registros indisponíveis') ?></caption>
     <thead><tr><?php foreach ($columns as $column): ?><th scope="col"><?= $escapeTable($column) ?></th><?php endforeach; ?></tr></thead>
