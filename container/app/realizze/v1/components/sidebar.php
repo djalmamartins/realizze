@@ -1,20 +1,29 @@
 <?php
 /** Escapar textos e atributos dinâmicos; os ícones SVG são estáticos. */
 $escapeSidebar = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
-// Associative navigation keys are authoritative; positional arrays remain supported for older callers.
+// Associate keys with their links before grouping; positional arrays remain supported.
+// PF/PJ headings must not depend on the incoming item order.
 $sidebarSectionKeys = array_keys($sections ?? []);
+$sidebarGroups = ['personal' => [], 'enterprise' => []];
+foreach ($items as $index => $item) {
+    $itemSection = is_string($index) ? $index : ($sidebarSectionKeys[$index] ?? null);
+    $sidebarGroups[$itemSection === 'empresarial' ? 'enterprise' : 'personal'][] = [
+        'section' => $itemSection,
+        'item' => $item,
+    ];
+}
 ?>
 <aside class="sidebar" id="app-sidebar" aria-label="Navegação principal">
 <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Fechar menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
 <a href="/minha-conta" class="brand" aria-label="Realizze"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="152" height="38"></a>
 <nav class="nav" aria-label="Menu principal">
-<h2 class="nav-group-heading">Finanças pessoais · PF</h2>
-<?php foreach ($items as $index => $item): ?>
-<?php $itemSection = is_string($index) ? $index : ($sidebarSectionKeys[$index] ?? null); ?>
-<?php if ($itemSection === 'empresarial'): ?>
-<h2 class="nav-group-heading">Gestão empresarial · PJ</h2>
-<?php endif; ?>
+<?php foreach (['personal' => 'Finanças pessoais · PF', 'enterprise' => 'Gestão empresarial · PJ'] as $group => $heading): ?>
+<?php if ($sidebarGroups[$group] === []) continue; ?>
+<h2 class="nav-group-heading"><?= $heading ?></h2>
+<?php foreach ($sidebarGroups[$group] as $entry): ?>
+<?php $item = $entry['item']; $itemSection = $entry['section']; ?>
 <a href="<?= $escapeSidebar($item[2]) ?>" <?= $section === $itemSection ? 'class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= $escapeSidebar($item[1]) ?></a>
+<?php endforeach; ?>
 <?php endforeach; ?>
 </nav>
 <div class="sidebar-bottom">

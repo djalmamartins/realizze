@@ -643,3 +643,65 @@ foreach (['overview', 'empresarial'] as $activeSection) {
     }
 }
 echo 'OK - APP-A11Y-085: menu com chaves explícitas, independente da ordem de seções.' . PHP_EOL;
+
+
+// APP-A11Y-086: PF/PJ headings and links remain grouped when callers send
+// enterprise first or interleave PF entries. Do not show an empty PJ group.
+$interleavedItems = [
+    'empresarial' => ['building', 'Empresarial', '/minha-conta?pagina=empresarial'],
+    'overview' => ['house', 'Visão geral', '/minha-conta?pagina=overview'],
+    'pagar' => ['arrow-up-right', 'Pagar', '/minha-conta?pagina=pagar'],
+];
+$interleavedSections = [
+    'pagar' => ['Pagar', 'Resumo'],
+    'empresarial' => ['Empresarial', 'Prévia'],
+    'overview' => ['Visão geral', 'Resumo'],
+];
+foreach (['overview', 'empresarial'] as $activeSection) {
+    $groupedHtml = $view->render('components::sidebar', [
+        'items' => $interleavedItems, 'sections' => $interleavedSections,
+        'section' => $activeSection, 'icon' => $icon, 'name' => 'Teste',
+        'user' => $user, 'csrf' => 'token-de-teste',
+    ]);
+    $pfHeading = strpos($groupedHtml, 'Finanças pessoais · PF');
+    $pjHeading = strpos($groupedHtml, 'Gestão empresarial · PJ');
+    $overviewLink = strpos($groupedHtml, 'href="/minha-conta?pagina=overview"');
+    $pagarLink = strpos($groupedHtml, 'href="/minha-conta?pagina=pagar"');
+    $enterpriseLink = strpos($groupedHtml, 'href="/minha-conta?pagina=empresarial"');
+    if ($pfHeading === false || $pjHeading === false
+        || $overviewLink === false || $pagarLink === false || $enterpriseLink === false
+        || !($pfHeading < $overviewLink && $overviewLink < $pagarLink
+            && $pagarLink < $pjHeading && $pjHeading < $enterpriseLink)
+        || substr_count($groupedHtml, '<h2 class="nav-group-heading">') !== 2
+        || substr_count($groupedHtml, 'aria-current="page"') !== 1
+        || !str_contains($groupedHtml, 'href="/minha-conta?pagina=' . $activeSection . '" class="active" aria-current="page"')) {
+        throw new RuntimeException('APP-A11Y-086: agrupamento PF/PJ ou item ativo incorreto.');
+    }
+}
+// Legacy positional items still map through the matching sections array.
+$legacyGroupedHtml = $view->render('components::sidebar', [
+    'items' => [
+        ['building', 'Empresarial', '/minha-conta?pagina=empresarial'],
+        ['house', 'Visão geral', '/minha-conta?pagina=overview'],
+    ],
+    'sections' => ['empresarial' => ['Empresarial', 'Prévia'], 'overview' => ['Visão geral', 'Resumo']],
+    'section' => 'empresarial', 'icon' => $icon, 'name' => 'Teste',
+    'user' => $user, 'csrf' => 'token-de-teste',
+]);
+if (strpos($legacyGroupedHtml, 'href="/minha-conta?pagina=overview"')
+    >= strpos($legacyGroupedHtml, 'Gestão empresarial · PJ')
+    || substr_count($legacyGroupedHtml, 'aria-current="page"') !== 1) {
+    throw new RuntimeException('APP-A11Y-086: regressão de navegação posicional.');
+}
+$pfOnlyHtml = $view->render('components::sidebar', [
+    'items' => ['overview' => ['house', 'Visão geral', '/minha-conta?pagina=overview']],
+    'sections' => ['overview' => ['Visão geral', 'Resumo']],
+    'section' => 'overview', 'icon' => $icon, 'name' => 'Teste',
+    'user' => $user, 'csrf' => 'token-de-teste',
+]);
+if (!str_contains($pfOnlyHtml, 'Finanças pessoais · PF')
+    || str_contains($pfOnlyHtml, 'Gestão empresarial · PJ')
+    || substr_count($pfOnlyHtml, '<h2 class="nav-group-heading">') !== 1) {
+    throw new RuntimeException('APP-A11Y-086: grupo PJ vazio foi exibido.');
+}
+echo 'OK - APP-A11Y-086: agrupamento PF/PJ estável e sem cabeçalhos vazios.' . PHP_EOL;

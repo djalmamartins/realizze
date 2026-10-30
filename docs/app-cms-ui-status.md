@@ -492,3 +492,12 @@ php scripts/publish-app-assets.php
 - **App PJ — pendentes:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ precisam de serviços isolados por organização e testes de autorização.
 - **CMS — pendentes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações precisam de autenticação administrativa, RBAC, CSRF, auditoria e CRUD antes de acesso público.
 - **Homologação ainda pendente:** testes visuais em navegador/Docker, MySQL de homologação e testes HTTP de sessão, CSRF, autorização, isolamento PF/PJ e bloqueio do CMS. Sem WhatsApp, cobranças, migrações destrutivas ou produção.
+
+
+## APP-A11Y-086 — grupos PF/PJ estáveis (30/10/2026)
+
+- A sidebar do App agrupa links PF e PJ pela chave de contexto, não pela posição de chegada. Mesmo com itens intercalados ou PJ primeiro, os títulos e links permanecem na ordem **PF → PJ**.
+- Grupos vazios não geram cabeçalhos sem links. A compatibilidade com listas posicionais foi preservada, assim como o link ativo e `aria-current="page"`.
+- `tests/ui-002-view-smoke.php` cobre itens intercalados, listas posicionais e menu somente PF. Mudança apenas de apresentação: nenhuma seleção de empresa, consulta, gravação ou rota foi adicionada.
+- **App PF:** 10 páginas visuais ainda pendentes de dados autorizados, CRUD, filtros reais e homologação visual. **App PJ:** 11 módulos em prévia, ainda sem serviços financeiros escopados. **CMS:** 8 seções em prévia, ainda sem autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente ou CRUD.
+- Permanecem pendentes homologação no Docker, testes HTTP de isolamento e inspeção MySQL de homologação. Sem WhatsApp, cobrança, migração destrutiva ou alteração em produção.
