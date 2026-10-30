@@ -11,6 +11,13 @@ const vm = require('node:vm');
 const script = fs.readFileSync(
   path.join(__dirname, '../container/app/realizze/v1/assets/js/dashboard.js'), 'utf8'
 );
+// APP-A11Y-079: author CSS must not override the HTML hidden attribute
+// before JavaScript has installed the complete client-side search.
+const css = fs.readFileSync(
+  path.join(__dirname, '../container/app/realizze/v1/assets/css/dashboard.css'), 'utf8'
+);
+assert.match(css, /\.enterprise-module-filter\[hidden\]\{display:none!important\}/,
+  'a hidden enterprise search must remain hidden without JavaScript');
 const callbacks = {};
 const input = {
   value: '',
@@ -198,3 +205,38 @@ assert.equal(document.activeElement, input,
 assert.equal(input.focused, true);
 
 console.log('OK - APP-A11Y-063: filtro PJ recupera foco antes do navegador ocultar o elemento.');
+
+
+// APP-A11Y-079: incomplete markup cannot expose an unusable search widget.
+// All preview modules and their links remain visible without enhancement.
+for (const missing of [
+  '#enterprise-module-search', '#enterprise-module-clear',
+  '#enterprise-search-status', '#enterprise-search-empty',
+  '.enterprise-module-filter', '.enterprise-jump',
+]) {
+  const fallbackFilter = { hidden: true };
+  const partialNodes = { ...selectors, '.enterprise-module-filter': fallbackFilter };
+  delete partialNodes[missing];
+  const partialDocument = {
+    ...document,
+    querySelector: (selector) => partialNodes[selector] || null,
+  };
+  vm.runInNewContext(script, { document: partialDocument, window });
+  assert.equal(fallbackFilter.hidden, true, 'partial DOM keeps filter hidden: ' + missing);
+}
+for (const missingSet of ['modules', 'groups', 'links']) {
+  const fallbackFilter = { hidden: true };
+  const partialDocument = {
+    ...document,
+    querySelector: (selector) => selector === '.enterprise-module-filter' ? fallbackFilter : document.querySelector(selector),
+    querySelectorAll: (selector) => {
+      if (missingSet === 'modules' && selector === '.enterprise-module-group .enterprise-module') return [];
+      if (missingSet === 'groups' && selector === '.enterprise-module-group') return [];
+      if (missingSet === 'links' && selector === '.enterprise-jump a[href^="#enterprise-"]') return [];
+      return document.querySelectorAll(selector);
+    },
+  };
+  vm.runInNewContext(script, { document: partialDocument, window });
+  assert.equal(fallbackFilter.hidden, true, 'incomplete module inventory keeps filter hidden: ' + missingSet);
+}
+console.log('OK - APP-A11Y-079: hidden search remains unavailable without complete JavaScript/DOM.');

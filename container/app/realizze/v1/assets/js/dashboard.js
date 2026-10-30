@@ -130,12 +130,14 @@
     const enterpriseEmpty = $('#enterprise-search-empty');
     const enterpriseFilter = document.querySelector('.enterprise-module-filter');
     const enterpriseJump = document.querySelector('.enterprise-jump');
-    if (enterpriseSearch && enterpriseStatus) {
-      // Without JavaScript, keep all preview modules visible and hide nonfunctional search controls.
-      if (enterpriseFilter) enterpriseFilter.hidden = false;
-      const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
-      const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
-      const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
+    const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
+    const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
+    const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
+    // Do not reveal controls until the entire client-side filter is initialized.
+    // A partial DOM or failed initialization must preserve the visible module list.
+    if (enterpriseSearch && enterpriseClear && enterpriseStatus && enterpriseEmpty &&
+        enterpriseFilter && enterpriseJump && modules.length > 0 && groups.length > 0 &&
+        jumpLinks.length === modules.length) {
       const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
       const applyFilter = () => {
         // Browsers can reset activeElement when a focused node becomes hidden.
@@ -189,6 +191,7 @@
         enterpriseSearch.focus();
       });
       applyFilter();
+      enterpriseFilter.hidden = false;
     }
 
     document.querySelectorAll('[data-demo]').forEach((element) => {

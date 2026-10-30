@@ -149,6 +149,7 @@
 
 /* APP-UI-035: accessible, client-side search for the eleven PJ preview modules. */
 .enterprise-module-filter{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 14px;align-items:end;margin:8px 28px 14px;padding:16px 18px;border:1px solid #dfece3;border-radius:13px;background:#f8fbf9}
+.enterprise-module-filter[hidden]{display:none!important}
 .enterprise-filter-field{min-width:0}
 .enterprise-filter-field label{display:block;margin-bottom:7px;color:#345c43;font-size:12px;font-weight:700}
 .enterprise-filter-field input{display:block;width:100%;min-height:44px;border:1px solid #cadfce;border-radius:9px;padding:10px 13px;background:#fff;color:#1d3c2a;font:inherit}

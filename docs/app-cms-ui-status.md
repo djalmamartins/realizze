@@ -425,3 +425,14 @@ php scripts/publish-app-assets.php
 - Integrado em **Usuários, Planos e assinaturas, Logs e auditoria e Configurações**; esta última preserva dois grupos separados. CSS responsivo e teste de renderização/escape adicionados.
 - **App PF (10 páginas):** pendentes CRUD, dados autorizados, filtros funcionais, relatórios e homologação visual. **App Empresarial (11 módulos):** pendentes serviços isolados por organização, equipes, financeiro, DRE e OFX/CSV. **CMS (8 seções):** pendentes autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações reais.
 - CMS segue restrito à prévia local; inspeção MySQL e testes HTTP/visual em Docker ainda pendentes. Sem WhatsApp, cobrança, migração destrutiva ou produção.
+
+
+## APP-A11Y-079 — busca empresarial com ativação progressiva completa (29/10/2026)
+
+- Corrigida a especificidade do CSS da busca de módulos PJ: `[hidden]` agora prevalece sobre `display:grid`, evitando mostrar um filtro inoperante quando JavaScript está desativado ou falha ao carregar.
+- `dashboard.js` somente revela a busca após encontrar todos os controles, os grupos, os módulos e seus atalhos correspondentes, registrar os eventos e aplicar o filtro inicial. Uma renderização incompleta mantém os onze módulos e a navegação visual acessíveis.
+- `tests/ui-004-enterprise-search.js` passa a verificar o contrato CSS e cenários de controles, grupos, módulos e atalhos ausentes, além dos testes existentes de busca, acentos, foco e limpeza.
+- **App PF — pendentes:** Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações ainda precisam de dados autorizados, operações e homologação visual. Assistente desabilitado.
+- **App PJ — pendentes:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ exigem serviços escopados por empresa e testes de autorização.
+- **CMS — pendentes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações ainda precisam de autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e CRUD. A prévia permanece restrita a ambiente/IP local.
+- Ainda faltam testes em navegadores reais/Docker do Mac, auditoria do MySQL de homologação e testes HTTP de sessão, CSRF e isolamento. Sem WhatsApp, cobrança, migração destrutiva ou alteração de produção.
