@@ -559,3 +559,39 @@ foreach ([
     }
 }
 echo 'OK - APP-UI-076: filtros de relatórios e planejamento reutilizados sem operações.' . PHP_EOL;
+
+
+// APP-UI-077: metas and accounts/cards share the disabled, accessible PF filters.
+// No form submission, financial fixtures, duplicated IDs or enabled fields.
+foreach ([
+    'metas' => ['metas-search', 'metas-status', 'metas-deadline'],
+    'contas' => ['contas-search', 'contas-type', 'contas-status'],
+] as $page => $expectedIds) {
+    $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
+    if (substr_count($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"') !== 1
+        || !str_contains($html, 'Nenhuma consulta ou alteração é realizada.')
+        || str_contains($html, '<form')) {
+        throw new RuntimeException('APP-UI-077: filtros ausentes ou operacionais em ' . $page);
+    }
+    preg_match_all('/<(?:input|select)\\b[^>]*>/i', $html, $controls);
+    if (count($controls[0]) !== 3) {
+        throw new RuntimeException('APP-UI-077: quantidade incorreta de filtros em ' . $page);
+    }
+    foreach ($controls[0] as $control) {
+        if (preg_match('/\\bdisabled\\b/i', $control) !== 1) {
+            throw new RuntimeException('APP-UI-077: filtro habilitado em ' . $page);
+        }
+    }
+    foreach ($expectedIds as $id) {
+        if (substr_count($html, 'id="' . $id . '"') !== 1
+            || substr_count($html, 'for="' . $id . '"') !== 1) {
+            throw new RuntimeException('APP-UI-077: rótulo ou ID inconsistente: ' . $id);
+        }
+    }
+    preg_match_all('/\\bid="([^"]+)"/', $html, $ids);
+    if (count($ids[1]) !== count(array_unique($ids[1]))
+        || preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
+        throw new RuntimeException('APP-UI-077: ID duplicado ou valor fictício em ' . $page);
+    }
+}
+echo 'OK - APP-UI-077: filtros de metas e contas/cartões compartilhados sem operações.' . PHP_EOL;

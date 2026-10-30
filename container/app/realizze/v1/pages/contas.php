@@ -2,6 +2,11 @@
 <section class="card finance-workspace" aria-labelledby="contas-title">
  <div class="finance-toolbar"><div><h2 id="contas-title">Contas e cartões</h2><p class="muted">Acompanhe suas contas, carteiras e cartões em um só lugar.</p></div><button type="button" class="primary" disabled title="Disponível após integração financeira">+ Adicionar conta</button></div>
  <div class="finance-goal-summary" aria-label="Resumo de contas ainda indisponível"><div class="finance-goal-stat"><span>Saldo total</span><strong>—</strong><small>Aguardando dados autorizados</small></div><div class="finance-goal-stat"><span>Contas conectadas</span><strong>—</strong><small>Nenhuma integração ativa</small></div><div class="finance-goal-stat"><span>Faturas em aberto</span><strong>—</strong><small>Sem dados financeiros</small></div></div>
+ <?= $appView->render('components::finance-filter-preview', ['financeFilterFields' => [
+    ['id' => 'contas-search', 'label' => 'Buscar conta ou cartão', 'type' => 'search', 'placeholder' => 'Instituição ou identificação'],
+    ['id' => 'contas-type', 'label' => 'Tipo de produto', 'type' => 'select', 'option' => 'Todos os tipos'],
+    ['id' => 'contas-status', 'label' => 'Situação', 'type' => 'select', 'option' => 'Todas as situações'],
+]]) ?>
  <div class="finance-toolbar"><div><h3>Suas contas</h3><p class="muted">Contas bancárias, dinheiro e carteiras digitais.</p></div><button type="button" disabled>Gerenciar carteiras</button></div>
  <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
     'caption' => 'Contas e carteiras — integração pendente',

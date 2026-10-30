@@ -411,3 +411,10 @@ php scripts/publish-app-assets.php
 - **App Empresarial — módulos ainda sem integração:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, Conciliação OFX/CSV e Obrigações MEI/PJ.
 - **CMS — seções ainda sem integração administrativa:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. A prévia continua restrita a ambiente/IP local; faltam autenticação administrativa, RBAC, CSRF em mutações, auditoria e CRUD.
 - **Homologação pendente:** Docker/navegadores reais, MySQL de homologação, testes HTTP de autenticação, CSRF, isolamento PF/PJ e bloqueio CMS. Sem WhatsApp, cobranças, migrações destrutivas ou produção.
+
+## APP-UI-077 — filtros acessíveis em Metas e Contas/Cartões (29/10/2026)
+
+- **Metas** e **Contas e Cartões** reutilizam `components/finance-filter-preview.php` com busca, situação e prazo/tipo, mantendo filtros apenas visuais e desabilitados.
+- `tests/ui-002-view-smoke.php` verifica as duas páginas com MovesCode View: três controles desabilitados por página, rótulos associados, IDs únicos, ausência de formulários e de valores financeiros fictícios.
+- **App PF — ainda faltam integrações reais** em Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente desabilitado. **App Empresarial — faltam** clientes, fornecedores, equipes/permissões, receber, pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, OFX/CSV e obrigações MEI/PJ. **CMS — faltam operações administrativas** em Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações; bloqueio local mantido até autenticação, CSRF, RBAC e auditoria.
+- Pendentes: homologação responsiva em navegador real, inspeção do MySQL de homologação e testes HTTP de sessão/CSRF/isolamento. Nenhuma operação financeira, WhatsApp, cobrança, migração ou alteração de produção nesta etapa.
