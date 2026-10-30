@@ -19,10 +19,12 @@
 ]; require __DIR__ . '/../components/empty-table.php'; ?>
 </section>
 <aside class="cms-card cms-detail-side" aria-labelledby="cms-plans-side-title"><h2 id="cms-plans-side-title">Assinaturas</h2><p>Visão administrativa preparada para os estados de contratação.</p>
- <div class="cms-setting-row"><span>Assinaturas ativas</span><strong>Não consultado</strong></div>
- <div class="cms-setting-row"><span>Renovações</span><strong>Não consultado</strong></div>
- <div class="cms-setting-row"><span>Pagamentos</span><strong>Desabilitados</strong></div>
- <div class="cms-section-divider"></div><h2>Publicação segura</h2><p>Alterações em planos exigirão permissões administrativas, CSRF, trilha de auditoria e integração validada.</p><button type="button" disabled>Salvar plano</button>
+ <?php $cmsStatusRows = [
+    ['label' => 'Assinaturas ativas', 'status' => 'Não consultado'],
+    ['label' => 'Renovações', 'status' => 'Não consultado'],
+    ['label' => 'Pagamentos', 'status' => 'Desabilitados'],
+]; require __DIR__ . '/../components/status-list.php'; ?>
+<div class="cms-section-divider"></div><h2>Publicação segura</h2><p>Alterações em planos exigirão permissões administrativas, CSRF, trilha de auditoria e integração validada.</p><button type="button" disabled>Salvar plano</button>
 </aside></div>
 <?php $cmsWorkflow = [
     'title' => 'Fluxo previsto de planos e assinaturas',

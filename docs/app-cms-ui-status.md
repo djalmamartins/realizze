@@ -418,3 +418,10 @@ php scripts/publish-app-assets.php
 - `tests/ui-002-view-smoke.php` verifica as duas páginas com MovesCode View: três controles desabilitados por página, rótulos associados, IDs únicos, ausência de formulários e de valores financeiros fictícios.
 - **App PF — ainda faltam integrações reais** em Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente desabilitado. **App Empresarial — faltam** clientes, fornecedores, equipes/permissões, receber, pagar, bancos/cartões, fluxo de caixa, centros de custos, DRE, OFX/CSV e obrigações MEI/PJ. **CMS — faltam operações administrativas** em Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações; bloqueio local mantido até autenticação, CSRF, RBAC e auditoria.
 - Pendentes: homologação responsiva em navegador real, inspeção do MySQL de homologação e testes HTTP de sessão/CSRF/isolamento. Nenhuma operação financeira, WhatsApp, cobrança, migração ou alteração de produção nesta etapa.
+
+## CMS-UI-078 — estados administrativos reutilizáveis (29/10/2026)
+
+- Criado `container/cms/realizze/v1/components/status-list.php` para estados somente leitura com `dl/dt/dd`, validação e escape HTML.
+- Integrado em **Usuários, Planos e assinaturas, Logs e auditoria e Configurações**; esta última preserva dois grupos separados. CSS responsivo e teste de renderização/escape adicionados.
+- **App PF (10 páginas):** pendentes CRUD, dados autorizados, filtros funcionais, relatórios e homologação visual. **App Empresarial (11 módulos):** pendentes serviços isolados por organização, equipes, financeiro, DRE e OFX/CSV. **CMS (8 seções):** pendentes autenticação administrativa, RBAC, CSRF nas mutações, auditoria persistente e operações reais.
+- CMS segue restrito à prévia local; inspeção MySQL e testes HTTP/visual em Docker ainda pendentes. Sem WhatsApp, cobrança, migração destrutiva ou produção.

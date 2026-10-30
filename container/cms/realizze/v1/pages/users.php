@@ -5,7 +5,12 @@
     'columns' => ['Nome', 'E-mail', 'Papel', 'Situação'],
     'title' => 'Nenhum usuário consultado',
     'description' => 'A prévia não consulta identidades, convites ou permissões reais.',
-]; require __DIR__ . '/../components/empty-table.php'; ?></section><aside class="cms-card cms-detail-side"><h2>Políticas de acesso</h2><p>Convites e permissões serão controlados por papéis e auditoria.</p><div class="cms-setting-row"><span>Autenticação</span><strong>Pendente</strong></div><div class="cms-setting-row"><span>Autorização</span><strong>Pendente</strong></div><div class="cms-setting-row"><span>Auditoria</span><strong>Pendente</strong></div></aside></div><?php $cmsWorkflow = [
+]; require __DIR__ . '/../components/empty-table.php'; ?></section><aside class="cms-card cms-detail-side"><h2>Políticas de acesso</h2><p>Convites e permissões serão controlados por papéis e auditoria.</p><?php $cmsStatusRows = [
+    ['label' => 'Autenticação', 'status' => 'Pendente'],
+    ['label' => 'Autorização', 'status' => 'Pendente'],
+    ['label' => 'Auditoria', 'status' => 'Pendente'],
+]; require __DIR__ . '/../components/status-list.php'; ?>
+</aside></div><?php $cmsWorkflow = [
     'title' => 'Fluxo previsto de acesso administrativo',
     'steps' => [
         ['title' => 'Convite', 'description' => 'Solicitar acesso sem expor contas ou convites nesta prévia.'],

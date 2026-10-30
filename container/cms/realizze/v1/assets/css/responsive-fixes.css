@@ -106,3 +106,10 @@
 .cms-scroll-hint{display:none;margin:0;padding:8px 10px 2px;color:#526b5b;font-size:12px;line-height:1.5}
 @media(max-width:720px){.cms-scroll-hint{display:block}}
 .cms-table-wrap:focus-visible>.cms-scroll-hint{display:block}
+
+/* CMS-UI-078: responsive semantic status lists with long labels. */
+.cms-status-list{margin:0;min-width:0}
+.cms-status-list .cms-setting-row{min-width:0}
+.cms-status-list dt{min-width:0;color:#65766b;overflow-wrap:anywhere}
+.cms-status-list dd{min-width:0;margin:0;color:#748a7b;font-size:11px;font-weight:700;text-align:right;overflow-wrap:anywhere}
+@media(max-width:480px){.cms-status-list .cms-setting-row{align-items:flex-start;flex-wrap:wrap}.cms-status-list dd{margin-left:auto}}

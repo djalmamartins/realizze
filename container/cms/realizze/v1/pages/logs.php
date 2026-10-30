@@ -18,11 +18,13 @@
 ]; require __DIR__ . '/../components/empty-table.php'; ?>
 </section>
 <aside class="cms-card cms-detail-side" aria-labelledby="cms-audit-side-title"><h2 id="cms-audit-side-title">Política de auditoria</h2><p>Eventos sensíveis devem ser registrados no servidor, sem exposição de credenciais ou dados pessoais desnecessários.</p>
- <div class="cms-setting-row"><span>Autenticação administrativa</span><strong>Pendente</strong></div>
- <div class="cms-setting-row"><span>Autorização por papel</span><strong>Pendente</strong></div>
- <div class="cms-setting-row"><span>Integridade e retenção</span><strong>Pendente</strong></div>
- <div class="cms-setting-row"><span>Exportação de eventos</span><strong>Bloqueada</strong></div>
- <div class="cms-section-divider"></div><h2>Eventos planejados</h2><p>Login, alterações de conteúdo, permissões, configurações e tentativas de acesso negadas.</p>
+ <?php $cmsStatusRows = [
+    ['label' => 'Autenticação administrativa', 'status' => 'Pendente'],
+    ['label' => 'Autorização por papel', 'status' => 'Pendente'],
+    ['label' => 'Integridade e retenção', 'status' => 'Pendente'],
+    ['label' => 'Exportação de eventos', 'status' => 'Bloqueada'],
+]; require __DIR__ . '/../components/status-list.php'; ?>
+<div class="cms-section-divider"></div><h2>Eventos planejados</h2><p>Login, alterações de conteúdo, permissões, configurações e tentativas de acesso negadas.</p>
 </aside></div>
 <?php $cmsWorkflow = [
     'title' => 'Fluxo previsto de auditoria administrativa',

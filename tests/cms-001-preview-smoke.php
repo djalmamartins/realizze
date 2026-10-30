@@ -219,3 +219,37 @@ if (!str_contains($cmsMobileCss, '@media(max-width:720px){.cms-scroll-hint{displ
     throw new RuntimeException('CMS-A11Y-065: orientação de rolagem responsiva/foco ausente.');
 }
 echo 'OK - CMS-A11Y-065: tabelas administrativas com orientação de rolagem.' . PHP_EOL;
+
+// CMS-UI-078: reusable semantic status lists in four administrative previews.
+foreach (['users' => [1, 3], 'plans' => [1, 3], 'logs' => [1, 4], 'settings' => [2, 5]] as $slug => [$lists, $items]) {
+    $html = $render($slug);
+    if (substr_count($html, '<dl class="cms-status-list">') !== $lists
+        || substr_count($html, '<div class="cms-setting-row">') !== $items
+        || substr_count($html, '<dt>') !== $items
+        || substr_count($html, '<dd>') !== $items) {
+        throw new RuntimeException("CMS-UI-078: lista semântica incompleta em {$slug}");
+    }
+}
+$cmsStatusRows = [['label' => '<script>ataque</script>', 'status' => '<img src=x onerror=alert(1)>']];
+ob_start();
+require $root . '/components/status-list.php';
+$statusHtml = (string) ob_get_clean();
+if (str_contains($statusHtml, '<script>') || str_contains($statusHtml, '<img')
+    || !str_contains($statusHtml, '&lt;script&gt;ataque&lt;/script&gt;')
+    || !str_contains($statusHtml, '&lt;img src=x onerror=alert(1)&gt;')) {
+    throw new RuntimeException('CMS-UI-078: status não escapou HTML.');
+}
+$rejected = false;
+$cmsStatusRows = [['label' => '', 'status' => 'Pendente']];
+ob_start();
+try {
+    require $root . '/components/status-list.php';
+} catch (InvalidArgumentException $expected) {
+    $rejected = true;
+} finally {
+    ob_end_clean();
+}
+if (!$rejected || !str_contains($cmsMobileCss, '.cms-status-list dd')) {
+    throw new RuntimeException('CMS-UI-078: validação ou CSS responsivo ausente.');
+}
+echo 'OK - CMS-UI-078: estados semânticos, reutilizáveis, escapados e responsivos.' . PHP_EOL;
