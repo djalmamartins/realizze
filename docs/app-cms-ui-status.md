@@ -501,3 +501,10 @@ php scripts/publish-app-assets.php
 - `tests/ui-002-view-smoke.php` cobre itens intercalados, listas posicionais e menu somente PF. Mudança apenas de apresentação: nenhuma seleção de empresa, consulta, gravação ou rota foi adicionada.
 - **App PF:** 10 páginas visuais ainda pendentes de dados autorizados, CRUD, filtros reais e homologação visual. **App PJ:** 11 módulos em prévia, ainda sem serviços financeiros escopados. **CMS:** 8 seções em prévia, ainda sem autenticação administrativa, RBAC, CSRF em mutações, auditoria persistente ou CRUD.
 - Permanecem pendentes homologação no Docker, testes HTTP de isolamento e inspeção MySQL de homologação. Sem WhatsApp, cobrança, migração destrutiva ou alteração em produção.
+
+## CMS-SEC-087 — allowlist de prévia sem IP público (30/10/2026)
+
+- `components/preview-access.php` agora aceita na variável `REALIZZE_CMS_PREVIEW_ALLOWED_IPS` somente IPs **individuais** de loopback, IPv4 privado (10/8, 172.16/12, 192.168/16) ou IPv6 ULA (fc00::/7). IPs públicos, link-local, endereços IPv4 mapeados em IPv6, CIDR e valores inválidos não habilitam a prévia.
+- Continuam obrigatórios `APP_ENV=local` e `REALIZZE_CMS_LOCAL_PREVIEW=1`, além de `REMOTE_ADDR` exatamente permitido; cabeçalhos de proxy não são considerados. Uma allowlist privada **não substitui** firewall, rede local confiável nem autenticação administrativa.
+- `tests/cms-002-preview-access.php` cobre permissões e recusas novas. Nenhuma rota administrativa, mutação, migração, cobrança ou acesso público foi habilitado.
+- **Inventário de pendências:** App PF — 10 páginas visuais ainda sem operações financeiras reais, filtros de dados e homologação responsiva; App PJ — 11 módulos visuais ainda sem serviços/CRUD com escopo por organização; CMS — 8 prévias ainda sem autenticação administrativa, RBAC, CSRF de mutações, auditoria persistente e CRUD. Testes HTTP no Docker e auditoria do banco de homologação seguem pendentes.
