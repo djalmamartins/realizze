@@ -119,7 +119,15 @@
       link.addEventListener('click', () => {
         const targetId = link.getAttribute('href')?.slice(1);
         const target = targetId ? document.getElementById(targetId) : null;
-        if (target) window.setTimeout(() => target.focus({ preventScroll: true }), 0);
+        // A filter can hide a module between click and the deferred focus.
+        // Never move keyboard focus into hidden content.
+        if (target && !target.hidden && !target.closest('.enterprise-module-group')?.hidden) {
+          window.setTimeout(() => {
+            if (!target.hidden && !target.closest('.enterprise-module-group')?.hidden) {
+              target.focus({ preventScroll: true });
+            }
+          }, 0);
+        }
       });
     });
 
