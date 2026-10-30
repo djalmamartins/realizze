@@ -374,5 +374,20 @@ console.log('OK - APP-A11Y-091: orientação PJ acompanha a navegação filtrada
   clickHandler();
   pending.shift()();
   assert.equal(target.focusCount, 1, 'visible connected target receives focus');
+  // Two rapid activations: the older deferred callback must not steal focus.
+  clickHandler();
+  clickHandler();
+  assert.equal(pending.length, 2, 'both shortcut callbacks are queued');
+  pending.shift()();
+  assert.equal(target.focusCount, 1, 'stale shortcut callback does not move focus');
+  pending.shift()();
+  assert.equal(target.focusCount, 2, 'latest shortcut callback moves focus once');
+  // A link retargeted before the timeout must not focus its former module.
+  let href = '#enterprise-clientes';
+  shortcut.getAttribute = () => href;
+  clickHandler();
+  href = '#enterprise-receber';
+  pending.shift()();
+  assert.equal(target.focusCount, 2, 'retargeted shortcut does not focus stale destination');
 }
 console.log('OK - APP-A11Y-086: deferred enterprise focus respects detached and hidden nodes.');
