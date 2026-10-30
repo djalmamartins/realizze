@@ -482,3 +482,13 @@ php scripts/publish-app-assets.php
 - **App PJ — faltam integrações reais:** Clientes, Fornecedores, Equipes/permissões, Contas a receber, Contas a pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, Conciliação OFX/CSV e Obrigações MEI/PJ.
 - **CMS — faltam integrações administrativas:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações; antes de abrir acesso público, exigir autenticação administrativa, CSRF, RBAC e auditoria persistente.
 - **Pendências de homologação:** Docker do Mac/navegadores reais, MySQL de homologação, testes HTTP de sessão, CSRF e isolamento entre organizações. Sem WhatsApp, cobranças, migrações destrutivas ou alteração de produção.
+
+## APP-A11Y-085 — menu PF/PJ desacoplado da ordem das páginas (30/10/2026)
+
+- Os 12 itens da sidebar do App agora possuem chaves explícitas (`overview`, `receber`, ..., `empresarial`), preservando URLs, ordem visual e a marcação `aria-current="page"`.
+- O componente usa essas chaves para determinar o item ativo e a divisão PF/PJ. Listas posicionais antigas continuam compatíveis, sem afetar autenticação ou contexto da sessão.
+- `tests/ui-002-view-smoke.php` inclui regressão com metadados de páginas em ordem diferente da navegação, prevenindo destaque incorreto ou grupo empresarial deslocado.
+- **App PF — pendentes:** Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações precisam de dados autorizados, operações e homologação; Assistente desabilitado.
+- **App PJ — pendentes:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ precisam de serviços isolados por organização e testes de autorização.
+- **CMS — pendentes:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações precisam de autenticação administrativa, RBAC, CSRF, auditoria e CRUD antes de acesso público.
+- **Homologação ainda pendente:** testes visuais em navegador/Docker, MySQL de homologação e testes HTTP de sessão, CSRF, autorização, isolamento PF/PJ e bloqueio do CMS. Sem WhatsApp, cobranças, migrações destrutivas ou produção.

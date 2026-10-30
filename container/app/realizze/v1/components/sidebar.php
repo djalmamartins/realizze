@@ -1,6 +1,8 @@
 <?php
 /** Escapar textos e atributos dinâmicos; os ícones SVG são estáticos. */
 $escapeSidebar = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
+// Associative navigation keys are authoritative; positional arrays remain supported for older callers.
+$sidebarSectionKeys = array_keys($sections ?? []);
 ?>
 <aside class="sidebar" id="app-sidebar" aria-label="Navegação principal">
 <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Fechar menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -8,10 +10,11 @@ $escapeSidebar = static fn (mixed $value): string => htmlspecialchars((string) $
 <nav class="nav" aria-label="Menu principal">
 <h2 class="nav-group-heading">Finanças pessoais · PF</h2>
 <?php foreach ($items as $index => $item): ?>
-<?php if ((array_keys($sections)[$index] ?? null) === 'empresarial'): ?>
+<?php $itemSection = is_string($index) ? $index : ($sidebarSectionKeys[$index] ?? null); ?>
+<?php if ($itemSection === 'empresarial'): ?>
 <h2 class="nav-group-heading">Gestão empresarial · PJ</h2>
 <?php endif; ?>
-<a href="<?= $escapeSidebar($item[2]) ?>" <?= $section === array_keys($sections)[$index] ? 'class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= $escapeSidebar($item[1]) ?></a>
+<a href="<?= $escapeSidebar($item[2]) ?>" <?= $section === $itemSection ? 'class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= $escapeSidebar($item[1]) ?></a>
 <?php endforeach; ?>
 </nav>
 <div class="sidebar-bottom">

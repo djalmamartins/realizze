@@ -30,10 +30,10 @@ $section = is_string($requestedSection) && isset($sections[$requestedSection]) ?
 $appView = new \MovesCode\View\Engine(dirname(__DIR__));
 $appView->addFolder('components', dirname(__DIR__) . '/components');
 $items = [
-    ['house','Visão Geral','/minha-conta?pagina=overview'],['arrow-down-left','Receber','/minha-conta?pagina=receber'],['arrow-up-right','Pagar','/minha-conta?pagina=pagar'],
-    ['arrows-left-right','Movimentações','/minha-conta?pagina=movimentacoes'],['credit-card','Contas e Cartões','/minha-conta?pagina=contas'],
-    ['chart-no-axes-column','Relatórios','/minha-conta?pagina=relatorios'],['calendar-days','Planejamento','/minha-conta?pagina=planejamento'],
-    ['target','Metas','/minha-conta?pagina=metas'],['list-filter','Categorias','/minha-conta?pagina=categorias'],['message-circle','Assistente Financeiro','/minha-conta?pagina=assistente'],['settings','Configurações','/minha-conta?pagina=configuracoes'],['building','Empresarial','/minha-conta?pagina=empresarial']
+    'overview' => ['house','Visão Geral','/minha-conta?pagina=overview'],'receber' => ['arrow-down-left','Receber','/minha-conta?pagina=receber'],'pagar' => ['arrow-up-right','Pagar','/minha-conta?pagina=pagar'],
+    'movimentacoes' => ['arrows-left-right','Movimentações','/minha-conta?pagina=movimentacoes'],'contas' => ['credit-card','Contas e Cartões','/minha-conta?pagina=contas'],
+    'relatorios' => ['chart-no-axes-column','Relatórios','/minha-conta?pagina=relatorios'],'planejamento' => ['calendar-days','Planejamento','/minha-conta?pagina=planejamento'],
+    'metas' => ['target','Metas','/minha-conta?pagina=metas'],'categorias' => ['list-filter','Categorias','/minha-conta?pagina=categorias'],'assistente' => ['message-circle','Assistente Financeiro','/minha-conta?pagina=assistente'],'configuracoes' => ['settings','Configurações','/minha-conta?pagina=configuracoes'],'empresarial' => ['building','Empresarial','/minha-conta?pagina=empresarial']
 ];
 $iconPaths = [
     'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -113,7 +113,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 <?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'assistente', 'configuracoes', 'empresarial'], true)): ?>
 <?= $appView->render('pages/' . $section, ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php else: ?>
-<section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[array_search($section, array_keys($sections), true)][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
+<section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[$section][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
 <?php endif; ?>
 <?php endif; ?>
 <p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Dados financeiros ainda não integrados · Nenhuma movimentação real é exibida</p>

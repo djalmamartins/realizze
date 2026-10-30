@@ -621,3 +621,25 @@ if (!str_contains((string) file_get_contents($root . '/assets/css/dashboard.css'
     throw new RuntimeException('APP-A11Y-084: títulos de grupos sem estilo responsivo.');
 }
 echo 'OK - APP-A11Y-084: navegação PF/PJ agrupada com títulos semânticos.' . PHP_EOL;
+
+// APP-A11Y-085: active links and PF/PJ grouping must use explicit section keys,
+// not the coincidental order of the page metadata array.
+$reorderedSections = ['empresarial' => ['Empresarial', 'Prévia'], 'overview' => ['Visão geral', 'Resumo']];
+$keyedItems = [
+    'overview' => ['house', 'Visão geral', '/minha-conta?pagina=overview'],
+    'empresarial' => ['building', 'Empresarial', '/minha-conta?pagina=empresarial'],
+];
+foreach (['overview', 'empresarial'] as $activeSection) {
+    $keyedHtml = $view->render('components::sidebar', [
+        'items' => $keyedItems, 'sections' => $reorderedSections, 'section' => $activeSection,
+        'icon' => $icon, 'name' => 'Teste', 'user' => $user, 'csrf' => 'token-de-teste',
+    ]);
+    $expectedActive = 'href="/minha-conta?pagina=' . $activeSection . '" class="active" aria-current="page"';
+    if (!str_contains($keyedHtml, $expectedActive)
+        || substr_count($keyedHtml, 'aria-current="page"') !== 1
+        || strpos($keyedHtml, 'Finanças pessoais · PF') >= strpos($keyedHtml, 'href="/minha-conta?pagina=overview"')
+        || strpos($keyedHtml, 'Gestão empresarial · PJ') >= strpos($keyedHtml, 'href="/minha-conta?pagina=empresarial"')) {
+        throw new RuntimeException('APP-A11Y-085: navegação PF/PJ depende da ordem de seções.');
+    }
+}
+echo 'OK - APP-A11Y-085: menu com chaves explícitas, independente da ordem de seções.' . PHP_EOL;
