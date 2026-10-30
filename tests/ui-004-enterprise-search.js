@@ -240,3 +240,47 @@ for (const missingSet of ['modules', 'groups', 'links']) {
   assert.equal(fallbackFilter.hidden, true, 'incomplete module inventory keeps filter hidden: ' + missingSet);
 }
 console.log('OK - APP-A11Y-079: hidden search remains unavailable without complete JavaScript/DOM.');
+
+
+// APP-A11Y-082: do not enable an apparently working search with broken
+// shortcuts, duplicate module IDs or unsupported Unicode normalization.
+search('');
+const fallbackCases = [
+  ['missing target', [{ ...links[0], getAttribute: (name) => name === 'href' ? '#enterprise-inexistente' : null }, ...links.slice(1)]],
+  ['duplicate shortcut', [links[0], links[0], links[2]]],
+];
+for (const [reason, candidateLinks] of fallbackCases) {
+  const fallbackFilter = { hidden: true };
+  const fallbackDocument = {
+    ...document,
+    querySelector: (selector) => selector === '.enterprise-module-filter' ? fallbackFilter : document.querySelector(selector),
+    querySelectorAll: (selector) => selector === '.enterprise-jump a[href^="#enterprise-"]'
+      ? candidateLinks : document.querySelectorAll(selector),
+  };
+  vm.runInNewContext(script, { document: fallbackDocument, window });
+  assert.equal(fallbackFilter.hidden, true, 'invalid shortcuts keep search hidden: ' + reason);
+  assert.equal(modules.every((module) => !module.hidden), true, 'modules remain visible: ' + reason);
+}
+const previousId = modules[1].id;
+modules[1].id = modules[0].id;
+const duplicateFilter = { hidden: true };
+vm.runInNewContext(script, {
+  document: { ...document, querySelector: (selector) =>
+    selector === '.enterprise-module-filter' ? duplicateFilter : document.querySelector(selector) },
+  window,
+});
+assert.equal(duplicateFilter.hidden, true, 'duplicate module IDs keep search hidden');
+modules[1].id = previousId;
+
+const legacyFilter = { hidden: true };
+const legacyDocument = {
+  ...document,
+  querySelector: (selector) => selector === '.enterprise-module-filter' ? legacyFilter : document.querySelector(selector),
+};
+vm.runInNewContext('String.prototype.normalize = undefined;\n' + script, { document: legacyDocument, window });
+assert.equal(legacyFilter.hidden, true, 'legacy browsers keep static navigation instead of a broken search');
+assert.equal(modules.every((module) => !module.hidden), true, 'legacy fallback keeps every module visible');
+assert.match(css, /enterprise-module-header h4,.*enterprise-module-table th/,
+  'long enterprise headings and table labels use the same responsive rule');
+assert.match(css, /overflow-wrap:anywhere;/, 'long labels wrap inside narrow cards');
+console.log('OK - APP-A11Y-082: PJ search validates links/IDs and preserves a responsive fallback.');

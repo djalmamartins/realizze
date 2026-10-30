@@ -271,3 +271,10 @@
 @media(max-width:560px){.page-heading-meta{justify-content:flex-start}}
 
 .finance-filter-help{grid-column:1/-1;margin:0;line-height:1.5}
+
+
+/* APP-A11Y-082: keep long PJ module labels inside narrow cards. */
+.enterprise-module-header h4,.enterprise-module-header p,.enterprise-module-table th{
+  overflow-wrap:anywhere;
+}
+.enterprise-module-header > div{min-width:0}

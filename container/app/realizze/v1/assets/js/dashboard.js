@@ -133,11 +133,20 @@
     const modules = Array.from(document.querySelectorAll('.enterprise-module-group .enterprise-module'));
     const groups = Array.from(document.querySelectorAll('.enterprise-module-group'));
     const jumpLinks = Array.from(document.querySelectorAll('.enterprise-jump a[href^="#enterprise-"]'));
-    // Do not reveal controls until the entire client-side filter is initialized.
-    // A partial DOM or failed initialization must preserve the visible module list.
+    // Each shortcut must resolve to one unique rendered module. Equal counts
+    // alone can conceal duplicate or stale targets after a template change.
+    const moduleIds = new Set(modules.map((module) => module.id));
+    const shortcutIds = jumpLinks.map((link) => link.getAttribute('href')?.slice(1));
+    const shortcutsReady = modules.length > 0 && moduleIds.size === modules.length &&
+      shortcutIds.length === modules.length &&
+      new Set(shortcutIds).size === modules.length &&
+      shortcutIds.every((id) => moduleIds.has(id));
+    // Do not reveal a nonfunctional search when Unicode normalization is absent.
+    // A partial DOM, invalid navigation or unsupported browser keeps all modules
+    // available through the ordinary visible links and headings.
     if (enterpriseSearch && enterpriseClear && enterpriseStatus && enterpriseEmpty &&
-        enterpriseFilter && enterpriseJump && modules.length > 0 && groups.length > 0 &&
-        jumpLinks.length === modules.length) {
+        enterpriseFilter && enterpriseJump && groups.length > 0 && shortcutsReady &&
+        typeof ''.normalize === 'function') {
       const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
       const applyFilter = () => {
         // Browsers can reset activeElement when a focused node becomes hidden.

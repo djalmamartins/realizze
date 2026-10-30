@@ -454,3 +454,14 @@ php scripts/publish-app-assets.php
 - **App Empresarial — módulos pendentes:** Clientes, Fornecedores, Equipes/permissões, Contas a receber/pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, Relatórios/DRE, Conciliação OFX/CSV e Obrigações MEI/PJ. Faltam serviços isolados por organização, autorização e testes HTTP.
 - **CMS — seções pendentes de operação:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações. Antes de acesso público, exigem autenticação administrativa, RBAC, CSRF, auditoria persistente e CRUD.
 - **Homologação pendente:** navegador real/Docker, MySQL de homologação e HTTP de sessão, CSRF, RBAC e isolamento PF/PJ. Sem WhatsApp, cobrança, migração destrutiva ou alteração de produção.
+
+
+## APP-A11Y-082 — navegação PJ íntegra e textos responsivos (30/10/2026)
+
+- A busca local dos onze módulos empresariais só é ativada quando cada atalho aponta para um módulo existente e único; atalhos duplicados, destinos inexistentes ou IDs repetidos mantêm a navegação e os módulos visíveis sem filtro.
+- Navegadores sem normalização Unicode preservam a experiência estática, sem apresentar uma pesquisa que falharia ao digitar.
+- Títulos, descrições e cabeçalhos longos dos módulos PJ quebram linha em cartões estreitos; testes em `tests/ui-004-enterprise-search.js` cobrem as condições de fallback e o contrato CSS.
+- **App PF — ainda sem integração:** Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações; Assistente desabilitado. Faltam dados autorizados, CRUD, filtros e homologação visual.
+- **App PJ — ainda sem integração:** Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, Conciliação OFX/CSV e Obrigações MEI/PJ; faltam serviços com escopo organizacional e autorização.
+- **CMS — ainda sem integração administrativa:** Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações; exige autenticação administrativa, RBAC, CSRF e auditoria antes de acesso público.
+- **Pendente:** homologação visual em navegador real/Docker, auditoria MySQL de homologação, testes HTTP de sessão, CSRF e isolamento PF/PJ. Nenhum banco, cobrança, WhatsApp, migração ou produção foi alterado.
