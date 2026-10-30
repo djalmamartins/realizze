@@ -164,6 +164,10 @@
         typeof ''.normalize === 'function') {
       const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/\s+/g, ' ').trim();
       const applyFilter = () => {
+        // A pending shortcut focus belongs to the previous filter state.
+        // Invalidate it even if the same module becomes visible again before
+        // the queued callback runs.
+        enterpriseFocusRequest += 1;
         // Browsers can reset activeElement when a focused node becomes hidden.
         // Capture focus before changing visibility, then recover it if necessary.
         const focusedBeforeFilter = document.activeElement;
