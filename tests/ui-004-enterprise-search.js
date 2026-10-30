@@ -323,3 +323,56 @@ assert.match(css, /\.enterprise-jump-help\[hidden\]\{display:none!important\}/,
 assert.match(css, /@media\(max-width:650px\)\{\.enterprise-jump-help\{display:block;/,
   'mobile users receive a visible horizontal scrolling hint');
 console.log('OK - APP-A11Y-091: orientação PJ acompanha a navegação filtrada.');
+
+
+// APP-A11Y-086: deferred shortcut focus must not target detached or hidden nodes.
+{
+  let clickHandler;
+  const pending = [];
+  const targetGroup = { hidden: false };
+  const target = {
+    hidden: false, isConnected: true, focusCount: 0,
+    closest: () => targetGroup,
+    focus() { this.focusCount += 1; },
+  };
+  const shortcut = {
+    hidden: false, isConnected: true,
+    getAttribute: () => '#enterprise-clientes',
+    addEventListener(name, handler) { if (name === 'click') clickHandler = handler; },
+  };
+  const isolatedDocument = {
+    readyState: 'complete',
+    querySelector: () => null,
+    querySelectorAll: (selector) => selector === '.enterprise-jump a[href^="#enterprise-"]' ? [shortcut] : [],
+    getElementById: (id) => id === 'enterprise-clientes' ? target : null,
+  };
+  const isolatedWindow = { setTimeout(handler) { pending.push(handler); } };
+  vm.runInNewContext(script, { document: isolatedDocument, window: isolatedWindow });
+  assert.equal(typeof clickHandler, 'function', 'shortcut click handler registered');
+  const verifyNoFocus = (change, reason) => {
+    target.hidden = false;
+    target.isConnected = true;
+    targetGroup.hidden = false;
+    shortcut.hidden = false;
+    shortcut.isConnected = true;
+    clickHandler();
+    assert.equal(pending.length, 1, 'focus is deferred');
+    change();
+    pending.shift()();
+    assert.equal(target.focusCount, 0, reason);
+  };
+  verifyNoFocus(() => { target.isConnected = false; }, 'detached target never receives focus');
+  verifyNoFocus(() => { shortcut.isConnected = false; }, 'detached shortcut never transfers focus');
+  verifyNoFocus(() => { target.hidden = true; }, 'filtered target never receives focus');
+  verifyNoFocus(() => { targetGroup.hidden = true; }, 'hidden module group never receives focus');
+  verifyNoFocus(() => { shortcut.hidden = true; }, 'filtered shortcut never transfers focus');
+  target.hidden = false;
+  target.isConnected = true;
+  targetGroup.hidden = false;
+  shortcut.hidden = false;
+  shortcut.isConnected = true;
+  clickHandler();
+  pending.shift()();
+  assert.equal(target.focusCount, 1, 'visible connected target receives focus');
+}
+console.log('OK - APP-A11Y-086: deferred enterprise focus respects detached and hidden nodes.');
