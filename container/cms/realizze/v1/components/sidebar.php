@@ -28,7 +28,7 @@ $cmsSection = isset($cmsSection) && is_string($cmsSection) && isset($cmsPaths[$c
  </div>
  <nav class="cms-nav" id="cms-navigation" aria-label="Seções planejadas">
  <?php foreach ($cmsMenu as $group => $items): ?>
-  <b><?= htmlspecialchars($group, ENT_QUOTES, 'UTF-8') ?></b>
+  <h2 class="cms-nav-group-heading"><?= htmlspecialchars($group, ENT_QUOTES, 'UTF-8') ?></h2>
   <?php foreach ($items as [$slug, $label, $symbol]): ?>
    <a href="<?= htmlspecialchars($cmsPaths[$slug], ENT_QUOTES, 'UTF-8') ?>"<?= $slug === $cmsSection ? ' class="selected" aria-current="page"' : '' ?>><?= $cmsIcon($symbol) ?><span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span></a>
   <?php endforeach; ?>

@@ -136,3 +136,8 @@
   }
   .cms-preview-status, .cms-workflow-state { border: 1px solid CanvasText; }
 }
+
+/* CMS-A11Y-084: real headings distinguish the two administrative navigation groups. */
+.cms-nav .cms-nav-group-heading{grid-column:1/-1;margin:0;padding:18px 14px 5px;font-size:12px;line-height:1.5;letter-spacing:.08em;font-weight:700;color:#697b70;overflow-wrap:anywhere}
+@media(max-width:720px){.cms-nav .cms-nav-group-heading{padding:8px 12px 2px}}
+@media(forced-colors:active){.cms-nav .cms-nav-group-heading{color:CanvasText}}

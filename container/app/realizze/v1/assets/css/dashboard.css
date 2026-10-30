@@ -297,3 +297,8 @@
   .enterprise-notice { border: 1px solid CanvasText; }
   .enterprise-module-filter button:disabled { border: 1px solid GrayText; }
 }
+
+/* APP-A11Y-084: explicit, readable PF/PJ groups in the shared navigation. */
+.nav-group-heading{margin:12px 12px 4px;padding:8px 4px 3px;font-size:11px;line-height:1.5;font-weight:750;letter-spacing:.035em;color:#526a5a;overflow-wrap:anywhere}
+.nav-group-heading:first-child{margin-top:0}
+@media(forced-colors:active){.nav-group-heading{color:CanvasText}}

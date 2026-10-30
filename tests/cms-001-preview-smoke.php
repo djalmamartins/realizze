@@ -343,3 +343,18 @@ foreach ([
     }
 }
 echo 'OK - CMS-UI-081: usuários e planos com filtros compartilhados e bloqueados.' . PHP_EOL;
+
+// CMS-A11Y-084: two semantic navigation headings remain present on every preview page.
+foreach (array_keys($sections) as $slug) {
+    $navHtml = $render($slug);
+    if (substr_count($navHtml, '<h2 class="cms-nav-group-heading">') !== 2
+        || !str_contains($navHtml, '<h2 class="cms-nav-group-heading">Gerenciamento</h2>')
+        || !str_contains($navHtml, '<h2 class="cms-nav-group-heading">Plataforma</h2>')
+        || substr_count($navHtml, 'aria-current="page"') !== 1) {
+        throw new RuntimeException("CMS-A11Y-084: agrupamento semântico ausente em {$slug}.");
+    }
+}
+if (!str_contains((string) file_get_contents($root . '/assets/css/responsive-fixes.css'), '.cms-nav .cms-nav-group-heading')) {
+    throw new RuntimeException('CMS-A11Y-084: cabeçalhos de navegação sem estilos responsivos.');
+}
+echo 'OK - CMS-A11Y-084: grupos administrativos com títulos semânticos.' . PHP_EOL;

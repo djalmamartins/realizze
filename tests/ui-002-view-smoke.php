@@ -595,3 +595,29 @@ foreach ([
     }
 }
 echo 'OK - APP-UI-077: filtros de metas e contas/cartões compartilhados sem operações.' . PHP_EOL;
+
+// APP-A11Y-084: navigation separates PF/PJ semantically, without switching context.
+$navSections = ['overview' => ['Visão geral', 'Resumo'], 'empresarial' => ['Empresarial', 'Prévia']];
+$navItems = [
+    ['house', 'Visão geral', '/minha-conta?pagina=overview'],
+    ['building', 'Empresarial', '/minha-conta?pagina=empresarial'],
+];
+foreach (['overview', 'empresarial'] as $activeSection) {
+    $navHtml = $view->render('components::sidebar', [
+        'items' => $navItems, 'sections' => $navSections, 'section' => $activeSection,
+        'icon' => $icon, 'name' => 'Teste', 'user' => $user, 'csrf' => 'token-de-teste',
+    ]);
+    if (substr_count($navHtml, '<h2 class="nav-group-heading">') !== 2
+        || !str_contains($navHtml, '<h2 class="nav-group-heading">Finanças pessoais · PF</h2>')
+        || !str_contains($navHtml, '<h2 class="nav-group-heading">Gestão empresarial · PJ</h2>')
+        || substr_count($navHtml, 'aria-current="page"') !== 1
+        || strpos($navHtml, 'Finanças pessoais · PF') >= strpos($navHtml, 'href="/minha-conta?pagina=overview"')
+        || strpos($navHtml, 'Gestão empresarial · PJ') >= strpos($navHtml, 'href="/minha-conta?pagina=empresarial"')
+        || strpos($navHtml, 'Finanças pessoais · PF') >= strpos($navHtml, 'Gestão empresarial · PJ')) {
+        throw new RuntimeException('APP-A11Y-084: grupos PF/PJ ou link ativo incorretos na navegação.');
+    }
+}
+if (!str_contains((string) file_get_contents($root . '/assets/css/dashboard.css'), '.nav-group-heading')) {
+    throw new RuntimeException('APP-A11Y-084: títulos de grupos sem estilo responsivo.');
+}
+echo 'OK - APP-A11Y-084: navegação PF/PJ agrupada com títulos semânticos.' . PHP_EOL;
