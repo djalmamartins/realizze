@@ -705,3 +705,33 @@ if (!str_contains($pfOnlyHtml, 'Finanças pessoais · PF')
     throw new RuntimeException('APP-A11Y-086: grupo PJ vazio foi exibido.');
 }
 echo 'OK - APP-A11Y-086: agrupamento PF/PJ estável e sem cabeçalhos vazios.' . PHP_EOL;
+
+
+// APP-SEC-088: attribute escaping alone cannot prevent executable URLs.
+foreach ([
+    'javascript:alert(1)',
+    '//external.example/path',
+    'https://external.example/path',
+    '/minha-conta' . "\n" . 'outro',
+    '/minha-conta' . chr(92) . 'outro',
+] as $unsafeHref) {
+    $unsafeHtml = $view->render('components::sidebar', [
+        'items' => ['overview' => ['house', 'Destino inseguro', $unsafeHref]],
+        'sections' => ['overview' => ['Visão geral', 'Resumo']],
+        'section' => 'overview', 'icon' => $icon, 'name' => 'Teste',
+        'user' => $user, 'csrf' => 'token-de-teste',
+    ]);
+    if (!str_contains($unsafeHtml, '<a href="/minha-conta" class="active" aria-current="page"')) {
+        throw new RuntimeException('APP-SEC-088: destino inseguro não foi substituído.');
+    }
+}
+$validHtml = $view->render('components::sidebar', [
+    'items' => ['overview' => ['house', 'Visão geral', '/minha-conta?pagina=overview&ref="teste"']],
+    'sections' => ['overview' => ['Visão geral', 'Resumo']],
+    'section' => 'overview', 'icon' => $icon, 'name' => 'Teste',
+    'user' => $user, 'csrf' => 'token-de-teste',
+]);
+if (!str_contains($validHtml, 'href="/minha-conta?pagina=overview&amp;ref=&quot;teste&quot;"')) {
+    throw new RuntimeException('APP-SEC-088: rota interna válida ou escape de atributos regrediu.');
+}
+echo 'OK - APP-SEC-088: navegação rejeita URLs externas e protocolos executáveis.' . PHP_EOL;

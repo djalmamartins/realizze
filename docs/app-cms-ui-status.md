@@ -508,3 +508,13 @@ php scripts/publish-app-assets.php
 - Continuam obrigatórios `APP_ENV=local` e `REALIZZE_CMS_LOCAL_PREVIEW=1`, além de `REMOTE_ADDR` exatamente permitido; cabeçalhos de proxy não são considerados. Uma allowlist privada **não substitui** firewall, rede local confiável nem autenticação administrativa.
 - `tests/cms-002-preview-access.php` cobre permissões e recusas novas. Nenhuma rota administrativa, mutação, migração, cobrança ou acesso público foi habilitado.
 - **Inventário de pendências:** App PF — 10 páginas visuais ainda sem operações financeiras reais, filtros de dados e homologação responsiva; App PJ — 11 módulos visuais ainda sem serviços/CRUD com escopo por organização; CMS — 8 prévias ainda sem autenticação administrativa, RBAC, CSRF de mutações, auditoria persistente e CRUD. Testes HTTP no Docker e auditoria do banco de homologação seguem pendentes.
+
+
+## APP-SEC-088 — links internos da navegação PF/PJ (30/10/2026)
+
+- A sidebar valida destinos antes do escape HTML: somente caminhos internos iniciados por uma barra, sem início com duas barras, sem barra invertida, espaços ou caracteres de controle. Destinos inválidos retornam à rota interna /minha-conta.
+- tests/ui-002-view-smoke.php cobre URLs externas, protocolos executáveis e parâmetros internos escapados. Nenhuma rota atual foi alterada.
+- App PF pendente: Visão geral, Receber, Pagar, Movimentações, Contas/Cartões, Relatórios, Planejamento, Metas, Categorias e Configurações (integração e homologação); Assistente desabilitado.
+- App PJ pendente: Clientes, Fornecedores, Equipes/permissões, Receber, Pagar, Bancos/cartões, Fluxo de caixa, Centros de custos, DRE, OFX/CSV e Obrigações MEI/PJ (serviços escopados e autorização).
+- CMS pendente: Visão geral, Páginas, Conteúdos, Mídia, Usuários, Planos/assinaturas, Logs/auditoria e Configurações (autenticação administrativa, RBAC, CSRF, auditoria e CRUD).
+- Homologação visual no Docker, auditoria MySQL de homologação e testes HTTP de isolamento, sessão e bloqueio do CMS ainda pendentes. Sem WhatsApp, cobranças, migrações destrutivas ou produção.

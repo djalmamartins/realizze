@@ -3,6 +3,16 @@
 $escapeSidebar = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8");
 // Associate keys with their links before grouping; positional arrays remain supported.
 // PF/PJ headings must not depend on the incoming item order.
+// APP-SEC-088: HTML escaping does not neutralize executable URL schemes.
+// Only same-origin root-relative paths are valid for this navigation.
+$sidebarHref = static function (mixed $href) use ($escapeSidebar): string {
+    if (!is_string($href) || !str_starts_with($href, '/')
+        || str_starts_with($href, '//')
+        || preg_match('/[\x00-\x20\x7F\\\\]/', $href)) {
+        return '/minha-conta';
+    }
+    return $escapeSidebar($href);
+};
 $sidebarSectionKeys = array_keys($sections ?? []);
 $sidebarGroups = ['personal' => [], 'enterprise' => []];
 foreach ($items as $index => $item) {
@@ -22,7 +32,7 @@ foreach ($items as $index => $item) {
 <h2 class="nav-group-heading"><?= $heading ?></h2>
 <?php foreach ($sidebarGroups[$group] as $entry): ?>
 <?php $item = $entry['item']; $itemSection = $entry['section']; ?>
-<a href="<?= $escapeSidebar($item[2]) ?>" <?= $section === $itemSection ? 'class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= $escapeSidebar($item[1]) ?></a>
+<a href="<?= $sidebarHref($item[2] ?? null) ?>" <?= $section === $itemSection ? 'class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= $escapeSidebar($item[1]) ?></a>
 <?php endforeach; ?>
 <?php endforeach; ?>
 </nav>
