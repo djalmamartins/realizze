@@ -125,10 +125,12 @@
         const target = targetId ? document.getElementById(targetId) : null;
         // A filter can hide a module between click and the deferred focus.
         // Never move keyboard focus into hidden content.
-        if (target && !target.hidden && !target.closest('.enterprise-module-group')?.hidden) {
+        if (target && !target.hidden && target.closest('.enterprise-module-group') &&
+            !target.closest('.enterprise-module-group').hidden) {
           window.setTimeout(() => {
             if (request === enterpriseFocusRequest && target.isConnected && !target.hidden &&
-                !target.closest('.enterprise-module-group')?.hidden && !link.hidden && link.isConnected &&
+                target.closest('.enterprise-module-group') && !target.closest('.enterprise-module-group').hidden &&
+                !link.hidden && link.isConnected &&
                 link.getAttribute('href') === '#' + targetId) {
               target.focus({ preventScroll: true });
             }
