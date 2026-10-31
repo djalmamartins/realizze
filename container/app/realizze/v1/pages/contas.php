@@ -1,26 +1,61 @@
-<?php /** Contas e cartões: apresentação sem leitura ou alteração de dados financeiros. */ ?>
-<section class="card finance-workspace" aria-labelledby="contas-title">
- <div class="finance-toolbar"><div><h2 id="contas-title">Contas e cartões</h2><p class="muted">Acompanhe suas contas, carteiras e cartões em um só lugar.</p></div><button type="button" class="primary" disabled title="Disponível após integração financeira">+ Adicionar conta</button></div>
- <div class="finance-goal-summary" aria-label="Resumo de contas ainda indisponível"><div class="finance-goal-stat"><span>Saldo total</span><strong>—</strong><small>Aguardando dados autorizados</small></div><div class="finance-goal-stat"><span>Contas conectadas</span><strong>—</strong><small>Nenhuma integração ativa</small></div><div class="finance-goal-stat"><span>Faturas em aberto</span><strong>—</strong><small>Sem dados financeiros</small></div></div>
- <?= $appView->render('components::finance-filter-preview', ['financeFilterFields' => [
-    ['id' => 'contas-search', 'label' => 'Buscar conta ou cartão', 'type' => 'search', 'placeholder' => 'Instituição ou identificação'],
-    ['id' => 'contas-type', 'label' => 'Tipo de produto', 'type' => 'select', 'option' => 'Todos os tipos'],
-    ['id' => 'contas-status', 'label' => 'Situação', 'type' => 'select', 'option' => 'Todas as situações'],
-]]) ?>
- <div class="finance-toolbar"><div><h3>Suas contas</h3><p class="muted">Contas bancárias, dinheiro e carteiras digitais.</p></div><button type="button" disabled>Gerenciar carteiras</button></div>
- <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
-    'caption' => 'Contas e carteiras — integração pendente',
-    'columns' => ['Instituição', 'Tipo', 'Conta', 'Saldo', 'Status'],
-    'title' => 'Nenhuma conta cadastrada',
-    'description' => 'As contas autorizadas aparecerão aqui quando o cadastro estiver disponível.',
-    'icon' => 'credit-card',
-], 'icon' => $icon]) ?>
- <div class="finance-toolbar"><div><h3>Cartões de crédito</h3><p class="muted">Limites, fechamentos e vencimentos das faturas.</p></div><button type="button" disabled>+ Adicionar cartão</button></div>
- <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
-    'caption' => 'Cartões de crédito — integração pendente',
-    'columns' => ['Cartão', 'Limite', 'Fatura atual', 'Vencimento'],
-    'title' => 'Nenhum cartão cadastrado',
-    'description' => 'Os cartões serão exibidos aqui após a implementação segura do módulo.',
-    'icon' => 'credit-card',
-], 'icon' => $icon]) ?>
+<?php
+/** Contas, carteiras e cartões do contexto financeiro atual, com saldo calculado. */
+use Moves\Services\Finance;
+use Moves\Services\FinanceContext;
+
+$e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$csrf = (string) ($csrf ?? '');
+$types = ['checking' => 'Conta corrente', 'savings' => 'Poupança', 'wallet' => 'Carteira', 'credit_card' => 'Cartão de crédito'];
+$accounts = [];
+$loadFailed = false;
+try {
+    $accounts = (new Finance((int) FinanceContext::currentId()))->accountsWithBalance();
+} catch (Throwable $exception) {
+    error_log('Realizze finance: ' . $exception->getMessage());
+    $loadFailed = true;
+}
+$available = array_sum(array_map(static fn (array $a): int => $a['type'] === 'credit_card' ? 0 : $a['balance_cents'], $accounts));
+$cards = array_sum(array_map(static fn (array $a): int => $a['type'] === 'credit_card' ? $a['balance_cents'] : 0, $accounts));
+$flash = $_SESSION['finance_flash'] ?? null;
+unset($_SESSION['finance_flash']);
+?>
+<?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
+<section class="card finance-workspace" aria-labelledby="accounts-title">
+  <div class="finance-toolbar">
+    <div><h2 id="accounts-title">Contas e cartões</h2><p class="muted">Saldos calculados com o que já foi pago, recebido e transferido.</p></div>
+    <button type="button" class="primary" data-finance-open="account-dialog">+ Adicionar conta</button>
+  </div>
+  <div class="finance-goal-summary" aria-label="Resumo das contas">
+    <div class="finance-goal-stat"><span>Saldo disponível</span><strong class="<?= $available < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($available)) ?></strong><small>Contas e carteiras</small></div>
+    <div class="finance-goal-stat"><span>Cartões de crédito</span><strong class="<?= $cards < 0 ? 'red' : '' ?>"><?= $e(Finance::money($cards)) ?></strong><small>Fora do saldo disponível</small></div>
+    <div class="finance-goal-stat"><span>Contas ativas</span><strong><?= count($accounts) ?></strong><small>Neste contexto</small></div>
+  </div>
+  <?php if ($loadFailed): ?>
+  <div class="finance-empty"><h3>Não foi possível carregar as contas</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
+  <?php elseif ($accounts === []): ?>
+  <div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('credit-card') ?></span><h3>Nenhuma conta cadastrada</h3><p>Adicione sua primeira conta para começar a lançar.</p></div>
+  <?php else: ?>
+  <ul class="finance-account-list">
+    <?php foreach ($accounts as $account): ?>
+    <li>
+      <span class="finance-account-icon" aria-hidden="true"><?= $icon('credit-card') ?></span>
+      <span><strong><?= $e($account['name']) ?></strong><small><?= $e($types[$account['type']] ?? '') ?><?= $account['institution'] ? ' · ' . $e($account['institution']) : '' ?></small></span>
+      <strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+  <?php endif; ?>
 </section>
+<dialog class="finance-dialog" id="account-dialog" aria-labelledby="account-dialog-title">
+  <form method="post" action="/minha-conta/financeiro/conta" data-finance-form>
+    <header><h2 id="account-dialog-title">Adicionar conta</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="contas">
+    <label>Nome<input name="name" maxlength="120" required autofocus placeholder="Ex.: Conta principal"></label>
+    <div class="finance-dialog-row">
+      <label>Tipo<select name="type" required><?php foreach ($types as $value => $label): ?><option value="<?= $e($value) ?>"><?= $e($label) ?></option><?php endforeach; ?></select></label>
+      <label>Instituição<input name="institution" maxlength="120" placeholder="Opcional"></label>
+    </div>
+    <label>Saldo inicial (R$)<input name="opening_balance" inputmode="decimal" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
+    <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
+  </form>
+</dialog>

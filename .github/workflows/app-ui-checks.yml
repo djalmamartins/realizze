@@ -21,6 +21,14 @@ on:
       - 'source/Services/Authorization.php'
       - 'source/Services/SessionAuth.php'
       - 'source/Services/Csrf.php'
+      - 'source/Services/Finance*.php'
+      - 'source/Services/Receivables.php'
+      - 'source/App/FinanceActions.php'
+      - 'source/App/ReceivableActions.php'
+      - 'database/migrations/002_create_finance_tables.sql'
+      - 'database/migrations/003_expand_receivables.sql'
+      - 'tests/finance-001-isolation.php'
+      - 'tests/finance-002-receivables.php'
       - 'container/web/realizze/v1/routes.php'
       - 'source/Core/EnvironmentRouter.php'
       - 'tests/core-007-environment-router.php'
@@ -60,6 +68,13 @@ jobs:
           php -l tests/cms-002-preview-access.php
           php -l tests/enterprise-001-context.php
           php -l source/Services/Csrf.php
+          php -l source/Services/Finance.php
+          php -l source/Services/FinanceContext.php
+          php -l source/Services/Receivables.php
+          php -l source/App/FinanceActions.php
+          php -l source/App/ReceivableActions.php
+          php -l tests/finance-001-isolation.php
+          php -l tests/finance-002-receivables.php
           php -l tests/security-001-csrf-session.php
           php tests/core-007-environment-router.php
           php tests/core-008-environments.php

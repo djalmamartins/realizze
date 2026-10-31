@@ -399,3 +399,150 @@
 /* APP-UI — ações indisponíveis legíveis, sem parecer botão ativo */
 .finance-toolbar .primary:disabled,.connect button:disabled{opacity:1;background:#e3efe8;border-color:#e3efe8;color:#4c6f5d;box-shadow:none}
 .connect button:disabled{background:#fff}
+
+/* APP — lançamentos, filtros e modal */
+.finance-flash{margin:0 0 16px;padding:12px 16px;border-radius:12px;font-weight:600}
+.finance-flash-success{background:#e7f6ed;color:#0b5c35}
+.finance-flash-error{background:#fdecec;color:#a4161a}
+.finance-goal-stat strong.red,.finance-entries .red{color:#d92d36}
+.finance-goal-stat strong.green,.finance-entries .green{color:#078b4c}
+.finance-filter-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 28px 18px}
+.finance-month{display:flex;align-items:center;gap:6px}
+.finance-month a{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#f3f7f5;font-size:20px;line-height:1}
+.finance-month strong{min-width:150px;text-align:center}
+.finance-status{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:11px;background:#f3f7f5}
+.finance-status a{padding:6px 12px;border-radius:8px;color:#52695a;font-size:13px;font-weight:600}
+.finance-status a[aria-current]{background:#fff;color:#066f3e;box-shadow:0 1px 3px #142c2118}
+.finance-entries .num{text-align:right;white-space:nowrap}
+.finance-entries td{vertical-align:middle}
+.finance-dot{display:inline-block;width:9px;height:9px;margin-right:7px;border-radius:50%}
+.finance-badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.finance-badge.is-paid{background:#e7f6ed;color:#0b5c35}
+.finance-badge.is-open{background:#fff4dc;color:#7a5200}
+.finance-badge.is-overdue{background:#fdecec;color:#a4161a}
+.finance-actions{display:flex;justify-content:flex-end;gap:6px;white-space:nowrap}
+.finance-actions form{margin:0}
+.finance-actions button{min-height:32px;padding:0 10px;border:1px solid #cfe3d8;border-radius:8px;background:#fff;color:#066f3e;font-size:12.5px;font-weight:600;cursor:pointer}
+.finance-actions button:hover{background:#eaf7ef}
+.finance-actions button.is-danger{border-color:transparent;color:#a4161a}
+.finance-actions button.is-danger:hover{background:#fdecec}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.finance-dialog{width:min(520px,calc(100vw - 32px));padding:0;border:0;border-radius:18px;box-shadow:0 30px 80px #0b241a4d;color:inherit}
+.finance-dialog::backdrop{background:#0b241a80}
+.finance-dialog form{display:grid;gap:14px;padding:24px}
+.finance-dialog header{display:flex;align-items:center;justify-content:space-between}
+.finance-dialog h2{margin:0;font-size:19px}
+.finance-dialog header button{width:34px;height:34px;border:0;border-radius:9px;background:#f3f7f5;font-size:20px;cursor:pointer}
+.finance-dialog label{display:grid;gap:6px;font-size:13px;font-weight:600}
+.finance-dialog input:not([type=checkbox]),.finance-dialog select{width:100%;min-height:44px;padding:0 12px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit;font-weight:400}
+.finance-dialog textarea{box-sizing:border-box;width:100%;padding:10px 12px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit;font-weight:400;resize:vertical}
+.finance-dialog input:focus,.finance-dialog select:focus,.finance-dialog textarea:focus{outline:none;border-color:#078b4c;box-shadow:0 0 0 3px #078b4c33}
+.finance-dialog-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.finance-check{display:flex!important;align-items:center;gap:8px;font-weight:500!important}
+.finance-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.finance-dialog footer button{min-height:44px;padding:0 18px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit;font-weight:600;cursor:pointer}
+.finance-dialog footer .primary{border-color:#078b4c;background:#078b4c;color:#fff}
+.finance-dialog footer .is-danger{border-color:#b42318;background:#b42318;color:#fff}
+@media(max-width:650px){.finance-filter-bar{margin-inline:20px}.finance-status{width:100%}.finance-status a{flex:1;text-align:center;padding-inline:4px}.finance-dialog-row{grid-template-columns:1fr}.finance-entries{min-width:760px}}
+.finance-entries td{padding:13px 14px;border-bottom:1px solid #eef3f0}
+.finance-entries tr:last-child td{border-bottom:0}
+.finance-entries th:first-child,.finance-entries td:first-child{padding-left:28px}
+.finance-entries th:last-child,.finance-entries td:last-child{padding-right:28px}
+.finance-entries tbody tr:hover{background:#f8fbf9}
+.finance-actions{display:table-cell;text-align:right}
+.finance-actions form{display:inline-block;margin-left:6px}
+.finance-workspace .finance-table-wrap{position:relative}
+.finance-account-list{display:grid;gap:10px;margin:0 28px 28px;padding:0;list-style:none}
+.finance-account-list li{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:14px;padding:14px 16px;border:1px solid #e7eee9;border-radius:14px}
+.finance-account-list small{display:block;color:#6b7a73;font-size:12.5px}
+.finance-account-list .red{color:#d92d36}.finance-account-list .green{color:#078b4c}
+.finance-account-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#eaf7ef;color:#066f3e}
+@media(max-width:650px){.finance-account-list{margin-inline:20px}}
+
+/* Módulo 01 — Contas a Receber */
+.finance-goal-summary.is-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.receivables-filters{display:grid;grid-template-columns:2fr repeat(5,minmax(130px,1fr));gap:12px;align-items:end;margin:18px 28px 24px;padding:16px;border:1px solid #e4ece7;border-radius:14px;background:#f8fbf9}
+.receivables-filters label{display:grid;gap:6px;color:#40554a;font-size:12px;font-weight:700}
+.receivables-filters input,.receivables-filters select{box-sizing:border-box;width:100%;min-height:40px;padding:0 10px;border:1px solid #d6e2dc;border-radius:9px;background:#fff;font:inherit;font-weight:400}
+.receivables-filter-actions{display:flex;align-items:center;gap:10px;grid-column:1/-1;justify-content:flex-end}
+.receivables-filter-actions button,.receivables-filter-actions a{min-height:38px;padding:0 15px;border:1px solid #cfe3d8;border-radius:9px;background:#fff;color:#066f3e;font:inherit;font-weight:600;display:inline-flex;align-items:center;cursor:pointer}
+.receivables-filter-actions .primary{border-color:#078b4c;background:#078b4c;color:#fff}
+.receivables-origin{display:block;margin-top:4px;color:#6b7a73;font-size:11.5px;font-weight:400}
+.finance-badge.is-partially_received{background:#e8f0ff;color:#2457a6}
+.finance-badge.is-cancelled{background:#edf0ef;color:#52615a}
+.finance-badge.is-overdue{background:#fdecec;color:#a4161a}
+.receivables-dialog-row>td{height:0!important;padding:0!important;border:0!important}
+.receivables-history{display:grid;gap:14px;padding:24px}
+.receivables-history header,.receivables-history footer{display:flex;align-items:center;justify-content:space-between}
+.receivables-history ol{display:grid;gap:8px;margin:0;padding-left:22px}
+.receivables-history footer{justify-content:flex-end}
+.receivables-pagination{display:flex;justify-content:center;gap:6px;padding:20px 28px 28px}
+.receivables-pagination a{display:grid;place-items:center;min-width:36px;height:36px;border:1px solid #d6e2dc;border-radius:9px}
+.receivables-pagination a[aria-current]{border-color:#078b4c;background:#078b4c;color:#fff}
+@media(max-width:1100px){.receivables-filters{grid-template-columns:repeat(3,1fr)}.finance-goal-summary.is-four{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:650px){.receivables-filters{grid-template-columns:1fr;margin-inline:20px}.finance-goal-summary.is-four{grid-template-columns:1fr}.receivables-table{min-width:1120px}.receivables-filter-actions{justify-content:stretch}.receivables-filter-actions>*{flex:1;justify-content:center}}
+
+/* APP — visão geral real, carregamento e movimento */
+.card-link{display:block;color:inherit;text-decoration:none;transition:transform .18s,box-shadow .18s}
+.card-link:hover{transform:translateY(-2px);box-shadow:0 14px 34px #142c2114}
+.overview-actions{display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px}
+.overview-actions button{min-height:42px;padding:0 18px;border:1px solid #078b4c;border-radius:11px;background:#078b4c;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+.overview-actions .is-outline{background:#fff;color:#066f3e}
+.overview-actions button:disabled{opacity:.5;cursor:not-allowed}
+.months-live,.period-live{display:flex;align-items:center;gap:2px;padding:5px;border-radius:14px;background:#fff}
+.months-live a{display:block;padding:7px 10px;border-radius:9px;color:#5a6b63;font-size:13.5px}
+.months-live a:hover{background:#f3f7f5}
+.months-live strong{padding:7px 14px;border-radius:9px;background:#e7f6ed;color:#066f3e;white-space:nowrap}
+.period-live a{padding:7px 14px;border-radius:9px;color:#5a6b63;font-weight:600;font-size:13.5px}
+.period-live a[aria-current]{background:#066f3e;color:#fff}
+.value.red,strong.red,.overview-list .red{color:#d92d36}
+.balance .value{color:#fff}
+.track-live{overflow:hidden}
+.track-live span{display:flex;align-items:center;justify-content:flex-end;height:100%;padding-right:8px;border-radius:inherit;background:linear-gradient(90deg,#0a9a55,#066f3e);color:#fff;font-size:11px;font-weight:700;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.overview-list{display:grid;gap:2px;margin:0;padding:0;list-style:none}
+.overview-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eef3f0}
+.overview-list li:last-child{border-bottom:0}
+.overview-list small{display:block;margin-top:2px;color:#6b7a73;font-size:12px}
+.overview-list .green{color:#078b4c}
+.overview-list>li>strong{white-space:nowrap}
+.donut-wrap{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:16px}
+.donut{width:100%;max-width:170px;transform:rotate(-90deg)}
+.donut text{transform:rotate(90deg);transform-origin:60px 60px}
+.donut-track,.donut-slice{fill:none;stroke-width:15}
+.donut-track{stroke:#eef2f0}
+.donut-total{font-size:9.5px;font-weight:700;fill:#121a31}
+.donut-label{font-size:7.5px;fill:#6b7a73}
+.donut-legend{display:grid;gap:8px;margin:0;padding:0;list-style:none;font-size:12.5px}
+.donut-legend li{display:flex;align-items:center}
+.donut-legend b{margin-left:auto;padding-left:8px}
+.app-loader{position:fixed;inset:0;z-index:60;pointer-events:none;visibility:hidden}
+.app-loader.is-active{visibility:visible}
+.app-loader-bar{position:absolute;top:0;left:0;width:100%;height:3px;transform-origin:left;background:linear-gradient(90deg,#0a9a55,#5fe3a4);transform:scaleX(0)}
+.app-loader.is-active .app-loader-bar{animation:app-progress 1.4s cubic-bezier(.2,.7,.2,1) forwards}
+.app-loader-mark{position:absolute;top:50%;left:50%;display:grid;place-items:center;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:20px;background:#fff;box-shadow:0 20px 50px #0b241a33;opacity:0;transition:opacity .15s}
+.app-loader.is-slow .app-loader-mark{opacity:1;animation:app-pulse 1s ease-in-out infinite}
+.app-enter{animation:app-rise .5s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--enter-delay,0ms)}
+@keyframes app-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes app-progress{to{transform:scaleX(.9)}}
+@keyframes app-pulse{50%{transform:scale(.92)}}
+@media(prefers-reduced-motion:reduce){.app-enter,.app-loader.is-active .app-loader-bar,.app-loader.is-slow .app-loader-mark{animation:none}.track-live span,.card-link{transition:none}}
+@media(max-width:1100px){.months-side{display:none}}
+@media(max-width:650px){.overview-actions button{flex:1}.donut-wrap{grid-template-columns:1fr;justify-items:center}.donut-legend{width:100%}.top .toolbar .months-live{justify-content:space-between}.top .toolbar .period-live a{flex:1;text-align:center;padding-inline:6px;font-size:12px}}
+@media(max-width:1100px){.months-live .months-side{display:none}}
+
+/* APP — seletor de contexto: pessoa física ou empresa */
+.context-switch{position:relative}
+.context-switch summary{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid #dfe8e3;border-radius:12px;cursor:pointer;list-style:none}
+.context-switch summary::-webkit-details-marker{display:none}
+.context-switch summary::after{content:'⌄';margin-left:auto;color:#6b7a73}
+.context-switch summary:hover{background:#f6faf8}
+.context-switch small{display:block;color:#6b7a73;font-size:11px}
+.context-switch strong{display:block;font-size:13.5px;line-height:1.25}
+.context-avatar{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:#066f3e;color:#fff;font-size:11.5px;font-weight:700}
+.context-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;right:0;display:grid;gap:2px;padding:6px;border:1px solid #e3ebe6;border-radius:12px;background:#fff;box-shadow:0 18px 40px #0b241a29}
+.context-menu form{margin:0}
+.context-menu button{display:block;width:100%;padding:9px 10px;border:0;border-radius:8px;background:transparent;text-align:left;font:inherit;font-size:13.5px;cursor:pointer}
+.context-menu button:hover{background:#f3f7f5}
+.context-menu button[aria-current]{background:#e7f6ed;color:#066f3e;font-weight:600}
+.context-menu .context-add{margin-top:4px;border-top:1px solid #eef3f0;border-radius:0 0 8px 8px;color:#066f3e;font-weight:600}
+.cards a.card .value{white-space:nowrap;font-size:clamp(19px,1.65vw,26px)}

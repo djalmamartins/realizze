@@ -8,6 +8,14 @@ if ($user === null) {
 }
 $name = (string) ($user['first_name'] ?? 'Cliente');
 $csrf = \Moves\Services\Csrf::token();
+try {
+    $activeOrganization = \Moves\Services\OrganizationContext::current();
+    $organizations = \Moves\Services\OrganizationContext::enabled() ? \Moves\Services\OrganizationAccess::accessibleForCurrentUser() : [];
+} catch (\Throwable $exception) {
+    error_log('Realizze: contexto empresarial indisponível.');
+    $activeOrganization = null;
+    $organizations = [];
+}
 $publishedAssets = BASE_PATH . '/public/assets/realizze-app/v1';
 $publishedCss = $publishedAssets . '/css/dashboard.min.css';
 $publishedJs = $publishedAssets . '/js/dashboard.min.js';
@@ -92,21 +100,23 @@ $icon = static function (string $name) use ($iconPaths): string {
     'name' => $name,
     'user' => $user,
     'csrf' => $csrf,
+    'activeOrganization' => $activeOrganization,
+    'organizations' => $organizations,
+    'contextEnabled' => \Moves\Services\OrganizationContext::enabled(),
  ]) ?>
 <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
 <main class="main" id="overview" tabindex="-1">
 <?php if ($section === 'overview'): ?>
 <?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user, 'appView' => $appView]) ?>
-<?= $appView->render('components::getting-started', ['icon' => $icon]) ?>
-<?= $appView->render('components::overview-summary') ?>
-<?= $appView->render('components::overview-panels') ?>
+<?= $appView->render('components::overview-live', ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php else: ?>
 <div class="section-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Abrir menu" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 <?= $appView->render('components::page-heading', [
     'pageHeading' => [
         'title' => $sections[$section][0],
         'description' => $sections[$section][1],
-        'context' => $section === 'empresarial' ? 'enterprise' : 'personal',
+        'context' => $activeOrganization !== null || $section === 'empresarial' ? 'enterprise' : 'personal',
+        'live' => in_array($section, ['receber', 'pagar', 'contas', 'movimentacoes'], true),
     ],
     'appView' => $appView,
 ]) ?>
@@ -116,7 +126,9 @@ $icon = static function (string $name) use ($iconPaths): string {
 <section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[$section][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
 <?php endif; ?>
 <?php endif; ?>
+<?php if (!in_array($section, ['overview', 'receber', 'pagar', 'contas', 'movimentacoes'], true)): ?>
 <p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Dados financeiros ainda não integrados · Nenhuma movimentação real é exibida</p>
+<?php endif; ?>
 </main>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

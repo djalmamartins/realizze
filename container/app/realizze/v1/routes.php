@@ -94,8 +94,26 @@ return [
                 return;
             }
             header('Cache-Control: no-store');
-            header('Location: /minha-conta?pagina=empresarial', true, 303);
+            header('Location: /minha-conta', true, 303);
         }, 'app.context.switch');
+
+        foreach (['create' => 'lancamento', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa'] as $action => $slug) {
+            $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
+                    return;
+                }
+                (new \Moves\App\FinanceActions())->handle($action);
+            }, 'app.finance.' . $action);
+        }
+
+        foreach (['create' => 'recebimento', 'update' => 'recebimento-editar', 'settle' => 'recebimento-baixa', 'cancel' => 'recebimento-cancelar'] as $action => $slug) {
+            $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
+                    return;
+                }
+                (new \Moves\App\ReceivableActions())->handle($action);
+            }, 'app.receivables.' . $action);
+        }
 
         $router->post('/sair', static function () use ($requirePreview): void {
             if (!$requirePreview()) {

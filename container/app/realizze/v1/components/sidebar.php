@@ -15,8 +15,14 @@ $sidebarHref = static function (mixed $href) use ($escapeSidebar): string {
 };
 $sidebarSectionKeys = array_keys($sections ?? []);
 $sidebarGroups = ['personal' => [], 'enterprise' => []];
+$contextEnabled = $contextEnabled ?? false;
+$activeOrganization = $activeOrganization ?? null;
 foreach ($items as $index => $item) {
     $itemSection = is_string($index) ? $index : ($sidebarSectionKeys[$index] ?? null);
+    // No seletor de contexto, a área empresarial só aparece dentro de uma empresa.
+    if ($contextEnabled && $itemSection === 'empresarial' && $activeOrganization === null) {
+        continue;
+    }
     $sidebarGroups[$itemSection === 'empresarial' ? 'enterprise' : 'personal'][] = [
         'section' => $itemSection,
         'item' => $item,
@@ -26,8 +32,20 @@ foreach ($items as $index => $item) {
 <aside class="sidebar" id="app-sidebar" aria-label="Navegação principal">
 <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Fechar menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
 <a href="/minha-conta" class="brand" aria-label="Realizze"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="152" height="38"></a>
+<?php if ($contextEnabled): ?>
+<details class="context-switch">
+<summary><span class="context-avatar" aria-hidden="true"><?= $escapeSidebar(mb_strtoupper(mb_substr($activeOrganization['name'] ?? 'PF', 0, 2))) ?></span><span><small><?= $activeOrganization ? 'Empresa' : 'Finanças pessoais' ?></small><strong><?= $escapeSidebar($activeOrganization['name'] ?? 'Pessoa física') ?></strong></span></summary>
+<div class="context-menu">
+<form method="post" action="/minha-conta/contexto"><input type="hidden" name="csrf_token" value="<?= $escapeSidebar($csrf ?? '') ?>"><input type="hidden" name="context_type" value="personal"><button type="submit"<?= $activeOrganization === null ? ' aria-current="true"' : '' ?>>Pessoa física</button></form>
+<?php foreach (($organizations ?? []) as $organization): ?>
+<form method="post" action="/minha-conta/contexto"><input type="hidden" name="csrf_token" value="<?= $escapeSidebar($csrf ?? '') ?>"><input type="hidden" name="context_type" value="organization"><input type="hidden" name="organization_id" value="<?= (int) $organization['id'] ?>"><button type="submit"<?= (int) ($activeOrganization['id'] ?? 0) === (int) $organization['id'] ? ' aria-current="true"' : '' ?>><?= $escapeSidebar($organization['name']) ?></button></form>
+<?php endforeach; ?>
+<button type="button" class="context-add" data-finance-open="company-dialog">+ Cadastrar empresa</button>
+</div>
+</details>
+<?php endif; ?>
 <nav class="nav" aria-label="Menu principal">
-<?php foreach (['personal' => 'Finanças pessoais · PF', 'enterprise' => 'Gestão empresarial · PJ'] as $group => $heading): ?>
+<?php foreach (['personal' => $activeOrganization ? 'Financeiro da empresa' : 'Finanças pessoais · PF', 'enterprise' => 'Gestão empresarial · PJ'] as $group => $heading): ?>
 <?php if ($sidebarGroups[$group] === []) continue; ?>
 <h2 class="nav-group-heading"><?= $heading ?></h2>
 <?php foreach ($sidebarGroups[$group] as $entry): ?>
@@ -43,3 +61,14 @@ foreach ($items as $index => $item) {
 <form method="post" action="/sair"><input type="hidden" name="csrf_token" value="<?= $escapeSidebar($csrf ?? "") ?>"><button type="submit" style="border:0;background:transparent;width:100%;padding:10px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:7px"><path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M14 16l4-4-4-4M18 12H9"/></svg>Sair</button></form>
 </div>
 </aside>
+<?php if ($contextEnabled): ?>
+<dialog class="finance-dialog" id="company-dialog" aria-labelledby="company-dialog-title">
+  <form method="post" action="/minha-conta/financeiro/empresa" data-finance-form>
+    <header><h2 id="company-dialog-title">Cadastrar empresa</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <input type="hidden" name="csrf_token" value="<?= $escapeSidebar($csrf ?? '') ?>"><input type="hidden" name="back" value="overview">
+    <label>Nome da empresa<input name="name" maxlength="180" required></label>
+    <label>CNPJ<input name="cnpj" inputmode="numeric" maxlength="18" placeholder="Opcional: 00.000.000/0000-00"></label>
+    <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Cadastrar</button></footer>
+  </form>
+</dialog>
+<?php endif; ?>

@@ -36,19 +36,11 @@ $checks = [
     ],
     'header' => [
         $view->render('components::dashboard-header', ['name' => 'Teste', 'user' => $user, 'appView' => $view]),
-        ['Sem dados integrados.', 'sidebar-toggle', 'Pessoal · PF'],
-    ],
-    'summary' => [
-        $view->render('components::overview-summary'),
-        ['Saldo disponível', 'Fechamento previsto'],
-    ],
-    'panels' => [
-        $view->render('components::overview-panels'),
-        ['Últimas movimentações', 'Gastos por categoria'],
+        ['Aqui está o resumo', 'sidebar-toggle', 'Pessoal · PF'],
     ],
     'receber' => [
         $view->render('pages/receber', ['icon' => $icon, 'appView' => $view]),
-        ['Contas a receber', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
+        ['Contas a receber', 'Não foi possível carregar', 'Novo recebimento'],
     ],
     'empresarial' => [
         $view->render('pages/empresarial', ['icon' => $icon, 'csrf' => 'token-de-teste', 'appView' => $view]),
@@ -56,7 +48,7 @@ $checks = [
     ],
     'pagar' => [
         $view->render('pages/pagar', ['icon' => $icon, 'appView' => $view]),
-        ['Contas a pagar', 'Nenhum lançamento disponível', 'Nenhum valor demonstrativo'],
+        ['Contas a pagar', 'Não foi possível carregar', 'Nova despesa'],
     ],
     'assistente' => [
         $view->render('pages/assistente', ['icon' => $icon]),
@@ -87,7 +79,7 @@ if (!str_contains($personalBadge, 'Pessoal · PF')
 }
 $dashboardLayout = file_get_contents($root . '/pages/dashboard.php');
 if (!is_string($dashboardLayout)
-    || !str_contains($dashboardLayout, "\$section === 'empresarial' ? 'enterprise' : 'personal'")
+    || !str_contains($dashboardLayout, "\$activeOrganization !== null || \$section === 'empresarial' ? 'enterprise' : 'personal'")
     || !str_contains($dashboardLayout, "components::page-heading")
     || !str_contains((string) file_get_contents($root . '/components/page-heading.php'), 'class="page-heading-meta"')) {
     throw new RuntimeException('APP-UI-070: indicador de contexto não aplicado ao cabeçalho das páginas.');
@@ -137,12 +129,12 @@ if (str_contains($maliciousHeader, '<img src=x onerror=alert(1)>')
 }
 echo 'OK - APP-SEC-043: saudação personalizada escapada.' . PHP_EOL;
 // As telas iniciais não devem exibir saldos, transações ou bancos fictícios.
-foreach (['header', 'summary', 'panels'] as $name) {
+foreach (['header'] as $name) {
     $html = $checks[$name][0];
     if (preg_match('/R\\$\\s*[0-9]/u', $html) === 1) {
         throw new RuntimeException("UI-026: valor monetário fictício em {$name}");
     }
-    foreach (['Agosto de 2026', 'Nubank', 'Visa Final 4242', 'Enel'] as $fixture) {
+    foreach (['Nubank', 'Visa Final 4242', 'Enel'] as $fixture) {
         if (str_contains($html, $fixture)) {
             throw new RuntimeException("UI-026: dado demonstrativo indevido em {$name}: {$fixture}");
         }
@@ -219,12 +211,8 @@ echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
 
 // APP-UI-044: shared financial tables have captions and escape dynamic metadata.
 foreach ([
-    'receber' => 'Lançamentos a receber',
-    'pagar' => 'Lançamentos a pagar',
-    'movimentacoes' => 'Movimentações',
     'categorias' => 'Categorias',
     'metas' => 'Metas financeiras',
-    'contas' => 'Contas e carteiras',
     'relatorios' => 'Relatórios financeiros',
     'planejamento' => 'Planejamento financeiro',
 ] as $page => $caption) {
@@ -270,11 +258,6 @@ if (!is_string($dashboardSource)
 echo 'OK - APP-SEC-044: nome e token CSRF escapados somente no HTML.' . PHP_EOL;
 
 // APP-UI-045: Contas has two separate, labelled tables; reports and planning each have one.
-$accountsHtml = $view->render('pages/contas', ['icon' => $icon, 'appView' => $view]);
-if (substr_count($accountsHtml, '<caption class="finance-table-caption">') !== 2
-    || !str_contains($accountsHtml, 'Cartões de crédito — integração pendente')) {
-    throw new RuntimeException('APP-UI-045: contas e cartões sem tabelas acessíveis independentes.');
-}
 foreach (['relatorios', 'planejamento'] as $page) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (substr_count($html, '<caption class="finance-table-caption">') !== 1) {
@@ -390,7 +373,7 @@ foreach ([
 echo 'OK - APP-A11Y-064: avatar compartilhado preserva grafemas e fallback UTF-8.' . PHP_EOL;
 
 // APP-A11Y-065: PF/PJ tables must explain horizontal scrolling without enabling actions.
-foreach (['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias'] as $page) {
+foreach (['relatorios', 'planejamento', 'metas', 'categorias'] as $page) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, 'class="finance-scroll-hint"')
         || !str_contains($html, 'Com teclado, foque esta região e use as setas.')) {
@@ -472,7 +455,7 @@ echo 'OK - APP-UI-074: cabeçalho PF/PJ compartilhado, acessível e escapado.' .
 
 // APP-UI-075: reusable preview filters must remain disabled, accessible and
 // never submit PF data; IDs and untrusted metadata are validated/escaped.
-foreach (['receber', 'pagar', 'movimentacoes', 'categorias'] as $page) {
+foreach (['categorias'] as $page) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"')
         || !str_contains($html, 'Nenhuma consulta ou alteração é realizada.')
@@ -566,7 +549,6 @@ echo 'OK - APP-UI-076: filtros de relatórios e planejamento reutilizados sem op
 // No form submission, financial fixtures, duplicated IDs or enabled fields.
 foreach ([
     'metas' => ['metas-search', 'metas-status', 'metas-deadline'],
-    'contas' => ['contas-search', 'contas-type', 'contas-status'],
 ] as $page => $expectedIds) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (substr_count($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"') !== 1
@@ -740,8 +722,8 @@ echo 'OK - APP-SEC-088: navegação rejeita URLs externas e protocolos executáv
 
 // APP-A11Y-089: keyboard-scroll guidance is explicitly associated with each
 // financial/PJ region, with distinct IDs when multiple tables share a page.
-foreach (['receber' => 1, 'pagar' => 1, 'movimentacoes' => 1,
-    'contas' => 2, 'relatorios' => 1, 'planejamento' => 1,
+foreach ([
+    'relatorios' => 1, 'planejamento' => 1,
     'metas' => 1, 'categorias' => 1] as $page => $expectedCount) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     preg_match_all('/class="finance-table-wrap"[^>]*aria-describedby="(finance-scroll-hint-[a-f0-9]+)"/', $html, $hints);

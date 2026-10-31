@@ -5,7 +5,7 @@
     const $ = (selector) => document.querySelector(selector);
     const shell = $('#shell');
     const sidebar = $('#app-sidebar');
-    const toggle = $('#sidebar-toggle');
+    let toggle = $('#sidebar-toggle');
     const closeButton = $('#sidebar-close');
     const backdrop = $('#sidebar-backdrop');
     // Keep the CSS fallback accessible if the viewport API is absent, broken
@@ -67,7 +67,9 @@
     // A partially rendered shell must keep the CSS fallback usable; do not
     // install controls that could hide links or move focus without a full menu.
     if (navigationReady) {
-    toggle.addEventListener('click', () => {
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest?.('#sidebar-toggle')) return;
+      toggle = $('#sidebar-toggle');
       if (shell?.classList.contains('menu-open')) closeMenu(true);
       else openMenu();
     });
@@ -242,4 +244,166 @@
   } else {
     initialize();
   }
+})();
+
+// Navegação sem recarregar, modais, carregamento e animações do app.
+(() => {
+  'use strict';
+  if (typeof document.createElement !== 'function' || !document.body) return;
+  const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const main = () => document.querySelector('#overview');
+  const brl = (cents) => (cents < 0 ? '- ' : '') + 'R$ ' + (Math.abs(cents) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const loader = document.createElement('div');
+  loader.className = 'app-loader';
+  loader.setAttribute('aria-hidden', 'true');
+  loader.innerHTML = '<span class="app-loader-bar"></span><span class="app-loader-mark"><img src="/assets/realizze/v1/images/favicon.svg" alt="" width="44" height="44"></span>';
+  document.body.append(loader);
+  let loaderTimer;
+  const showLoader = () => {
+    loader.classList.add('is-active');
+    window.clearTimeout(loaderTimer);
+    loaderTimer = window.setTimeout(() => loader.classList.add('is-slow'), 220);
+  };
+  const hideLoader = () => {
+    window.clearTimeout(loaderTimer);
+    loader.classList.remove('is-active', 'is-slow');
+  };
+
+  // Seções entram em sequência; números contam e gráficos crescem a partir de zero.
+  const animate = () => {
+    const root = main();
+    if (!root) return;
+    const items = [...root.children].filter((el) => !['DIALOG', 'SCRIPT'].includes(el.tagName));
+    const expanded = items.flatMap((el) => (el.matches('.cards, .content-grid') ? [...el.children] : [el]));
+    expanded.forEach((el, index) => {
+      el.style.setProperty('--enter-delay', Math.min(index, 12) * 55 + 'ms');
+      el.classList.remove('app-enter');
+      void el.offsetWidth;
+      el.classList.add('app-enter');
+    });
+    const finish = reduced();
+    root.querySelectorAll('[data-width]').forEach((bar) => {
+      bar.style.width = finish ? bar.dataset.width + '%' : '0%';
+      if (!finish) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = bar.dataset.width + '%'; }));
+    });
+    root.querySelectorAll('.donut-slice').forEach((slice, index) => {
+      if (finish) return;
+      const target = slice.getAttribute('stroke-dasharray');
+      slice.style.transition = 'none';
+      slice.setAttribute('stroke-dasharray', '0 100');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        slice.style.transition = 'stroke-dasharray .8s cubic-bezier(.2,.7,.2,1) ' + index * 60 + 'ms';
+        slice.setAttribute('stroke-dasharray', target);
+      }));
+    });
+    if (finish) return;
+    root.querySelectorAll('[data-count]').forEach((el) => {
+      const target = Number(el.dataset.count);
+      const started = performance.now();
+      const tick = (now) => {
+        const progress = Math.min((now - started) / 700, 1);
+        el.textContent = brl(Math.round(target * (1 - (1 - progress) ** 3)));
+        if (progress < 1 && el.isConnected) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  };
+
+  // Só as telas financeiras trocam sem recarregar; as demais recarregam normalmente.
+  const swappable = (url) => url.origin === location.origin && url.pathname === '/minha-conta' && url.searchParams.get('pagina') !== 'empresarial';
+  const currentSwappable = () => new URL(location.href).searchParams.get('pagina') !== 'empresarial';
+
+  const apply = (html, url, push) => {
+    const next = new DOMParser().parseFromString(html, 'text/html');
+    const incoming = next.querySelector('#overview');
+    if (!incoming) return false;
+    main().replaceChildren(...incoming.childNodes);
+    const nav = document.querySelector('#app-sidebar .nav');
+    const incomingNav = next.querySelector('#app-sidebar .nav');
+    if (nav && incomingNav) nav.replaceChildren(...incomingNav.childNodes);
+    const context = document.querySelector('#app-sidebar .context-switch');
+    const incomingContext = next.querySelector('#app-sidebar .context-switch');
+    if (context && incomingContext) context.replaceWith(incomingContext);
+    document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
+    document.title = next.title;
+    if (push) history.pushState({}, '', url);
+    animate();
+    return true;
+  };
+
+  const notify = (message) => {
+    const toast = document.querySelector('#toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('visible');
+    window.setTimeout(() => toast.classList.remove('visible'), 3600);
+  };
+
+  const go = async (url, options = {}, push = true) => {
+    showLoader();
+    try {
+      const response = await fetch(url, { credentials: 'same-origin', ...options });
+      const finalUrl = new URL(response.url);
+      if (!response.ok || finalUrl.pathname !== '/minha-conta') throw new Error('navigation');
+      if (!apply(await response.text(), finalUrl.href, push)) throw new Error('content');
+      if (push && !options.method) window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+      return true;
+    } catch (_error) {
+      if (options.method) {
+        notify('Não foi possível salvar. Atualize a página e tente novamente.');
+        return false;
+      }
+      location.href = url;
+      return false;
+    } finally {
+      hideLoader();
+    }
+  };
+
+  document.addEventListener('click', (event) => {
+    const open = event.target.closest?.('[data-finance-open]');
+    if (open) {
+      document.getElementById(open.dataset.financeOpen)?.showModal();
+      return;
+    }
+    const close = event.target.closest?.('[data-finance-close]');
+    if (close) {
+      close.closest('dialog').close();
+      return;
+    }
+    const link = event.target.closest?.('a[href]');
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || link.target) return;
+    const url = new URL(link.href, location.href);
+    if (url.hash && url.pathname === location.pathname && url.search === location.search) return;
+    if (swappable(url) && currentSwappable()) {
+      event.preventDefault();
+      go(url.href);
+    } else if (url.origin === location.origin) {
+      showLoader();
+    }
+  });
+
+  document.addEventListener('submit', async (event) => {
+    const form = event.target;
+    if (form.dataset.financeConfirm && !window.confirm(form.dataset.financeConfirm)) {
+      event.preventDefault();
+      return;
+    }
+    if (!form.action.includes('/minha-conta/financeiro/') && !form.action.endsWith('/minha-conta/contexto')) return;
+    event.preventDefault();
+    const submit = form.querySelector('[type="submit"]');
+    if (submit) submit.disabled = true;
+    const saved = await go(form.action, { method: 'POST', body: new FormData(form) });
+    if (!saved && submit) submit.disabled = false;
+  });
+
+  window.addEventListener('popstate', () => {
+    const url = new URL(location.href);
+    if (swappable(url)) go(url.href, {}, false);
+    else location.reload();
+  });
+  window.addEventListener('pageshow', hideLoader);
+
+  animate();
 })();

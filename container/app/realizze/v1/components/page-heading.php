@@ -15,6 +15,6 @@ $escapePageHeading = static fn (string $value): string => htmlspecialchars($valu
   </div>
   <div class="page-heading-meta">
     <?= $appView->render('components::context-badge', ['contextType' => $pageHeadingContext]) ?>
-    <span class="preview-chip">Prévia de interface</span>
+    <?php if (empty($pageHeading['live'])): ?><span class="preview-chip">Prévia de interface</span><?php endif; ?>
   </div>
 </section>
