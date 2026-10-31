@@ -6,8 +6,9 @@
 </div>
 <div class="finance-dialog-row">
   <label>Competência<input name="competence" type="month" value="<?= $e(substr((string) ($formEntry['competency_date'] ?? $formEntry['due_date'] ?? ''), 0, 7)) ?>" required></label>
-  <label>Cliente ou origem<input name="counterparty_name" value="<?= $e($formEntry['counterparty_name']) ?>" maxlength="160"></label>
+  <label>Cliente cadastrado<select name="contact_id"><option value="">Usar origem em texto livre</option><?php foreach (($customers ?? []) as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= (int) ($formEntry['contact_id'] ?? 0) === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
 </div>
+<label>Cliente ou origem em texto livre<input name="counterparty_name" value="<?= $e($formEntry['counterparty_name']) ?>" maxlength="160" placeholder="Compatibilidade com lançamentos antigos"></label>
 <div class="finance-dialog-row">
   <label>Conta de destino<select name="account_id" required><?php foreach ($accounts as $account): ?><option value="<?= (int) $account['id'] ?>"<?= (int) $account['id'] === (int) $formEntry['account_id'] ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
   <label>Categoria<select name="category_id" required><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= (int) $item['id'] === (int) $formEntry['category_id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>

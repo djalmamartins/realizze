@@ -115,6 +115,13 @@ return [
             }, 'app.receivables.' . $action);
         }
 
+        foreach (['create' => 'salvar', 'update' => 'atualizar', 'status' => 'status'] as $action => $slug) {
+            $router->post('/minha-conta/contatos/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\ContactActions())->handle($action);
+            }, 'app.contacts.' . $action);
+        }
+
         $router->post('/sair', static function () use ($requirePreview): void {
             if (!$requirePreview()) {
                 return;

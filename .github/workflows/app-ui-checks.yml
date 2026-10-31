@@ -29,6 +29,8 @@ on:
       - 'database/migrations/003_expand_receivables.sql'
       - 'tests/finance-001-isolation.php'
       - 'tests/finance-002-receivables.php'
+      - 'tests/finance-003-contacts.php'
+      - 'database/migrations/004_create_finance_contacts.sql'
       - 'container/web/realizze/v1/routes.php'
       - 'source/Core/EnvironmentRouter.php'
       - 'tests/core-007-environment-router.php'
@@ -75,6 +77,9 @@ jobs:
           php -l source/App/ReceivableActions.php
           php -l tests/finance-001-isolation.php
           php -l tests/finance-002-receivables.php
+          php -l source/Services/Contacts.php
+          php -l source/App/ContactActions.php
+          php -l tests/finance-003-contacts.php
           php -l tests/security-001-csrf-session.php
           php tests/core-007-environment-router.php
           php tests/core-008-environments.php

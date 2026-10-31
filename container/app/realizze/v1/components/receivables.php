@@ -3,6 +3,7 @@
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\Receivables;
+use Moves\Services\Contacts;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $date = static function (mixed $value, string $fallback): string {
@@ -20,9 +21,10 @@ $status = in_array($_GET['situacao'] ?? null, ['pending', 'partially_received', 
 $search = is_string($_GET['busca'] ?? null) ? mb_substr(trim($_GET['busca']), 0, 120) : '';
 $counterparty = is_string($_GET['cliente'] ?? null) ? mb_substr(trim($_GET['cliente']), 0, 160) : '';
 $category = filter_var($_GET['categoria'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+$contactFilter = filter_var($_GET['contato'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $csrf = (string) ($csrf ?? '');
-$accounts = $categories = [];
+$accounts = $categories = $customers = [];
 $result = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1, 'per_page' => 15];
 $summary = ['to_receive' => 0, 'received' => 0, 'overdue' => 0, 'forecast' => 0];
 $loadFailed = false;
@@ -34,11 +36,12 @@ try {
     }
     $finance = new Finance($contextId);
     $receivables = new Receivables($contextId);
+    $customers = (new Contacts($contextId))->selectableCustomers();
     $accounts = $finance->accounts();
     $categories = $finance->categories('income');
     $result = $receivables->listing([
         'start' => $start, 'end' => $end, 'status' => $status, 'search' => $search,
-        'counterparty' => $counterparty, 'category_id' => $category, 'page' => $page,
+        'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'page' => $page,
     ]);
     $summary = $receivables->summary($start, $end);
 } catch (Throwable $exception) {
@@ -58,6 +61,7 @@ $statuses = [
 $state = [
     'inicio' => $start, 'fim' => $end, 'situacao' => $status, 'busca' => $search,
     'categoria' => $category === false ? '' : (string) $category, 'cliente' => $counterparty,
+    'contato' => $contactFilter === false ? '' : (string) $contactFilter,
 ];
 $query = static fn (array $changes = []): string => '/minha-conta?' . http_build_query(array_filter(
     ['pagina' => 'receber'] + array_merge($state, $changes),
@@ -94,6 +98,7 @@ $renderState = static function () use ($state, $e): void {
     <label>Situação<select name="situacao"><option value="">Todas</option><?php foreach ($statuses as $value => $label): ?><option value="<?= $e($value) ?>"<?= $status === $value ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
     <label>Categoria<select name="categoria"><option value="">Todas</option><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $category !== false && (int) $category === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
     <label>Cliente ou origem<input name="cliente" value="<?= $e($counterparty) ?>" maxlength="160"></label>
+    <label>Cliente cadastrado<select name="contato"><option value="">Todos</option><?php foreach ($customers as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= $contactFilter !== false && (int) $contactFilter === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
     <div class="receivables-filter-actions"><button type="submit" class="primary">Filtrar</button><a href="/minha-conta?pagina=receber">Limpar</a></div>
   </form>
 
@@ -174,6 +179,6 @@ $renderState = static function () use ($state, $e): void {
 <dialog class="finance-dialog" id="receivable-create" aria-labelledby="receivable-create-title"><form method="post" action="/minha-conta/financeiro/recebimento" data-finance-form>
   <header><h2 id="receivable-create-title">Novo recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
   <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="idempotency_key" value="<?= $e(bin2hex(random_bytes(16))) ?>"><?php $renderState(); ?>
-  <?php $formEntry = ['description' => '', 'amount_cents' => 0, 'due_date' => $today, 'competency_date' => $competence . '-01', 'counterparty_name' => '', 'notes' => '', 'document_number' => '', 'payment_method' => 'pix', 'account_id' => $accounts[0]['id'] ?? 0, 'category_id' => $categories[0]['id'] ?? 0]; require __DIR__ . '/receivables-fields.php'; ?>
+  <?php $formEntry = ['description' => '', 'amount_cents' => 0, 'due_date' => $today, 'competency_date' => $competence . '-01', 'counterparty_name' => '', 'contact_id' => null, 'notes' => '', 'document_number' => '', 'payment_method' => 'pix', 'account_id' => $accounts[0]['id'] ?? 0, 'category_id' => $categories[0]['id'] ?? 0]; require __DIR__ . '/receivables-fields.php'; ?>
   <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar recebimento</button></footer>
 </form></dialog>

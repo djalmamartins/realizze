@@ -27,7 +27,7 @@ final class Receivables
     /** @return array{id:int,duplicate:bool} */
     public function create(array $data, int $userId): array
     {
-        $fields = $this->validatedFields($data);
+        $fields = $this->validatedFields($data, null);
         $key = $this->idempotencyKey($data['idempotency_key'] ?? null);
         $existing = $this->entryByKey($key);
         if ($existing !== null) {
@@ -39,13 +39,13 @@ final class Receivables
             $statement = $this->pdo->prepare(
                 "INSERT INTO finance_entries
                  (financial_context_id, kind, description, amount_cents, due_date, competency_date,
-                  counterparty_name, notes, document_number, payment_method, status, account_id,
+                  counterparty_name, contact_id, notes, document_number, payment_method, status, account_id,
                   category_id, created_by, idempotency_key)
-                 VALUES (?, 'income', ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)"
+                 VALUES (?, 'income', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)"
             );
             $statement->execute([
                 $this->contextId, $fields['description'], $fields['amount_cents'], $fields['due_date'],
-                $fields['competency_date'], $fields['counterparty_name'], $fields['notes'],
+                $fields['competency_date'], $fields['counterparty_name'], $fields['contact_id'], $fields['notes'],
                 $fields['document_number'], $fields['payment_method'], $fields['account_id'],
                 $fields['category_id'], $userId, $key,
             ]);
@@ -67,10 +67,10 @@ final class Receivables
 
     public function update(int $entryId, array $data, int $userId): void
     {
-        $fields = $this->validatedFields($data);
         $this->pdo->beginTransaction();
         try {
             $entry = $this->lockedEntry($entryId);
+            $fields = $this->validatedFields($data, $entry['contact_id'] === null ? null : (int) $entry['contact_id']);
             if ($entry['status'] === 'cancelled') {
                 throw new InvalidArgumentException('Um recebimento cancelado não pode ser editado.');
             }
@@ -82,13 +82,13 @@ final class Receivables
             $paidAt = $status === 'received' ? $this->lastSettlementDate($entryId) : null;
             $statement = $this->pdo->prepare(
                 'UPDATE finance_entries SET description = ?, amount_cents = ?, due_date = ?, competency_date = ?,
-                 counterparty_name = ?, notes = ?, document_number = ?, payment_method = ?, account_id = ?,
+                 counterparty_name = ?, contact_id = ?, notes = ?, document_number = ?, payment_method = ?, account_id = ?,
                  category_id = ?, status = ?, paid_at = ?
                  WHERE id = ? AND financial_context_id = ? AND kind = \'income\''
             );
             $statement->execute([
                 $fields['description'], $fields['amount_cents'], $fields['due_date'], $fields['competency_date'],
-                $fields['counterparty_name'], $fields['notes'], $fields['document_number'],
+                $fields['counterparty_name'], $fields['contact_id'], $fields['notes'], $fields['document_number'],
                 $fields['payment_method'], $fields['account_id'], $fields['category_id'], $status, $paidAt,
                 $entryId, $this->contextId,
             ]);
@@ -202,13 +202,13 @@ final class Receivables
 
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
-            $where[] = '(e.description LIKE ? OR e.counterparty_name LIKE ? OR e.document_number LIKE ?)';
+            $where[] = '(e.description LIKE ? OR COALESCE(ct.trade_name, ct.social_name, ct.legal_name, e.counterparty_name) LIKE ? OR e.document_number LIKE ?)';
             $like = '%' . mb_substr($search, 0, 120) . '%';
             array_push($params, $like, $like, $like);
         }
         $counterparty = trim((string) ($filters['counterparty'] ?? ''));
         if ($counterparty !== '') {
-            $where[] = 'e.counterparty_name LIKE ?';
+            $where[] = 'COALESCE(ct.trade_name, ct.social_name, ct.legal_name, e.counterparty_name) LIKE ?';
             $params[] = '%' . mb_substr($counterparty, 0, 160) . '%';
         }
         $categoryId = filter_var($filters['category_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
@@ -216,6 +216,8 @@ final class Receivables
             $where[] = 'e.category_id = ?';
             $params[] = $categoryId;
         }
+        $contactId = filter_var($filters['contact_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($contactId !== false) { $where[] = 'e.contact_id = ?'; $params[] = $contactId; }
         $status = in_array($filters['status'] ?? null, ['pending', 'partially_received', 'received', 'cancelled', 'overdue'], true)
             ? (string) $filters['status'] : '';
 
@@ -226,7 +228,8 @@ final class Receivables
             WHEN e.due_date < CURDATE() THEN 'overdue'
             ELSE 'pending' END";
         $inner = 'SELECT e.id, e.description, e.amount_cents, e.due_date, e.competency_date,
-                    e.counterparty_name, e.notes, e.document_number, e.payment_method, e.status AS stored_status,
+                    COALESCE(ct.trade_name, ct.social_name, ct.legal_name, e.counterparty_name) AS counterparty_name,
+                    e.contact_id, e.notes, e.document_number, e.payment_method, e.status AS stored_status,
                     e.cancellation_reason, e.cancelled_at, e.account_id, e.category_id,
                     a.name AS account, c.name AS category, c.color AS category_color,
                     COALESCE(s.received_cents, 0) AS received_cents,
@@ -235,6 +238,7 @@ final class Receivables
              FROM finance_entries e
              INNER JOIN finance_accounts a ON a.id = e.account_id AND a.financial_context_id = e.financial_context_id
              LEFT JOIN finance_categories c ON c.id = e.category_id AND c.financial_context_id = e.financial_context_id
+             LEFT JOIN finance_contacts ct ON ct.id = e.contact_id AND ct.financial_context_id = e.financial_context_id
              LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS received_cents FROM finance_entry_settlements
                         WHERE financial_context_id = ? GROUP BY entry_id) s ON s.entry_id = e.id
              WHERE ' . implode(' AND ', $where);
@@ -252,7 +256,7 @@ final class Receivables
         $total = $rows === [] ? 0 : (int) $rows[0]['total_rows'];
         foreach ($rows as &$row) {
             unset($row['total_rows']);
-            foreach (['id', 'amount_cents', 'received_cents', 'balance_cents', 'account_id', 'category_id'] as $field) {
+            foreach (['id', 'amount_cents', 'received_cents', 'balance_cents', 'account_id', 'category_id', 'contact_id'] as $field) {
                 $row[$field] = $row[$field] === null ? null : (int) $row[$field];
             }
         }
@@ -302,7 +306,7 @@ final class Receivables
         return ['settlements' => $settlements->fetchAll(PDO::FETCH_ASSOC), 'audit' => $audit->fetchAll(PDO::FETCH_ASSOC)];
     }
 
-    private function validatedFields(array $data): array
+    private function validatedFields(array $data, ?int $existingContactId): array
     {
         $description = trim((string) ($data['description'] ?? ''));
         if ($description === '' || mb_strlen($description) > 160) {
@@ -318,6 +322,7 @@ final class Receivables
             'due_date' => $this->date($data['due_date'] ?? null, 'Informe uma data de vencimento válida.'),
             'competency_date' => $competence . '-01',
             'counterparty_name' => $this->optionalText($data['counterparty_name'] ?? null, 160, 'O cliente ou origem'),
+            'contact_id' => $this->contactId($data['contact_id'] ?? null, $existingContactId),
             'notes' => $this->optionalText($data['notes'] ?? null, 5000, 'As observações'),
             'document_number' => $this->optionalText($data['document_number'] ?? null, 80, 'O número do documento'),
             'payment_method' => $this->paymentMethod($data['payment_method'] ?? null),
@@ -329,7 +334,7 @@ final class Receivables
     private function lockedEntry(int $entryId): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT id, amount_cents, status FROM finance_entries
+            "SELECT id, amount_cents, status, contact_id FROM finance_entries
              WHERE id = ? AND financial_context_id = ? AND kind = 'income' FOR UPDATE"
         );
         $statement->execute([$entryId, $this->contextId]);
@@ -418,6 +423,24 @@ final class Receivables
         $statement->execute(array_values(array_filter([$id, $this->contextId, $kind], static fn ($item): bool => $item !== null)));
         if ($statement->fetchColumn() === false) {
             throw new InvalidArgumentException($table === 'finance_accounts' ? 'Conta de destino não autorizada.' : 'Categoria não autorizada.');
+        }
+        return (int) $id;
+    }
+
+    private function contactId(mixed $value, ?int $existingContactId): ?int
+    {
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($id === false) return null;
+        $statement = $this->pdo->prepare(
+            'SELECT status, is_customer FROM finance_contacts WHERE id = ? AND financial_context_id = ?'
+        );
+        $statement->execute([$id, $this->contextId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        if (!$row || !(int) $row['is_customer']) {
+            throw new InvalidArgumentException('Cliente não autorizado para este contexto.');
+        }
+        if ($row['status'] !== 'active' && (int) $id !== $existingContactId) {
+            throw new InvalidArgumentException('Contatos inativos não podem ser vinculados a novos recebimentos.');
         }
         return (int) $id;
     }
