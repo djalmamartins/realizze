@@ -328,3 +328,74 @@
 .enterprise-jump-help[hidden]{display:none!important}
 @media(max-width:650px){.enterprise-jump-help{display:block;margin:0 18px 6px;font-size:12px;line-height:1.5;color:#536d5c}}
 @media(forced-colors:active){.enterprise-jump-help{color:CanvasText}}
+
+/* APP-UI — títulos de grupo discretos na sidebar e cabeçalho organizado no celular */
+.nav-group-heading{margin:18px 0 6px;padding:0 14px;color:#6b7a73;font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.4;text-transform:uppercase}
+.nav-group-heading:first-child{margin-top:0}
+@media(max-width:650px){
+.top .toolbar{display:grid;grid-template-columns:1fr 1fr auto auto;align-items:center;gap:8px;width:100%}
+.top .toolbar .months,.top .toolbar .period{min-width:0}
+.top .toolbar .months button{width:100%;padding-inline:8px;white-space:nowrap;font-size:12px}
+.top .toolbar .period{display:flex}
+.top .toolbar .period button{flex:1;padding-inline:6px;font-size:12px}
+}
+
+/* APP-UI — cartão de saldo no verde da marca, com contraste AA para o texto branco */
+.balance{background:radial-gradient(ellipse at 90% 110%,#0b8f58 0,transparent 60%),linear-gradient(135deg,#066f3e,#07513f)}
+.balance:after{right:-60px;bottom:-70px;border-color:#ffffff1f}
+.balance .label,.balance .muted{color:#e4f6ec}
+
+/* APP-UI — conteúdo das telas financeiras alinhado à margem interna do cartão */
+.finance-workspace>.finance-goal-summary,.finance-workspace>.finance-search-preview{margin-inline:28px}
+.finance-workspace>.finance-search-preview{padding-inline:0}
+.finance-workspace>.finance-goal-summary{margin-bottom:8px}
+.finance-workspace .finance-table-caption{padding-inline:28px}
+.finance-workspace>.finance-table-wrap{margin-top:18px}
+@media(max-width:650px){
+.finance-workspace>.finance-goal-summary,.finance-workspace>.finance-search-preview{margin-inline:20px}
+.finance-workspace .finance-table-caption{padding-inline:20px}
+}
+.finance-workspace>.finance-report-panels{margin-inline:28px}
+@media(max-width:650px){.finance-workspace>.finance-report-panels{margin-inline:20px}}
+.assistant-preview{padding:0}
+.enterprise-notice,.enterprise-kpis{margin-inline:28px}
+@media(max-width:650px){
+.enterprise-notice,.enterprise-kpis{margin-inline:18px}
+.assistant-notice>div{flex:1 1 calc(100% - 60px);min-width:0}
+}
+
+/* APP-UI — celular: estado vazio visível sem rolar a tabela, dica alinhada e botão secundário no padrão */
+@media(max-width:650px){
+.finance-table td:has(>.finance-empty){padding:0}
+.finance-table .finance-empty{position:sticky;left:0;box-sizing:border-box;width:calc(100vw - 38px);padding-inline:20px}
+.finance-workspace .finance-scroll-hint{padding-inline:20px}
+.finance-workspace .finance-toolbar>button:not(.primary){min-height:44px;border-radius:10px}
+}
+
+/* APP-UI — botão secundário das barras de consulta no mesmo padrão dos demais */
+.finance-toolbar>button:not(.primary){min-height:38px;padding:0 16px;border:1px solid #dfe8e3;border-radius:10px;background:#fff;color:#21493a;font-weight:600}
+
+/* APP-UI — tablet: ações do cabeçalho à direita; último passo ímpar ocupa a linha inteira */
+@media(min-width:651px) and (max-width:1100px){.top .toolbar{width:100%}.top .toolbar .bell{margin-left:auto}}
+.setup-task:last-child:nth-child(odd){grid-column:1/-1}
+
+/* APP-UI — sidebar mais compacta: Sair visível sem rolar em telas comuns de notebook */
+@media(min-width:851px){
+.nav a{padding-block:8px}
+.sidebar .brand{margin-bottom:14px}
+.sidebar-bottom{gap:10px}
+}
+@media(min-width:851px) and (max-height:1040px){.sidebar .connect{display:none}}
+@media(min-width:851px){
+.sidebar{gap:16px;padding-top:20px;padding-bottom:10px;overflow-y:auto}
+.sidebar .brand{margin-bottom:0}
+.sidebar-bottom{gap:4px}
+.nav-group-heading{margin-top:10px}
+.sidebar-bottom form button{padding-block:4px}
+}
+@media(min-width:851px){.sidebar .brand{margin-bottom:6px}}
+.finance-toolbar h3+.muted{display:block;margin-top:6px}
+
+/* APP-UI — ações indisponíveis legíveis, sem parecer botão ativo */
+.finance-toolbar .primary:disabled,.connect button:disabled{opacity:1;background:#e3efe8;border-color:#e3efe8;color:#4c6f5d;box-shadow:none}
+.connect button:disabled{background:#fff}

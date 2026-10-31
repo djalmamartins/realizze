@@ -7,7 +7,7 @@
 <p role="alert">Este link é inválido ou expirou.</p><p><a href="/recuperar-senha">Solicitar outro link</a></p>
 <?php else: ?>
 <?php if ($resetError ?? false): ?><p role="alert">Não foi possível redefinir a senha. Confira os dados e tente novamente.</p><?php endif; ?>
-<form method="post" action="/redefinir-senha">
+<form class="demo-form" method="post" action="/redefinir-senha">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
 <input type="hidden" name="token" value="<?= htmlspecialchars($token ?? '', ENT_QUOTES, 'UTF-8') ?>">
 <label for="new-password">Nova senha (mínimo 12 caracteres)</label>
