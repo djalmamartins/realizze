@@ -1,0 +1,203 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const script = fs.readFileSync(path.join(__dirname, '../container/app/realizze/v1/assets/js/dashboard.js'), 'utf8');
+const listeners = {};
+const attrs = {};
+const shellClasses = new Set();
+const bodyClasses = new Set();
+let toggleFocus = 0;
+let closeFocus = 0;
+let navigationFocus = 0;
+let desktopChange;
+const classList = (values) => ({
+  add: (name) => values.add(name),
+  remove: (name) => values.delete(name),
+  contains: (name) => values.has(name),
+});
+const toggle = {
+  setAttribute: (name, value) => { attrs[name] = value; },
+  addEventListener: (name, handler) => { listeners['toggle:' + name] = handler; },
+  focus: () => { toggleFocus++; document.activeElement = toggle; },
+};
+const closeButton = {
+  addEventListener: (name, handler) => { listeners['close:' + name] = handler; },
+  focus: () => { closeFocus++; document.activeElement = closeButton; },
+};
+const navigationLink = {
+  focus: () => { navigationFocus++; document.activeElement = navigationLink; },
+};
+const shell = { classList: classList(shellClasses) };
+const sidebar = {
+  inert: false,
+  contains: (target) => target === closeButton || target === navigationLink || target === sidebar,
+  querySelector: (selector) => selector === '.nav a[href], .brand' ? navigationLink : null,
+  querySelectorAll: () => [],
+};
+const backdrop = {
+  setAttribute: () => {},
+  addEventListener: (name, handler) => { listeners['backdrop:' + name] = handler; },
+};
+const document = {
+  readyState: 'complete',
+  activeElement: null,
+  body: { classList: classList(bodyClasses) },
+  querySelector: (selector) => ({
+    '#shell': shell, '#app-sidebar': sidebar, '#sidebar-toggle': toggle,
+    '#sidebar-close': closeButton, '#sidebar-backdrop': backdrop,
+  })[selector] || null,
+  querySelectorAll: () => [],
+  addEventListener: (name, handler) => { listeners[name] = handler; },
+};
+const desktopMedia = {
+  matches: false,
+  addEventListener: (name, handler) => { if (name === 'change') desktopChange = handler; },
+};
+const window = { matchMedia: () => desktopMedia };
+vm.runInNewContext(script, { document, window });
+assert.equal(shellClasses.has('app-js'), true, 'mobile disclosure activates only after the script initializes');
+assert.equal(sidebar.inert, true, 'mobile navigation is inert while closed');
+listeners['toggle:click']();
+assert.equal(shellClasses.has('menu-open'), true, 'menu opens');
+assert.equal(sidebar.inert, false, 'open navigation is keyboard reachable');
+assert.equal(attrs['aria-expanded'], 'true', 'expanded state is announced');
+assert.equal(closeFocus, 1, 'focus enters the open navigation');
+let prevented = false;
+listeners.keydown({ key: 'Tab', shiftKey: false, preventDefault: () => { prevented = true; } });
+assert.equal(prevented, false, 'Tab is not trapped in a non-modal navigation');
+document.activeElement = toggle;
+listeners.focusin({ target: toggle });
+assert.equal(toggleFocus, 0, 'focus exit does not steal focus');
+assert.equal(shellClasses.has('menu-open'), false, 'focus leaving sidebar closes the menu');
+assert.equal(sidebar.inert, true, 'closed menu cannot retain keyboard focus');
+assert.equal(attrs['aria-expanded'], 'false', 'collapsed state is announced');
+assert.equal(bodyClasses.has('app-menu-locked'), false, 'page scrolling is restored');
+listeners['toggle:click']();
+prevented = false;
+listeners.keydown({ key: 'Escape', preventDefault: () => { prevented = true; } });
+assert.equal(prevented, true, 'Escape is handled');
+assert.equal(toggleFocus, 1, 'Escape restores focus to menu toggle');
+assert.equal(sidebar.inert, true, 'Escape restores inert state');
+listeners['toggle:click']();
+listeners['backdrop:click']();
+assert.equal(shellClasses.has('menu-open'), false, 'backdrop closes navigation');
+listeners['toggle:click']();
+document.activeElement = closeButton;
+const focusBeforeDesktop = toggleFocus;
+desktopMedia.matches = true;
+desktopChange({ matches: true });
+assert.equal(shellClasses.has('menu-open'), false, 'desktop transition closes mobile menu');
+assert.equal(sidebar.inert, false, 'visible desktop sidebar remains keyboard reachable');
+assert.equal(toggleFocus, focusBeforeDesktop, 'desktop transition never focuses hidden mobile toggle');
+assert.equal(document.activeElement, navigationLink, 'desktop transition moves focus off the now-hidden mobile close button');
+assert.equal(navigationFocus, 1, 'visible desktop navigation receives focus');
+desktopMedia.matches = false;
+desktopChange({ matches: false });
+assert.equal(sidebar.inert, true, 'desktop-to-mobile transition hides closed sidebar from keyboard');
+assert.equal(toggleFocus, focusBeforeDesktop + 1, 'focus moves to visible mobile toggle before sidebar becomes inert');
+assert.equal(document.activeElement, toggle, 'focus stays on visible mobile control');
+desktopMedia.matches = true;
+desktopChange({ matches: true });
+assert.equal(document.activeElement, navigationLink, 'desktop transition moves focus off the now-hidden mobile toggle');
+assert.equal(navigationFocus, 2, 'desktop navigation receives focus from both mobile-only buttons');
+assert.equal(sidebar.inert, false, 'desktop sidebar remains reachable after returning to desktop');
+console.log('OK - APP-A11Y-060: mobile disclosure, focus, inert and breakpoint focus recovery.');
+
+
+// APP-A11Y-068: a partial DOM must never make the visible fallback navigation inert.
+for (const missing of ['#shell', '#app-sidebar', '#sidebar-toggle', '#sidebar-close', '#sidebar-backdrop']) {
+  const fallbackListeners = {};
+  const fallbackClasses = new Set();
+  const fallbackShell = { classList: classList(fallbackClasses) };
+  const fallbackSidebar = { inert: false, querySelectorAll: () => [] };
+  const fallbackToggle = { addEventListener: (name) => { fallbackListeners['toggle:' + name] = true; } };
+  const fallbackClose = { addEventListener: (name) => { fallbackListeners['close:' + name] = true; } };
+  const fallbackBackdrop = { addEventListener: (name) => { fallbackListeners['backdrop:' + name] = true; } };
+  const elements = {
+    '#shell': fallbackShell, '#app-sidebar': fallbackSidebar,
+    '#sidebar-toggle': fallbackToggle, '#sidebar-close': fallbackClose,
+    '#sidebar-backdrop': fallbackBackdrop,
+  };
+  delete elements[missing];
+  const fallbackDocument = {
+    readyState: 'complete', activeElement: null,
+    body: { classList: classList(new Set()) },
+    querySelector: (selector) => elements[selector] || null,
+    querySelectorAll: () => [],
+    addEventListener: (name) => { fallbackListeners[name] = true; },
+  };
+  vm.runInNewContext(script, {
+    document: fallbackDocument,
+    window: { matchMedia: () => ({ matches: false, addEventListener: () => {} }) },
+  });
+  assert.equal(fallbackClasses.has('app-js'), false, 'incomplete shell cannot activate the off-canvas CSS: ' + missing);
+  assert.equal(fallbackSidebar.inert, false, 'fallback links stay keyboard reachable: ' + missing);
+  assert.equal(fallbackListeners['toggle:click'], undefined, 'no half-working menu toggle: ' + missing);
+  assert.equal(fallbackListeners.keydown, undefined, 'no incomplete menu keyboard handler: ' + missing);
+}
+console.log('OK - APP-A11Y-068: incomplete navigation keeps accessible no-JS fallback.');
+
+
+// APP-A11Y-069: invalid or unavailable viewport APIs must preserve the CSS
+// fallback; legacy MediaQueryList listeners must track both breakpoints.
+const runViewportScenario = (mediaFactory, supportsInert = true) => {
+  const classes = new Set();
+  const events = {};
+  const mobile = { contains: (target) => target === link, querySelector: () => link, querySelectorAll: () => [] };
+  if (supportsInert) mobile.inert = false;
+  const link = { focus: () => { doc.activeElement = link; } };
+  const button = { addEventListener: (name, handler) => { events['toggle:' + name] = handler; },
+    setAttribute: () => {}, focus: () => { doc.activeElement = button; } };
+  const close = { addEventListener: () => {}, focus: () => { doc.activeElement = close; } };
+  const shade = { addEventListener: () => {}, setAttribute: () => {} };
+  const wrapper = { classList: classList(classes) };
+  const nodes = { '#shell': wrapper, '#app-sidebar': mobile, '#sidebar-toggle': button,
+    '#sidebar-close': close, '#sidebar-backdrop': shade };
+  const doc = { readyState: 'complete', activeElement: null,
+    body: { classList: classList(new Set()) },
+    querySelector: (selector) => nodes[selector] || null, querySelectorAll: () => [],
+    addEventListener: () => {} };
+  const win = { matchMedia: mediaFactory };
+  vm.runInNewContext(script, { document: doc, window: win });
+  return { classes, events, mobile, link, button, doc };
+};
+for (const [label, factory] of [
+  ['missing', undefined],
+  ['throwing', () => { throw Error('unsupported'); }],
+  ['invalid', () => ({ matches: undefined, addEventListener: () => {} })],
+  ['no listener', () => ({ matches: false })],
+]) {
+  const state = runViewportScenario(factory);
+  assert.equal(state.classes.has('app-js'), false, 'fallback remains visible: ' + label);
+  assert.equal(state.mobile.inert, false, 'fallback remains focusable: ' + label);
+  assert.equal(state.events['toggle:click'], undefined, 'no broken disclosure: ' + label);
+}
+let legacyChange;
+const legacy = { matches: false, addListener: (handler) => { legacyChange = handler; } };
+const legacyState = runViewportScenario(() => legacy);
+assert.equal(legacyState.classes.has('app-js'), true, 'legacy viewport supports enhancement');
+assert.equal(legacyState.mobile.inert, true, 'collapsed mobile navigation is inert');
+legacyState.events['toggle:click']();
+assert.equal(legacyState.mobile.inert, false, 'legacy mobile menu opens');
+legacyState.doc.activeElement = legacyState.button;
+legacy.matches = true;
+legacyChange({ matches: true });
+assert.equal(legacyState.classes.has('menu-open'), false, 'legacy desktop transition closes menu');
+assert.equal(legacyState.mobile.inert, false, 'desktop links remain accessible');
+assert.equal(legacyState.doc.activeElement, legacyState.link, 'legacy desktop focus is restored');
+legacy.matches = false;
+legacyChange({ matches: false });
+assert.equal(legacyState.mobile.inert, true, 'legacy mobile transition restores inert');
+assert.equal(legacyState.doc.activeElement, legacyState.button, 'legacy mobile toggle receives focus');
+console.log('OK - APP-A11Y-069: viewport fallback and legacy MediaQueryList transitions.');
+
+// APP-A11Y-073: native inert is required before hiding a keyboard-focusable drawer.
+// Older browsers must keep the CSS fallback visible instead of tabbing off-screen.
+const noInert = runViewportScenario(() => ({ matches: false, addEventListener: () => {} }), false);
+assert.equal(noInert.classes.has('app-js'), false, 'no inert support leaves visible CSS navigation');
+assert.equal(noInert.events['toggle:click'], undefined, 'no inert support does not install off-canvas controls');
+assert.equal(Object.hasOwn(noInert.mobile, 'inert'), false, 'unsupported inert is not assigned as an ineffective property');
+console.log('OK - APP-A11Y-073: browsers without native inert retain keyboard-reachable fallback.');

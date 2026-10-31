@@ -1,0 +1,95 @@
+name: Realizze App UI checks
+
+on:
+  pull_request:
+    paths:
+      - 'container/app/**'
+      - 'container/cms/**'
+      - 'container/web/realizze/v1/**'
+      - 'scripts/publish-app-assets.php'
+      - 'scripts/publish-web-assets.php'
+      - 'tests/web-assets-smoke.php'
+      - 'tests/ui-002-view-smoke.php'
+      - 'tests/ui-003-mobile-menu.js'
+      - 'tests/ui-004-enterprise-search.js'
+      - 'tests/cms-001-preview-smoke.php'
+      - 'tests/cms-002-preview-access.php'
+      - 'tests/enterprise-001-context.php'
+      - 'tests/security-001-csrf-session.php'
+      - 'source/Services/OrganizationAccess.php'
+      - 'source/Services/OrganizationContext.php'
+      - 'source/Services/Authorization.php'
+      - 'source/Services/SessionAuth.php'
+      - 'source/Services/Csrf.php'
+      - 'container/web/realizze/v1/routes.php'
+      - 'source/Core/EnvironmentRouter.php'
+      - 'tests/core-007-environment-router.php'
+      - 'tests/core-008-environments.php'
+      - 'database/proposals/**'
+      - '.github/workflows/app-ui-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: gd, zip, intl, pdo_mysql, pdo_sqlite, sqlite3, zlib
+          coverage: none
+          tools: composer:v2
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+      - name: Check App PHP syntax
+        run: |
+          cp .env.example .env
+          find container/app/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l scripts/publish-app-assets.php
+          php -l scripts/publish-web-assets.php
+          php -l source/Services/OrganizationAccess.php
+          php -l source/Services/OrganizationContext.php
+          php -l container/web/realizze/v1/routes.php
+          php -l container/app/realizze/v1/routes.php
+          find container/cms/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l tests/cms-001-preview-smoke.php
+          php -l tests/cms-002-preview-access.php
+          php -l tests/enterprise-001-context.php
+          php -l source/Services/Csrf.php
+          php -l tests/security-001-csrf-session.php
+          php tests/core-007-environment-router.php
+          php tests/core-008-environments.php
+      - name: Smoke-test MovesCode View components
+        run: php tests/ui-002-view-smoke.php
+      - name: Smoke-test isolated CMS preview and static gate
+        run: |
+          php tests/cms-001-preview-smoke.php
+          php tests/cms-002-preview-access.php
+      - name: Verify enterprise session and permission isolation
+        run: php tests/enterprise-001-context.php
+      - name: Verify CSRF session-state resilience
+        run: php tests/security-001-csrf-session.php
+      - name: Check source JavaScript syntax
+        run: |
+          node --check container/web/realizze/v1/assets/js/main.js
+          node --check container/app/realizze/v1/assets/js/dashboard.js
+          node --check container/cms/realizze/v1/assets/js/cms.js
+          node --check tests/ui-003-mobile-menu.js
+          node tests/ui-003-mobile-menu.js
+          node --check tests/ui-004-enterprise-search.js
+          node tests/ui-004-enterprise-search.js
+          node --check tests/cms-003-mobile-menu.js
+          node tests/cms-003-mobile-menu.js
+      - name: Publish assets with MovesCode Compress
+        run: |
+          php scripts/publish-web-assets.php
+          php tests/web-assets-smoke.php
+          node --check public/assets/realizze/v1/js/main.min.js
+          php scripts/publish-app-assets.php
+          test -s public/assets/realizze-app/v1/css/dashboard.min.css
+          test -s public/assets/realizze-app/v1/js/dashboard.min.js
+          node --check public/assets/realizze-app/v1/js/dashboard.min.js

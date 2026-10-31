@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
     <?php $this->insert('components/head', [
-        'title' => $title ?? 'Realizze | Gestão de condomínios',
-        'description' => $description ?? 'Uma experiência mais simples e conectada para a gestão de condomínios.',
+        'title' => $title ?? 'Realizze | Controle, planeje e realize',
+        'description' => $description ?? 'Organize suas finanças pessoais e empresariais com o Realizze.',
     ]); ?>
 </head>
 <body>

@@ -1,0 +1,143 @@
+/* Prevent long administrative labels from widening the mobile preview. */
+@media (max-width: 720px) {
+    html,
+    body,
+    .cms-shell,
+    .cms-sidebar,
+    .cms-main,
+    .cms-content {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .cms-nav a {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .cms-topbar,
+    .cms-topbar span {
+        min-width: 0;
+    }
+
+    .cms-topbar span {
+        display: none;
+    }
+
+    .cms-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .cms-nav b {
+        grid-column: 1;
+    }
+}
+
+/* CMS-UI-017: responsive sidebar, SVG icons, focus and reduced motion. */
+.cms-brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cms-brand{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.cms-brand img{display:block;max-width:100%;height:auto}
+.cms-menu-toggle{display:none;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid #dcebe1;border-radius:10px;background:#fff;color:#087c49;cursor:pointer}
+.cms-nav a svg{flex:0 0 19px}
+.cms-nav a span{display:inline;min-width:0;padding:0;border-radius:0;color:inherit;overflow-wrap:anywhere}
+.cms-menu-toggle:focus-visible,.cms-brand:focus-visible{outline:3px solid #078e51;outline-offset:3px}
+.cms-nav a{min-height:44px}
+@media(max-width:720px){
+  /* Only expose the toggle when JavaScript has activated the disclosure. */
+  .cms-sidebar.cms-js .cms-menu-toggle{display:inline-flex}
+  .cms-sidebar.cms-js .cms-nav{display:none}
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav{display:grid;grid-template-columns:1fr}
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav b{grid-column:1}
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav a{font-size:14px}
+  .cms-brand img{width:126px}
+}
+@media(prefers-reduced-motion:reduce){.cms-sidebar *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* CMS-A11Y-019: keyboard navigation directly to page content. */
+.cms-skip-link{position:fixed;top:8px;left:8px;z-index:9999;padding:12px 16px;border-radius:9px;background:#fff;color:#075f39;border:2px solid #087d49;transform:translateY(-150%)}
+.cms-skip-link:focus-visible{transform:translateY(0);outline:3px solid #073f29;outline-offset:2px}
+
+/* CMS-A11Y-030: scalable SVGs, safe touch navigation and visible keyboard focus. */
+.cms-media-empty-icon svg{width:30px;height:30px;stroke-width:1.8}
+.cms-compact-empty .cms-media-empty-icon svg{width:24px;height:24px}
+.cms-editor-media svg{width:30px;height:30px;color:#168b53}
+.cms-nav a:focus-visible,.cms-menu-toggle:focus-visible{outline:3px solid #087d49;outline-offset:2px}
+@media(max-width:720px){
+  .cms-sidebar.cms-js.cms-menu-open .cms-nav{max-height:min(65vh,540px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:12px}
+  .cms-nav a{min-height:44px}
+  .cms-brand-row{min-width:0}
+}
+
+/* CMS-UI-041: captions stay visible for screen readers and visual context. */
+.cms-table-caption{caption-side:top;text-align:left;padding:12px 10px 2px;color:#52695a;font-size:12px;font-weight:700}
+.cms-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+
+/* CMS-A11Y-045: keyboard-accessible scrolling for wide tables on small screens. */
+.cms-table-wrap:focus-visible{outline:3px solid #087d49;outline-offset:3px;border-radius:8px}
+@media(max-width:720px){.cms-table-wrap{scrollbar-width:thin}}
+
+/* CMS-UI-046: preserve shared decorative icons in inventory headings. */
+.cms-list-heading-icon{display:inline-flex;align-items:center;vertical-align:middle;margin-right:8px;color:#168b53}
+.cms-list-heading-icon svg{width:19px;height:19px;flex:none}
+
+/* CMS-UI-047: editorial and media inventory previews share the accessible table component. */
+.cms-preview-inventory{margin-top:18px}
+.cms-preview-inventory .cms-module-head p{margin:4px 0 0}
+
+/* CMS-A11Y-049: never hide the read-only administrative status on phones. */
+@media (max-width: 720px) {
+  .cms-topbar { height: auto; min-height: 60px; flex-wrap: wrap; align-content: center; padding: 12px 18px; gap: 5px 10px; }
+  .cms-topbar .cms-preview-status { display: inline-flex; max-width: 100%; white-space: normal; line-height: 1.4; font-size: 11px; padding: 4px 9px; border-radius: 12px; background: #fff4e8; color: #7a461b; }
+}
+
+/* CMS-UI-057: reusable, read-only editorial/media workflow on desktop and mobile. */
+.cms-workflow-preview{margin-top:18px}
+.cms-workflow-steps{counter-reset:cms-workflow;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;list-style:none;margin:18px 0 0;padding:0}
+.cms-workflow-steps li{counter-increment:cms-workflow;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;padding:15px;border:1px solid #e6eee8;border-radius:12px;background:#fafcfb}
+.cms-workflow-steps li>div{min-width:0}
+.cms-workflow-steps strong{display:block;color:#2a4c37;font-size:13px;overflow-wrap:anywhere}
+.cms-workflow-steps strong::before{content:counter(cms-workflow) ". ";color:#087d49}
+.cms-workflow-steps p{margin:6px 0 0;overflow-wrap:anywhere}
+.cms-workflow-state{flex:none;padding:5px 8px;border-radius:999px;background:#eef2ef;color:#62776a;font-size:11px;font-weight:700}
+@media(max-width:850px){.cms-workflow-steps{grid-template-columns:1fr}}
+@media(max-width:480px){.cms-workflow-steps li{flex-wrap:wrap}.cms-workflow-state{margin-left:auto}}
+
+/* CMS-A11Y-065: guidance for keyboard and touch scrolling in read-only tables. */
+.cms-scroll-hint{display:none;margin:0;padding:8px 10px 2px;color:#526b5b;font-size:12px;line-height:1.5}
+@media(max-width:720px){.cms-scroll-hint{display:block}}
+.cms-table-wrap:focus-visible>.cms-scroll-hint{display:block}
+
+/* CMS-UI-078: responsive semantic status lists with long labels. */
+.cms-status-list{margin:0;min-width:0}
+.cms-status-list .cms-setting-row{min-width:0}
+.cms-status-list dt{min-width:0;color:#65766b;overflow-wrap:anywhere}
+.cms-status-list dd{min-width:0;margin:0;color:#748a7b;font-size:11px;font-weight:700;text-align:right;overflow-wrap:anywhere}
+@media(max-width:480px){.cms-status-list .cms-setting-row{align-items:flex-start;flex-wrap:wrap}.cms-status-list dd{margin-left:auto}}
+
+/* CMS-UI-080: shared, non-operational inventory filters; fluid and readable on phones. */
+.cms-preview-filters{min-width:0;margin:18px 0;padding:18px;border:1px solid #e3ece6;border-radius:12px;background:#f9fcfa}
+.cms-preview-filters-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.cms-preview-filters-head h3{margin:0;font-size:14px;color:#29543a}
+.cms-preview-filters-help{margin:8px 0 0;overflow-wrap:anywhere}
+.cms-preview-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.cms-preview-filter-field{min-width:0}
+.cms-preview-filter-field .cms-field-label{margin:0 0 7px;overflow-wrap:anywhere}
+.cms-preview-filter-field .cms-field{min-width:0;max-width:100%}
+@media(max-width:1050px){.cms-preview-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.cms-preview-filters{padding:14px}.cms-preview-filter-grid{grid-template-columns:1fr}}
+
+/* CMS-A11Y-083: keyboard and selected-state affordances in forced-color mode. */
+@media (forced-colors: active) {
+  .cms-nav a.selected { outline: 2px solid Highlight; outline-offset: -2px; }
+  .cms-skip-link:focus-visible, .cms-menu-toggle:focus-visible,
+  .cms-nav a:focus-visible, .cms-table-wrap:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+  .cms-preview-status, .cms-workflow-state { border: 1px solid CanvasText; }
+}
+
+/* CMS-A11Y-084: real headings distinguish the two administrative navigation groups. */
+.cms-nav .cms-nav-group-heading{grid-column:1/-1;margin:0;padding:18px 14px 5px;font-size:12px;line-height:1.5;letter-spacing:.08em;font-weight:700;color:#697b70;overflow-wrap:anywhere}
+@media(max-width:720px){.cms-nav .cms-nav-group-heading{padding:8px 12px 2px}}
+@media(forced-colors:active){.cms-nav .cms-nav-group-heading{color:CanvasText}}

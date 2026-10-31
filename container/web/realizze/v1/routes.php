@@ -124,12 +124,55 @@ return [
             $render('login', ['loginError' => true]);
         }, 'web.login.submit');
 
+        // Prévia protegida do onboarding; sem persistência ou operações bancárias.
+        $router->get('/configuracao-inicial', static function () use ($render): void {
+            if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
+                return;
+            }
+            header('Cache-Control: no-store');
+            $render('onboarding');
+        }, 'app.onboarding.preview');
+
         $router->get('/minha-conta', static function (): void {
             if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
             }
             require BASE_PATH . '/container/app/realizze/v1/pages/dashboard.php';
         }, 'app.account');
+
+        // POST + CSRF: contexto empresarial é vinculado à sessão e revalidado no banco.
+        $router->post('/minha-conta/contexto', static function (): void {
+            if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
+                return;
+            }
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                http_response_code(403);
+                return;
+            }
+            $type = $_POST['context_type'] ?? null;
+            if ($type === 'personal') {
+                $changed = \Moves\Services\OrganizationContext::selectPersonal($_POST['csrf_token']);
+            } elseif ($type === 'organization') {
+                $rawId = $_POST['organization_id'] ?? null;
+                $id = is_string($rawId) ? filter_var($rawId, FILTER_VALIDATE_INT, [
+                    'options' => ['min_range' => 1],
+                ]) : false;
+                if ($id === false) {
+                    http_response_code(422);
+                    return;
+                }
+                $changed = \Moves\Services\OrganizationContext::select($id, $_POST['csrf_token']);
+            } else {
+                http_response_code(422);
+                return;
+            }
+            if (!$changed) {
+                http_response_code(403);
+                return;
+            }
+            header('Cache-Control: no-store');
+            header('Location: /minha-conta?pagina=empresarial', true, 303);
+        }, 'app.context.switch');
 
         $router->post('/sair', static function (): void {
             if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
