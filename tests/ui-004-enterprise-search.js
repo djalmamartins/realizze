@@ -63,7 +63,7 @@ function addGroup(name, definitions) {
       hidden: false,
       contains: (target) => target === link,
       getAttribute: (name) => name === 'href' ? '#' + module.id : null,
-      addEventListener: () => {},
+      addEventListener(name, handler) { if (name === 'click') this.clickHandler = handler; },
     };
     ownModules.push(module);
     modules.push(module);
@@ -98,7 +98,9 @@ const document = {
   getElementById: (id) => modules.find((module) => module.id === id) || null,
   addEventListener: () => {},
 };
+const deferredFocus = [];
 const window = {
+  setTimeout(callback) { deferredFocus.push(callback); },
   matchMedia: () => ({ matches: true, addEventListener: () => {} }),
 };
 vm.runInNewContext(script, { document, window });
@@ -208,6 +210,25 @@ search('pagar');
 assert.equal(document.activeElement, input,
   'focused shortcut recovers even when browser clears activeElement on hide');
 assert.equal(input.focused, true);
+
+// APP-A11Y-092: a filter update invalidates pending shortcut focus even
+// when the same target is visible again before the queued callback runs.
+search('');
+let delayedFocusCount = 0;
+modules[1].isConnected = true;
+links[1].isConnected = true;
+modules[1].focus = () => { delayedFocusCount += 1; };
+assert.equal(typeof links[1].clickHandler, 'function', 'enterprise shortcut click is wired');
+links[1].clickHandler();
+assert.equal(deferredFocus.length, 1, 'shortcut focus is deferred');
+search('clientes');
+search('');
+deferredFocus.shift()();
+assert.equal(delayedFocusCount, 0, 'old focus request cannot override a newer filter state');
+links[1].clickHandler();
+deferredFocus.shift()();
+assert.equal(delayedFocusCount, 1, 'fresh shortcut focus remains available after filtering');
+console.log('OK - APP-A11Y-092: pesquisa invalida foco PJ agendado.');
 
 console.log('OK - APP-A11Y-063: filtro PJ recupera foco antes do navegador ocultar o elemento.');
 
