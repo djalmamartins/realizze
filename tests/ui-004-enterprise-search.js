@@ -387,6 +387,12 @@ console.log('OK - APP-A11Y-091: orientação PJ acompanha a navegação filtrada
   verifyNoFocus(() => { target.hidden = true; }, 'filtered target never receives focus');
   verifyNoFocus(() => { targetGroup.hidden = true; }, 'hidden module group never receives focus');
   verifyNoFocus(() => { shortcut.hidden = true; }, 'filtered shortcut never transfers focus');
+  // A DOM update may move a module outside its enterprise group without
+  // detaching the module itself. An orphan must not receive deferred focus.
+  const originalClosest = target.closest;
+  verifyNoFocus(() => { target.closest = () => null; },
+    'module moved outside its enterprise group never receives focus');
+  target.closest = originalClosest;
   target.hidden = false;
   target.isConnected = true;
   targetGroup.hidden = false;
