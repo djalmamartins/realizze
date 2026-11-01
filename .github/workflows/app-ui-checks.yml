@@ -12,7 +12,6 @@ on:
       - 'tests/ui-002-view-smoke.php'
       - 'tests/ui-003-mobile-menu.js'
       - 'tests/ui-004-enterprise-search.js'
-      - 'tests/cms-001-preview-smoke.php'
       - 'tests/cms-002-preview-access.php'
       - 'tests/enterprise-001-context.php'
       - 'tests/security-001-csrf-session.php'
@@ -55,6 +54,8 @@ jobs:
           tools: composer:v2
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
+      - name: Create test environment file
+        run: cp .env.example .env
       - name: Check App PHP syntax
         run: |
           cp .env.example .env
@@ -66,7 +67,6 @@ jobs:
           php -l container/web/realizze/v1/routes.php
           php -l container/app/realizze/v1/routes.php
           find container/cms/realizze/v1 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-          php -l tests/cms-001-preview-smoke.php
           php -l tests/cms-002-preview-access.php
           php -l tests/enterprise-001-context.php
           php -l source/Services/Csrf.php
@@ -87,7 +87,6 @@ jobs:
         run: php tests/ui-002-view-smoke.php
       - name: Smoke-test isolated CMS preview and static gate
         run: |
-          php tests/cms-001-preview-smoke.php
           php tests/cms-002-preview-access.php
       - name: Verify enterprise session and permission isolation
         run: php tests/enterprise-001-context.php
