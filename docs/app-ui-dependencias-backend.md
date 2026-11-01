@@ -13,3 +13,10 @@ Telas prontas só para leitura, aguardando as ações abaixo. Não simulam suces
 | Clientes | `source/App/ContactActions.php` | Interface alterou o redirecionamento para respeitar `back`; revisar |
 | Fornecedores | `Contacts::financialSummary` | Hoje conta só recebimentos; incluir despesas ao vincular contato em Pagar |
 | Migrations | `database/migrations` | Há dois arquivos `003`; renumerar `003_create_finance_planning_tables.sql` |
+| Integrações | `pages/integracoes.php` | Open Finance, cartões, PIX, WhatsApp oficial e APIs de banco; hoje só aparecem como indisponíveis |
+| Notificações | `pages/notificacoes.php` | Tabela de avisos, lida/não lida, preferências e envio; hoje só calcula vencimentos |
+| Equipe | `pages/equipe.php` | Último acesso e convites pendentes com expiração |
+| Contas e logos | `finance_accounts` | Campo do banco de cada conta, para ligar a `storage/bank-logos/` |
+| Cobrança | sem tela | PIX, boleto e cartão, itens, anexos, lembretes e histórico da cobrança |
+| Metas | `finance_goals` | Imagem, ícone e categoria da meta; conquistas |
+| Empresa | `pages/empresa.php` | Endereço, contas padrão, preferências, numeração, etiquetas, impostos, exportação e exclusão |

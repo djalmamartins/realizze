@@ -12,6 +12,12 @@ $members = $active ? OrganizationDirectory::members((int) $active['id']) : [];
     <div><h2 id="team-title">Equipe e permissões</h2><p class="muted">Quem acessa os dados de <?= $e($active['name'] ?? 'esta empresa') ?>.</p></div>
     <button type="button" class="primary" disabled title="Convites ainda não disponíveis">+ Convidar pessoa</button>
   </div>
+  <?php $activeCount = count(array_filter($members, static fn (array $m): bool => $m['status'] === 'active')); ?>
+  <div class="finance-goal-summary" aria-label="Resumo da equipe">
+    <div class="finance-goal-stat"><span>Membros</span><strong><?= count($members) ?></strong><small>Com acesso à empresa</small></div>
+    <div class="finance-goal-stat"><span>Ativos</span><strong class="green"><?= $activeCount ?></strong><small>Podem entrar agora</small></div>
+    <div class="finance-goal-stat"><span>Convites pendentes</span><strong>—</strong><small>Indisponível</small></div>
+  </div>
   <?php if ($members === []): ?>
   <div class="finance-empty"><h3>Nenhum membro encontrado</h3><p>Selecione uma empresa no menu.</p></div>
   <?php else: ?>
@@ -26,5 +32,11 @@ $members = $active ? OrganizationDirectory::members((int) $active['id']) : [];
     </table>
   </div>
   <?php endif; ?>
+  <div class="role-notes" aria-label="Perfis de acesso">
+    <div><strong>Proprietário</strong><small>Acesso total, inclusive à equipe.</small></div>
+    <div><strong>Administrador</strong><small>Gerencia dados e usuários. Em breve.</small></div>
+    <div><strong>Financeiro</strong><small>Lança e baixa contas. Em breve.</small></div>
+    <div><strong>Contabilidade</strong><small>Consulta e exporta. Em breve.</small></div>
+  </div>
   <p class="profile-pending team-pending">Convites, troca de perfil e remoção de acesso ainda não estão disponíveis.</p>
 </section>

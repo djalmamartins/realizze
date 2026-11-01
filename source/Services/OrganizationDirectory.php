@@ -18,6 +18,13 @@ final class OrganizationDirectory
         return $statement->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    public static function user(int $userId): ?array
+    {
+        $statement = Connection::get()->prepare('SELECT first_name, last_name, email, status, created_at FROM users WHERE id = ?');
+        $statement->execute([$userId]);
+        return $statement->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
     public static function members(int $organizationId): array
     {
         $statement = Connection::get()->prepare(
