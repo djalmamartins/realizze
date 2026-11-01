@@ -1,38 +1,45 @@
 <?php
-/** Navegação da prévia local do CMS: links GET, sem ações administrativas. */
-$cmsMenu = [
-    'Gerenciamento' => [
-        ['overview', 'Visão geral', 'overview'],
-        ['pages', 'Páginas', 'pages'],
-        ['contents', 'Conteúdos', 'edit'],
-        ['media', 'Mídia', 'media'],
+/** Navegação do CMS: cada item só aparece com a permissão exigida pela rota. */
+use Moves\Services\CmsAuth;
+use Moves\Support\CmsView as V;
+
+require __DIR__ . '/icons.php';
+$menu = [
+    'Visão geral' => [['dashboard', '/', 'Dashboard', 'overview', 'dashboard.view']],
+    'Site' => [
+        ['pages', '/paginas', 'Páginas', 'pages', 'pages.manage'], ['contents', '/conteudos', 'Conteúdos', 'edit', 'content.manage'],
+        ['media', '/midia', 'Mídia', 'media', 'media.manage'], ['menus', '/menus', 'Menus', 'menu', 'menus.manage'], ['seo', '/seo', 'SEO', 'search', 'seo.manage'],
     ],
     'Plataforma' => [
-        ['users', 'Usuários', 'users'],
-        ['plans', 'Planos e assinaturas', 'card'],
-        ['logs', 'Logs e auditoria', 'clock'],
-        ['settings', 'Configurações', 'settings'],
+        ['users', '/usuarios', 'Usuários', 'users', 'users.view'], ['companies', '/empresas', 'Empresas', 'building', 'companies.view'],
+        ['plans', '/planos', 'Planos e preços', 'tag', 'plans.view'], ['subscriptions', '/assinaturas', 'Assinaturas', 'repeat', 'subscriptions.view'], ['charges', '/cobrancas', 'Cobranças', 'card', 'charges.view'],
+    ],
+    'Atendimento' => [
+        ['tickets', '/chamados', 'Chamados', 'chat', 'tickets.view'], ['queue', '/chamados/fila', 'Fila de atendimento', 'clock', 'tickets.view'],
+        ['ticket-categories', '/chamados/categorias', 'Categorias', 'list', 'tickets.categories'], ['ticket-team', '/chamados/equipe', 'Equipe', 'users', 'tickets.view'],
+        ['ticket-reports', '/chamados/relatorios', 'Relatórios de atendimento', 'chart', 'tickets.reports'], ['ticket-notifications', '/chamados/notificacoes', 'Configurações de notificações', 'bell', 'notifications.configure'],
+    ],
+    'Administração' => [
+        ['admins', '/administradores', 'Administradores', 'shield', 'admins.manage'], ['permissions', '/permissoes', 'Permissões', 'key', 'permissions.manage'],
+        ['audit', '/auditoria', 'Auditoria', 'clock', 'audit.view'], ['settings', '/configuracoes', 'Configurações', 'settings', 'settings.manage'],
     ],
 ];
-$cmsPaths = [
-    'overview' => '/', 'pages' => '/paginas', 'contents' => '/conteudos',
-    'media' => '/midia', 'users' => '/usuarios', 'plans' => '/planos',
-    'logs' => '/logs', 'settings' => '/configuracoes',
-];
-$cmsSection = isset($cmsSection) && is_string($cmsSection) && isset($cmsPaths[$cmsSection]) ? $cmsSection : 'overview';
 ?>
-<aside class="cms-sidebar" id="cms-sidebar" aria-label="Navegação demonstrativa do CMS">
+<aside class="cms-sidebar" id="cms-sidebar" aria-label="Navegação do CMS">
  <div class="cms-brand-row">
-  <a class="cms-brand" href="/" aria-label="Realizze CMS, visão geral"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="138" height="35"><small>CMS</small></a>
+  <a class="cms-brand" href="/" aria-label="Realizze CMS, dashboard"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="138" height="35"><small>CMS</small></a>
   <button type="button" class="cms-menu-toggle" id="cms-menu-toggle" aria-label="Abrir navegação" aria-controls="cms-navigation" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
  </div>
- <nav class="cms-nav" id="cms-navigation" aria-label="Seções planejadas">
- <?php foreach ($cmsMenu as $group => $items): ?>
-  <h2 class="cms-nav-group-heading"><?= htmlspecialchars($group, ENT_QUOTES, 'UTF-8') ?></h2>
-  <?php foreach ($items as [$slug, $label, $symbol]): ?>
-   <a href="<?= htmlspecialchars($cmsPaths[$slug], ENT_QUOTES, 'UTF-8') ?>"<?= $slug === $cmsSection ? ' class="selected" aria-current="page"' : '' ?>><?= $cmsIcon($symbol) ?><span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span></a>
+ <nav class="cms-nav" id="cms-navigation" aria-label="Módulos">
+ <?php foreach ($menu as $name => $items):
+    $visible = array_filter($items, static fn (array $item): bool => CmsAuth::can($admin ?? null, $item[4]));
+    if ($visible === []) { continue; }
+    $isOpen = ($group ?? '') === $name || $name === 'Visão geral'; ?>
+  <details class="cms-nav-group"<?= $isOpen ? ' open' : '' ?>><summary><?= V::e($name) ?></summary>
+  <?php foreach ($visible as [$key, $href, $label, $symbol]): ?>
+   <a href="<?= V::e($href) ?>"<?= $key === ($section ?? '') ? ' class="selected" aria-current="page"' : '' ?>><?= $cmsIcon($symbol) ?><span><?= V::e($label) ?></span></a>
   <?php endforeach; ?>
+  </details>
  <?php endforeach; ?>
  </nav>
- <div class="cms-bottom">Realizze 2.0 · Prévia visual</div>
 </aside>

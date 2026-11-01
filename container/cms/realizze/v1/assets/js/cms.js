@@ -1,6 +1,10 @@
-/* Apenas navegação responsiva da prévia local; não executa ações administrativas. */
+/* Navegação responsiva e confirmação de ações sensíveis do CMS. */
 (() => {
   'use strict';
+  document.addEventListener('submit', (event) => {
+    const message = event.target && event.target.dataset ? event.target.dataset.confirm : null;
+    if (message && !window.confirm(message)) event.preventDefault();
+  });
   const initialize = () => {
     const sidebar = document.getElementById('cms-sidebar');
     const toggle = document.getElementById('cms-menu-toggle');
@@ -12,7 +16,7 @@
     if (!firstLink) return;
     let desktop;
     try {
-      desktop = window.matchMedia('(min-width: 721px)');
+      desktop = window.matchMedia('(min-width: 851px)');
     } catch (_error) {
       return;
     }
