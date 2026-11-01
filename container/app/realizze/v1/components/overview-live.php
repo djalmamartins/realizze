@@ -78,7 +78,8 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 $seriesMax = max(1, ...array_merge(...array_map(static fn (array $m): array => [$m['income'], $m['expense']], array_values($series ?: [['income' => 0, 'expense' => 0]]))));
 $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
 ?>
-<section class="card" aria-labelledby="overview-chart-title">
+<div class="overview-chart-layout">
+<section class="card overview-chart-main" aria-labelledby="overview-chart-title">
   <div class="section-head"><h2 id="overview-chart-title">Receitas e despesas, últimos 6 meses</h2><a href="/minha-conta?pagina=relatorios">Ver relatórios</a></div>
   <div class="bars" role="img" aria-label="Gráfico de receitas e despesas pagas por mês">
     <?php foreach ($series as $key => $values): ?>
@@ -87,6 +88,17 @@ $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05'
   </div>
   <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
 </section>
+<aside class="card overview-chart-side" aria-labelledby="overview-due-side-title">
+  <div class="section-head"><h2 id="overview-due-side-title">Atenção aos vencimentos</h2><a href="<?= $e(\\Moves\\Services\\AppUrl::section('pagar', \\Moves\\Services\\OrganizationContext::current())) ?>">Ver contas</a></div>
+  <p class="muted">Resumo dos compromissos financeiros no período.</p>
+  <div class="overview-side-due">
+    <?php foreach ([['Hoje e atrasados', 'today'], ['Amanhã', 'tomorrow'], ['Próximos 7 dias', 'week']] as [$label, $key]): ?>
+    <div class="overview-side-due-row"><span><strong><?= $e($label) ?></strong><small><?= (int) $data['due'][$key . '_count'] ?> título(s)</small></span><strong class="<?= $key === 'today' && $data['due'][$key . '_count'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money((int) $data['due'][$key . '_total'])) ?></strong></div>
+    <?php endforeach; ?>
+  </div>
+  <a class="overview-side-action" href="<?= $e(\\Moves\\Services\\AppUrl::section('pagar', \\Moves\\Services\\OrganizationContext::current())) ?>">Consultar contas a pagar</a>
+</aside>
+</div>
 <section class="content-grid" aria-label="Painéis financeiros">
   <article class="card"><div class="section-head"><h2>Últimas movimentações</h2><a href="/minha-conta?pagina=movimentacoes">Ver todas</a></div>
     <?php if ($data['recent'] === []): ?><p class="muted">Nenhuma movimentação registrada.</p><?php else: ?>
