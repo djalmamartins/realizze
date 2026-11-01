@@ -101,7 +101,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#079550">
-<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/<?= $activeOrganization !== null ? 'favicon-realizze-empresa.svg' : 'favicon-realizze.svg' ?>">
 <title><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?> | Realizze</title>
 <?php if (is_file($publishedCss)): ?>
 <link rel="stylesheet" href="/assets/realizze-app/v1/css/dashboard.min.css?v=<?= (int) filemtime($publishedCss) ?>">
