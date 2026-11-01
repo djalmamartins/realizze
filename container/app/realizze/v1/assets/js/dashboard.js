@@ -287,6 +287,13 @@
       bar.style.width = finish ? bar.dataset.width + '%' : '0%';
       if (!finish) requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = bar.dataset.width + '%'; }));
     });
+    root.querySelectorAll('[data-height]').forEach((bar, index) => {
+      bar.style.height = finish ? bar.dataset.height + '%' : '0%';
+      if (!finish) {
+        bar.style.transitionDelay = index * 40 + 'ms';
+        requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = bar.dataset.height + '%'; }));
+      }
+    });
     root.querySelectorAll('.donut-slice').forEach((slice, index) => {
       if (finish) return;
       const target = slice.getAttribute('stroke-dasharray');
@@ -326,6 +333,7 @@
     const incomingContext = next.querySelector('#app-sidebar .context-switch');
     if (context && incomingContext) context.replaceWith(incomingContext);
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
+    document.body.dataset.context = next.body.dataset.context || 'pf';
     document.title = next.title;
     if (push) history.pushState({}, '', url);
     animate();
@@ -367,6 +375,18 @@
       document.getElementById(open.dataset.financeOpen)?.showModal();
       return;
     }
+    const tab = event.target.closest?.('[data-tab]');
+    if (tab) {
+      const box = tab.closest('[data-tabs]');
+      box.querySelectorAll('[data-tab]').forEach((item) => item.setAttribute('aria-selected', item === tab ? 'true' : 'false'));
+      box.querySelectorAll('[data-tab-panel]').forEach((panel) => { panel.hidden = panel.dataset.tabPanel !== tab.dataset.tab; });
+      return;
+    }
+    const print = event.target.closest?.('[data-finance-print]');
+    if (print) {
+      window.print();
+      return;
+    }
     const close = event.target.closest?.('[data-finance-close]');
     if (close) {
       close.closest('dialog').close();
@@ -376,6 +396,7 @@
     if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || link.target) return;
     const url = new URL(link.href, location.href);
     if (url.hash && url.pathname === location.pathname && url.search === location.search) return;
+    if (link.hasAttribute('download')) return;
     if (swappable(url) && currentSwappable()) {
       event.preventDefault();
       go(url.href);

@@ -38,8 +38,47 @@ return [
             require __DIR__ . '/pages/dashboard.php';
         };
 
+        $renderContextDashboard = static function (string $context, string $section = 'overview') use ($renderDashboard): void {
+            $organization = \Moves\Services\OrganizationContext::current();
+            $isOrganization = $organization !== null;
+            if (($context === 'pj') !== $isOrganization) {
+                header('Cache-Control: no-store');
+                header('Location: ' . ($isOrganization ? '/pj/minha-empresa' : '/pf/pessoal'), true, 302);
+                return;
+            }
+            if (in_array($section, ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'], true) && !$isOrganization) {
+                http_response_code(404);
+                return;
+            }
+            $_GET['pagina'] = $section;
+            if ($section === 'clientes') $_GET['papel'] = 'customer';
+            if ($section === 'fornecedores') $_GET['papel'] = 'supplier';
+            $renderDashboard();
+        };
+
         $router->get('/', $renderDashboard, 'app.index');
-        $router->get('/minha-conta', $renderDashboard, 'app.account');
+        $router->get('/minha-conta', static function () use ($requirePreview): void {
+            if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+            $organization = \Moves\Services\OrganizationContext::current();
+            $base = $organization === null ? '/pf/pessoal' : '/pj/minha-empresa';
+            $page = is_string($_GET['pagina'] ?? null) ? $_GET['pagina'] : 'overview';
+            $slugs = ['overview' => '', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'contas' => 'cartoes', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'contatos' => 'contatos', 'assistente' => 'assistente', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
+            $slug = $slugs[$page] ?? '';
+            $query = $_GET;
+            unset($query['pagina']);
+            header('Cache-Control: no-store');
+            header('Location: ' . $base . ($slug === '' ? '' : '/' . $slug) . ($query === [] ? '' : '?' . http_build_query($query)), true, 302);
+        }, 'app.account');
+
+        $semantic = ['' => 'overview', 'notificacoes' => 'notificacoes', 'integracoes' => 'integracoes', 'perfil' => 'perfil', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'cartoes' => 'contas', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'assistente' => 'assistente', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
+        foreach (['pf' => '/pf/pessoal', 'pj' => '/pj/minha-empresa'] as $context => $base) {
+            foreach ($semantic as $slug => $section) {
+                $router->get($base . ($slug === '' ? '' : '/' . $slug), static fn () => $renderContextDashboard($context, $section), 'app.' . $context . '.' . $section);
+            }
+        }
+        foreach (['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'] as $section) {
+            $router->get('/pj/minha-empresa/' . $section, static fn () => $renderContextDashboard('pj', $section), 'app.pj.' . $section);
+        }
 
         $router->get('/entrar', static function () use ($requirePreview, $renderLogin): void {
             if (!$requirePreview()) {
@@ -94,10 +133,17 @@ return [
                 return;
             }
             header('Cache-Control: no-store');
-            header('Location: /minha-conta', true, 303);
+            header('Location: ' . ($type === 'personal' ? '/pf/pessoal' : '/pj/minha-empresa'), true, 303);
         }, 'app.context.switch');
 
-        foreach (['create' => 'lancamento', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa'] as $action => $slug) {
+        $router->get('/minha-conta/financeiro/exportar', static function () use ($requirePreview): void {
+            if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
+                return;
+            }
+            (new \Moves\App\FinanceActions())->export();
+        }, 'app.finance.export');
+
+        foreach (['create' => 'lancamento', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'budget' => 'orcamento', 'goal' => 'meta', 'goal_add' => 'meta-valor', 'goal_delete' => 'meta-excluir'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
@@ -121,6 +167,7 @@ return [
                 (new \Moves\App\ContactActions())->handle($action);
             }, 'app.contacts.' . $action);
         }
+
 
         $router->post('/sair', static function () use ($requirePreview): void {
             if (!$requirePreview()) {

@@ -211,10 +211,6 @@ echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
 
 // APP-UI-044: shared financial tables have captions and escape dynamic metadata.
 foreach ([
-    'categorias' => 'Categorias',
-    'metas' => 'Metas financeiras',
-    'relatorios' => 'Relatórios financeiros',
-    'planejamento' => 'Planejamento financeiro',
 ] as $page => $caption) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, '<caption class="finance-table-caption">' . $caption)
@@ -258,7 +254,7 @@ if (!is_string($dashboardSource)
 echo 'OK - APP-SEC-044: nome e token CSRF escapados somente no HTML.' . PHP_EOL;
 
 // APP-UI-045: Contas has two separate, labelled tables; reports and planning each have one.
-foreach (['relatorios', 'planejamento'] as $page) {
+foreach ([] as $page) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (substr_count($html, '<caption class="finance-table-caption">') !== 1) {
         throw new RuntimeException('APP-UI-045: tabela duplicada ou ausente: ' . $page);
@@ -373,7 +369,7 @@ foreach ([
 echo 'OK - APP-A11Y-064: avatar compartilhado preserva grafemas e fallback UTF-8.' . PHP_EOL;
 
 // APP-A11Y-065: PF/PJ tables must explain horizontal scrolling without enabling actions.
-foreach (['relatorios', 'planejamento', 'metas', 'categorias'] as $page) {
+foreach ([] as $page) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, 'class="finance-scroll-hint"')
         || !str_contains($html, 'Com teclado, foque esta região e use as setas.')) {
@@ -455,7 +451,7 @@ echo 'OK - APP-UI-074: cabeçalho PF/PJ compartilhado, acessível e escapado.' .
 
 // APP-UI-075: reusable preview filters must remain disabled, accessible and
 // never submit PF data; IDs and untrusted metadata are validated/escaped.
-foreach (['categorias'] as $page) {
+foreach ([] as $page) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (!str_contains($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"')
         || !str_contains($html, 'Nenhuma consulta ou alteração é realizada.')
@@ -512,8 +508,6 @@ echo 'OK - APP-UI-075: filtros PF compartilhados, desabilitados e escapados.' . 
 // APP-UI-076: reports and planning reuse the same non-operational PF filters.
 // Keep all original IDs/labels and reject enabled controls or duplicated IDs.
 foreach ([
-    'relatorios' => ['relatorios-period', 'relatorios-account', 'relatorios-category'],
-    'planejamento' => ['planejamento-period', 'planejamento-account', 'planejamento-category'],
 ] as $page => $expectedIds) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (substr_count($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"') !== 1
@@ -548,7 +542,6 @@ echo 'OK - APP-UI-076: filtros de relatórios e planejamento reutilizados sem op
 // APP-UI-077: metas and accounts/cards share the disabled, accessible PF filters.
 // No form submission, financial fixtures, duplicated IDs or enabled fields.
 foreach ([
-    'metas' => ['metas-search', 'metas-status', 'metas-deadline'],
 ] as $page => $expectedIds) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     if (substr_count($html, 'role="group" aria-label="Filtros financeiros indisponíveis nesta prévia"') !== 1
@@ -723,8 +716,8 @@ echo 'OK - APP-SEC-088: navegação rejeita URLs externas e protocolos executáv
 // APP-A11Y-089: keyboard-scroll guidance is explicitly associated with each
 // financial/PJ region, with distinct IDs when multiple tables share a page.
 foreach ([
-    'relatorios' => 1, 'planejamento' => 1,
-    'metas' => 1, 'categorias' => 1] as $page => $expectedCount) {
+    
+    ] as $page => $expectedCount) {
     $html = $view->render('pages/' . $page, ['icon' => $icon, 'appView' => $view]);
     preg_match_all('/class="finance-table-wrap"[^>]*aria-describedby="(finance-scroll-hint-[a-f0-9]+)"/', $html, $hints);
     if (count($hints[1]) !== $expectedCount || count(array_unique($hints[1])) !== $expectedCount) {

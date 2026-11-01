@@ -9,13 +9,14 @@ $period = Finance::period($_GET);
 $today = new DateTimeImmutable('today');
 $data = null;
 $manual = [];
-$categoriesIncome = $categoriesExpense = [];
+$categoriesIncome = $categoriesExpense = $series = [];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $data = $finance->overview($period['start'], $period['end'], $period['compareStart'], $period['compareEnd']);
     $manual = $finance->accounts();
     $categoriesIncome = $finance->categories('income');
     $categoriesExpense = $finance->categories('expense');
+    $series = $finance->monthlySeries($period['end']);
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
 }
@@ -73,6 +74,19 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 <?php endforeach; ?>
   <div class="forecast"><span class="green">Fechamento previsto</span><p class="muted">Saldo atual + a receber − a pagar no período.</p><strong class="<?= $data['forecast'] < 0 ? 'red' : 'green' ?>"><?= $money($data['forecast']) ?></strong></div>
 </div></section>
+<?php
+$seriesMax = max(1, ...array_merge(...array_map(static fn (array $m): array => [$m['income'], $m['expense']], array_values($series ?: [['income' => 0, 'expense' => 0]]))));
+$shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
+?>
+<section class="card" aria-labelledby="overview-chart-title">
+  <div class="section-head"><h2 id="overview-chart-title">Receitas e despesas, últimos 6 meses</h2><a href="/minha-conta?pagina=relatorios">Ver relatórios</a></div>
+  <div class="bars" role="img" aria-label="Gráfico de receitas e despesas pagas por mês">
+    <?php foreach ($series as $key => $values): ?>
+    <div class="bars-month"><div class="bars-pair"><span class="bar bar-income" data-height="<?= round($values['income'] / $seriesMax * 100, 1) ?>" title="Receitas: <?= $e(Finance::money($values['income'])) ?>"></span><span class="bar bar-expense" data-height="<?= round($values['expense'] / $seriesMax * 100, 1) ?>" title="Despesas: <?= $e(Finance::money($values['expense'])) ?>"></span></div><small><?= $e($shortMonths[substr((string) $key, 5)]) ?></small></div>
+    <?php endforeach; ?>
+  </div>
+  <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
+</section>
 <section class="content-grid" aria-label="Painéis financeiros">
   <article class="card"><div class="section-head"><h2>Últimas movimentações</h2><a href="/minha-conta?pagina=movimentacoes">Ver todas</a></div>
     <?php if ($data['recent'] === []): ?><p class="muted">Nenhuma movimentação registrada.</p><?php else: ?>

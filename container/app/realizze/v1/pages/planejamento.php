@@ -1,19 +1,60 @@
-<?php /** Prévia de layout sem valores financeiros reais ou gráficos fabricados. */ ?>
-<section class="card finance-workspace" aria-labelledby="planejamento-title">
-<div class="finance-toolbar"><div><h2 id="planejamento-title">Planejamento financeiro</h2><p class="muted">Defina limites mensais e acompanhe o orçamento planejado.</p></div><button type="button" class="primary" disabled title="Disponível após integração financeira">+ Novo orçamento</button></div>
-<div class="finance-goal-summary" aria-label="Indicadores ainda indisponíveis"><div class="finance-goal-stat"><span>Orçamento previsto</span><strong>—</strong><small>Aguardando dados autorizados</small></div><div class="finance-goal-stat"><span>Valor realizado</span><strong>—</strong><small>Aguardando dados autorizados</small></div><div class="finance-goal-stat"><span>Saldo disponível</span><strong>—</strong><small>Aguardando dados autorizados</small></div></div>
-<?= $appView->render('components::finance-filter-preview', ['financeFilterFields' => [
-    ['id' => 'planejamento-period', 'label' => 'Período', 'type' => 'select', 'option' => 'Selecionar período'],
-    ['id' => 'planejamento-account', 'label' => 'Conta', 'type' => 'select', 'option' => 'Todas as contas'],
-    ['id' => 'planejamento-category', 'label' => 'Categoria', 'type' => 'select', 'option' => 'Todas as categorias'],
-]]) ?>
-<div class="finance-report-panels"><section class="finance-report-panel" aria-label="Previsto x realizado"><h3>Previsto x realizado</h3><div class="finance-chart-empty"><span aria-hidden="true"><?= $icon('calendar-days') ?></span><p>Gráfico disponível após a integração financeira.</p></div></section><section class="finance-report-panel" aria-label="Orçamento por categoria"><h3>Orçamento por categoria</h3><div class="finance-chart-empty"><span aria-hidden="true"><?= $icon('calendar-days') ?></span><p>Sem dados para exibir neste período.</p></div></section></div>
-<div class="finance-toolbar"><div><h3>Detalhamento</h3><p class="muted">Consulte os registros por período e categoria.</p></div></div>
- <?= $appView->render('components::finance-empty-table', ['financeEmptyTable' => [
-    'caption' => 'Planejamento financeiro — integração pendente',
-    'columns' => ['Planejamento', 'Período', 'Previsto', 'Realizado', 'Status'],
-    'title' => 'Nenhum registro disponível',
-    'description' => 'Os resultados serão apresentados quando houver dados reais autorizados.',
-    'icon' => 'calendar-days',
-], 'icon' => $icon]) ?>
+<?php
+use Moves\Services\Finance;
+use Moves\Services\FinanceContext;
+
+$e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$csrf = (string) ($csrf ?? '');
+$period = Finance::period($_GET);
+$link = static fn (array $query): string => '/minha-conta?' . http_build_query(['pagina' => 'planejamento'] + $query);
+$flash = $_SESSION['finance_flash'] ?? null;
+unset($_SESSION['finance_flash']);
+$loadFailed = false;
+$month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : date('Y-m');
+$rows = [];
+try {
+    $rows = (new Finance((int) FinanceContext::currentId()))->budgets($month);
+} catch (Throwable $exception) {
+    error_log('Realizze finance: ' . $exception->getMessage());
+    $loadFailed = true;
+}
+$planned = array_sum(array_column($rows, 'budget'));
+$spent = array_sum(array_map(static fn (array $r): int => $r['budget'] > 0 ? $r['spent'] : 0, $rows));
+?>
+<?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
+<section class="card finance-workspace" aria-labelledby="planning-title">
+  <div class="finance-toolbar">
+    <div><h2 id="planning-title">Planejamento</h2><p class="muted">Defina um limite por categoria e acompanhe o gasto do mês.</p></div>
+    <button type="button" class="primary" data-finance-open="budget-dialog"<?= $rows === [] ? ' disabled title="Crie uma categoria de despesa primeiro"' : '' ?>>+ Definir orçamento</button>
+  </div>
+  <div class="finance-goal-summary" aria-label="Resumo do orçamento">
+    <div class="finance-goal-stat"><span>Orçamento</span><strong><?= $e(Finance::money($planned)) ?></strong><small><?= $e($period['long']) ?></small></div>
+    <div class="finance-goal-stat"><span>Gasto</span><strong class="red"><?= $e(Finance::money($spent)) ?></strong><small>Nas categorias com orçamento</small></div>
+    <div class="finance-goal-stat"><span>Disponível</span><strong class="<?= $planned - $spent < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($planned - $spent)) ?></strong><small>Orçamento − gasto</small></div>
+  </div>
+  <div class="finance-filter-bar">
+    <nav class="finance-month" aria-label="Mês"><a href="<?= $e($link($period['previous'])) ?>" aria-label="Mês anterior">‹</a><strong><?= $e($period['long']) ?></strong><a href="<?= $e($link($period['next'])) ?>" aria-label="Próximo mês">›</a></nav>
+  </div>
+  <?php if ($loadFailed): ?>
+  <div class="finance-empty"><h3>Não foi possível carregar o planejamento</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
+  <?php elseif ($rows === []): ?>
+  <div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('calendar-days') ?></span><h3>Sem categorias de despesa</h3><p>Crie categorias para definir orçamentos.</p></div>
+  <?php else: ?>
+  <ul class="budget-list">
+    <?php foreach ($rows as $row): $share = $row['budget'] > 0 ? min(100, $row['spent'] / $row['budget'] * 100) : 0; $over = $row['budget'] > 0 && $row['spent'] > $row['budget']; ?>
+    <li>
+      <div class="budget-head"><strong><span class="finance-dot" style="background:<?= $e($row['color']) ?>"></span><?= $e($row['name']) ?></strong><span class="<?= $over ? 'red' : 'muted' ?>"><?= $e(Finance::money($row['spent'])) ?> de <?= $row['budget'] > 0 ? $e(Finance::money($row['budget'])) : 'sem orçamento' ?></span></div>
+      <div class="track track-live"><span class="<?= $over ? 'is-over' : '' ?>" data-width="<?= round($share, 1) ?>"></span></div>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+  <?php endif; ?>
 </section>
+<dialog class="finance-dialog" id="budget-dialog" aria-labelledby="budget-dialog-title">
+  <form method="post" action="/minha-conta/financeiro/orcamento" data-finance-form>
+    <header><h2 id="budget-dialog-title">Definir orçamento de <?= $e($period['long']) ?></h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="planejamento"><input type="hidden" name="mes" value="<?= $e($month) ?>">
+    <label>Categoria<select name="category_id" required><?php foreach ($rows as $row): ?><option value="<?= (int) $row['category_id'] ?>"><?= $e($row['name']) ?></option><?php endforeach; ?></select></label>
+    <label>Limite do mês (R$)<input name="amount" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?" required></label>
+    <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
+  </form>
+</dialog>

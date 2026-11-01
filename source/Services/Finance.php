@@ -21,6 +21,14 @@ final class Finance
         $this->pdo = Connection::get();
     }
 
+    private static function optionalDay(mixed $value): ?int
+    {
+        if ($value === null || $value === '') return null;
+        $day = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 31]]);
+        if ($day === false) throw new InvalidArgumentException('Informe um dia entre 1 e 31.');
+        return $day;
+    }
+
     /** Converte "1.234,56" em centavos. */
     public static function parseCents(mixed $value): int
     {
@@ -44,8 +52,8 @@ final class Finance
     public function accounts(): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, name, type, institution, opening_balance_cents FROM finance_accounts
-             WHERE financial_context_id = ? AND archived_at IS NULL ORDER BY name'
+            'SELECT id, name, type, institution, opening_balance_cents, status, card_kind, credit_limit_cents, closing_day, due_day FROM finance_accounts
+             WHERE financial_context_id = ? AND archived_at IS NULL AND status = \'active\' ORDER BY name'
         );
         $statement->execute([$this->contextId]);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -147,7 +155,7 @@ final class Finance
     public function accountsWithBalance(): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT a.id, a.name, a.type, a.institution,
+            "SELECT a.id, a.name, a.type, a.institution, a.status, a.card_kind, a.credit_limit_cents, a.closing_day, a.due_day,
                     a.opening_balance_cents + COALESCE(SUM(CASE
                         WHEN e.paid_at IS NULL THEN 0
                         WHEN e.kind = 'income' AND e.account_id = a.id THEN e.amount_cents
@@ -158,7 +166,7 @@ final class Finance
              FROM finance_accounts AS a
              LEFT JOIN finance_entries AS e ON e.financial_context_id = a.financial_context_id
                  AND (e.account_id = a.id OR e.target_account_id = a.id)
-             WHERE a.financial_context_id = ? AND a.archived_at IS NULL
+             WHERE a.financial_context_id = ? AND a.archived_at IS NULL AND a.status = 'active'
              GROUP BY a.id ORDER BY a.type = 'credit_card', a.name"
         );
         $statement->execute([$this->contextId]);
@@ -188,11 +196,17 @@ final class Finance
             throw new InvalidArgumentException('Escolha o tipo da conta.');
         }
         $opening = trim((string) ($data['opening_balance'] ?? ''));
+        $cardKind = $type === 'credit_card' ? 'credit' : (($data['card_kind'] ?? '') === 'debit' ? 'debit' : null);
+        $limit = trim((string) ($data['credit_limit'] ?? ''));
+        $closingDay = self::optionalDay($data['closing_day'] ?? null);
+        $dueDay = self::optionalDay($data['due_day'] ?? null);
         $this->pdo->prepare(
-            'INSERT INTO finance_accounts (financial_context_id, name, type, institution, opening_balance_cents) VALUES (?, ?, ?, ?, ?)'
+            'INSERT INTO finance_accounts (financial_context_id, name, type, institution, opening_balance_cents, card_kind, credit_limit_cents, closing_day, due_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
             $this->contextId, $name, $type, trim((string) ($data['institution'] ?? '')) ?: null,
             in_array($opening, ['', '0', '0,00'], true) ? 0 : self::parseCents($opening),
+            $cardKind, $type === 'credit_card' && $limit !== '' ? self::parseCents($limit) : null,
+            $type === 'credit_card' ? $closingDay : null, $type === 'credit_card' ? $dueDay : null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -303,6 +317,163 @@ final class Finance
             'previous_categories' => $this->expenseByCategory($compareStart->format('Y-m-d'), $compareEnd->format('Y-m-d')),
             'accounts' => $accounts,
         ];
+    }
+
+    /** Receitas e despesas pagas por mês, dos últimos $months meses até $end. */
+    public function monthlySeries(DateTimeImmutable $end, int $months = 6): array
+    {
+        $first = $end->modify('first day of this month')->modify('-' . ($months - 1) . ' month');
+        $statement = $this->pdo->prepare(
+            "SELECT DATE_FORMAT(paid_at, '%Y-%m') AS month, kind, SUM(amount_cents) AS total
+             FROM finance_entries
+             WHERE financial_context_id = ? AND kind IN ('income','expense') AND paid_at BETWEEN ? AND ?
+             GROUP BY month, kind"
+        );
+        $statement->execute([$this->contextId, $first->format('Y-m-d'), $end->format('Y-m-t')]);
+        $series = [];
+        for ($i = 0; $i < $months; $i++) {
+            $series[$first->modify("+{$i} month")->format('Y-m')] = ['income' => 0, 'expense' => 0];
+        }
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $series[$row['month']][$row['kind']] = (int) $row['total'];
+        }
+        return $series;
+    }
+
+    /** Lançamentos do período para exportação. */
+    public function exportRows(string $start, string $end): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT e.due_date, e.paid_at, e.kind, e.description, c.name AS category, a.name AS account, t.name AS target_account, e.amount_cents
+             FROM finance_entries AS e
+             INNER JOIN finance_accounts AS a ON a.id = e.account_id
+             LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
+             LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             WHERE e.financial_context_id = ? AND e.due_date BETWEEN ? AND ?
+             ORDER BY e.due_date, e.id"
+        );
+        $statement->execute([$this->contextId, $start, $end]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Categorias com o total lançado no período. */
+    public function categoriesWithTotals(string $start, string $end): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT c.id, c.name, c.kind, c.color, COALESCE(SUM(e.amount_cents), 0) AS total, COUNT(e.id) AS entries
+             FROM finance_categories AS c
+             LEFT JOIN finance_entries AS e ON e.category_id = c.id AND e.due_date BETWEEN ? AND ?
+             WHERE c.financial_context_id = ?
+             GROUP BY c.id ORDER BY c.kind DESC, c.name"
+        );
+        $statement->execute([$start, $end, $this->contextId]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function createCategory(array $data): int
+    {
+        $name = trim((string) ($data['name'] ?? ''));
+        $kind = (string) ($data['category_kind'] ?? '');
+        $color = (string) ($data['color'] ?? '#078b4c');
+        if ($name === '' || mb_strlen($name) > 80 || !in_array($kind, ['income', 'expense'], true)) {
+            throw new InvalidArgumentException('Informe o nome e o tipo da categoria.');
+        }
+        if (!preg_match('/^#[0-9a-f]{6}$/i', $color)) {
+            $color = '#078b4c';
+        }
+        $exists = $this->pdo->prepare('SELECT 1 FROM finance_categories WHERE financial_context_id = ? AND kind = ? AND name = ?');
+        $exists->execute([$this->contextId, $kind, $name]);
+        if ($exists->fetchColumn()) {
+            throw new InvalidArgumentException('Já existe uma categoria com esse nome.');
+        }
+        $this->pdo->prepare('INSERT INTO finance_categories (financial_context_id, name, kind, color) VALUES (?, ?, ?, ?)')
+            ->execute([$this->contextId, $name, $kind, $color]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /** Excluir a categoria mantém os lançamentos, que ficam sem categoria. */
+    public function deleteCategory(int $id): bool
+    {
+        $statement = $this->pdo->prepare('DELETE FROM finance_categories WHERE id = ? AND financial_context_id = ?');
+        $statement->execute([$id, $this->contextId]);
+        return $statement->rowCount() === 1;
+    }
+
+    /** Orçamento por categoria de despesa no mês, com o gasto até agora. */
+    public function budgets(string $month): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT c.id AS category_id, c.name, c.color, COALESCE(b.amount_cents, 0) AS budget,
+                    (SELECT COALESCE(SUM(e.amount_cents), 0) FROM finance_entries AS e
+                     WHERE e.category_id = c.id AND e.due_date BETWEEN ? AND LAST_DAY(?)) AS spent
+             FROM finance_categories AS c
+             LEFT JOIN finance_budgets AS b ON b.category_id = c.id AND b.month = ?
+             WHERE c.financial_context_id = ? AND c.kind = 'expense'
+             ORDER BY budget DESC, c.name"
+        );
+        $statement->execute([$month . '-01', $month . '-01', $month, $this->contextId]);
+        return array_map(static fn (array $row): array => ['budget' => (int) $row['budget'], 'spent' => (int) $row['spent']] + $row, $statement->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    public function saveBudget(array $data): void
+    {
+        $category = $this->ownedId('finance_categories', $data['category_id'] ?? null);
+        $month = (string) ($data['mes'] ?? '');
+        if ($category === null || !preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/', $month)) {
+            throw new InvalidArgumentException('Escolha a categoria e o mês.');
+        }
+        $this->pdo->prepare(
+            'INSERT INTO finance_budgets (financial_context_id, category_id, month, amount_cents) VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE amount_cents = VALUES(amount_cents)'
+        )->execute([$this->contextId, $category, $month, self::parseCents($data['amount'] ?? null)]);
+    }
+
+    public function goals(): array
+    {
+        $statement = $this->pdo->prepare("SELECT id, name, purpose, target_cents, saved_cents, deadline, status FROM finance_goals WHERE financial_context_id = ? AND status <> 'cancelled' ORDER BY status = 'completed', deadline IS NULL, deadline, id");
+        $statement->execute([$this->contextId]);
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function createGoal(array $data): int
+    {
+        $name = trim((string) ($data['name'] ?? ''));
+        if ($name === '' || mb_strlen($name) > 120) {
+            throw new InvalidArgumentException('Informe o nome da meta.');
+        }
+        $deadline = trim((string) ($data['deadline'] ?? ''));
+        $purpose = trim((string) ($data['purpose'] ?? ''));
+        $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, target_cents, deadline) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$this->contextId, $name, $purpose === '' ? null : mb_substr($purpose, 0, 160), self::parseCents($data['amount'] ?? null), $deadline === '' ? null : self::date($deadline)]);
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function addToGoal(int $id, mixed $amount, ?int $userId = null): bool
+    {
+        $cents = self::parseCents($amount);
+        $this->pdo->beginTransaction();
+        try {
+            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status = 'active' FOR UPDATE");
+            $statement->execute([$id, $this->contextId]);
+            $goal = $statement->fetch(PDO::FETCH_ASSOC);
+            if (!$goal) { $this->pdo->rollBack(); return false; }
+            $saved = (int) $goal['saved_cents'] + $cents;
+            $status = $saved >= (int) $goal['target_cents'] ? 'completed' : 'active';
+            $this->pdo->prepare('UPDATE finance_goals SET saved_cents = ?, status = ? WHERE id = ? AND financial_context_id = ?')->execute([$saved, $status, $id, $this->contextId]);
+            $this->pdo->prepare('INSERT INTO finance_goal_contributions (financial_context_id, goal_id, amount_cents, contributed_at, actor_user_id) VALUES (?, ?, ?, CURDATE(), ?)')->execute([$this->contextId, $id, $cents, $userId]);
+            $this->pdo->commit();
+            return true;
+        } catch (\Throwable $exception) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $exception;
+        }
+    }
+
+    public function deleteGoal(int $id): bool
+    {
+        $statement = $this->pdo->prepare("UPDATE finance_goals SET status = 'cancelled' WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled'");
+        $statement->execute([$id, $this->contextId]);
+        return $statement->rowCount() === 1;
     }
 
     private function openCount(string $kind, string $start, string $end): int

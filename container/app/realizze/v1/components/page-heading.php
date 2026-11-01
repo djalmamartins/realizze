@@ -9,7 +9,7 @@ $escapePageHeading = static fn (string $value): string => htmlspecialchars($valu
 ?>
 <section class="page-heading" aria-labelledby="app-page-title">
   <div>
-    <p class="eyebrow">Meu financeiro / <?= $escapePageHeading($pageHeadingTitle) ?></p>
+    <p class="eyebrow"><?= $escapePageHeading(\Moves\Services\OrganizationContext::current()['name'] ?? 'Meu financeiro') ?> / <?= $escapePageHeading($pageHeadingTitle) ?></p>
     <h1 id="app-page-title"><?= $escapePageHeading($pageHeadingTitle) ?></h1>
     <p class="muted"><?= $escapePageHeading($pageHeadingDescription) ?></p>
   </div>

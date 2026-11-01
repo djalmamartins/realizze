@@ -78,6 +78,17 @@ try {
     $company->createAccount(['name' => 'Conta PJ', 'type' => 'checking', 'opening_balance' => '500,00']);
     $check($company->availableBalance() === 50000 && $a->availableBalance() === 0, 'Dados da empresa ficam separados da pessoa física');
     $companies[] = $green;
+
+    $category = $b->createCategory(['name' => 'Teste', 'category_kind' => 'expense']);
+    $b->saveBudget(['category_id' => $category, 'mes' => date('Y-m'), 'amount' => '200,00']);
+    $b->createEntry('expense', ['description' => 'Com categoria', 'amount' => '50,00', 'due_date' => date('Y-m-d'), 'account_id' => $accountB, 'category_id' => $category], $ids['b']);
+    $budget = array_values(array_filter($b->budgets(date('Y-m')), static fn (array $r): bool => (int) $r['category_id'] === $category))[0];
+    $check($budget['budget'] === 20000 && $budget['spent'] === 5000, 'Orçamento compara limite e gasto');
+    $check(!$a->deleteCategory($category), 'Um contexto não exclui categoria de outro');
+    $goal = $b->createGoal(['name' => 'Reserva', 'amount' => '1.000,00']);
+    $check($b->addToGoal($goal, '100,00') && !$a->addToGoal($goal, '1,00') && !$a->deleteGoal($goal), 'Metas ficam no próprio contexto');
+    $series = $b->monthlySeries(new DateTimeImmutable('today'));
+    $check(count($series) === 6 && $series[date('Y-m')]['expense'] > 0, 'Série mensal de relatórios');
 } finally {
     foreach ($companies as $id) {
         $pdo->prepare('DELETE FROM organizations WHERE id = ?')->execute([$id]);

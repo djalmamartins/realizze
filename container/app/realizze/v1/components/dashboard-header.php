@@ -16,7 +16,7 @@ $period = \Moves\Services\Finance::period($_GET);
 <a href="/minha-conta<?= $period['view'] === 'mensal' ? '' : '?' . htmlspecialchars(http_build_query($period['other']), ENT_QUOTES, 'UTF-8') ?>"<?= $period['view'] === 'mensal' ? ' aria-current="true"' : '' ?>>Mensal</a>
 <a href="/minha-conta?<?= $period['view'] === 'anual' ? htmlspecialchars(http_build_query(['visao' => 'anual', 'ano' => $period['start']->format('Y')]), ENT_QUOTES, 'UTF-8') : htmlspecialchars(http_build_query($period['other']), ENT_QUOTES, 'UTF-8') ?>"<?= $period['view'] === 'anual' ? ' aria-current="true"' : '' ?>>Anual</a>
 </nav>
-<button class="bell" type="button" data-demo="true" aria-label="Notificações ainda indisponíveis"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button>
+<a class="bell" href="<?= \Moves\Services\OrganizationContext::current() !== null ? '/pj/minha-empresa/notificacoes' : '/pf/pessoal/notificacoes' ?>" aria-label="Notificações"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></a>
 <span class="avatar" aria-hidden="true"><?= htmlspecialchars((string) (require __DIR__ . '/profile-initial.php'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></span>
 </div>
 </header>
