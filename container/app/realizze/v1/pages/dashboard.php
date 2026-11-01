@@ -133,6 +133,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 </main>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<?php require dirname(__DIR__) . '/components/support-panel.php'; ?>
 <?php if (is_file($publishedJs)): ?>
 <script src="/assets/realizze-app/v1/js/dashboard.min.js?v=<?= (int) filemtime($publishedJs) ?>" defer></script>
 <?php else: ?>

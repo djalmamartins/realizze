@@ -22,6 +22,8 @@ $target = $root . '/public/assets/realizze-app/v1';
 $files = [
     ['css/dashboard.css', 'css/dashboard.min.css', CSS::class],
     ['js/dashboard.js', 'js/dashboard.min.js', JS::class],
+    ['css/support.css', 'css/support.min.css', CSS::class],
+    ['js/support.js', 'js/support.min.js', JS::class],
 ];
 
 foreach ($files as [$input, $output, $compressor]) {
