@@ -106,6 +106,6 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
  .cms-topbar{position:static;padding:10px 16px}
  .cms-content{padding:16px}
 }
-@media(max-width:540px){.cms-breadcrumbs{font-size:.78rem}.cms-profile summary{font-size:0}.cms-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cms-dl{grid-template-columns:minmax(0,1fr)}.cms-dl dt{margin-top:6px}}
+@media(max-width:540px){.cms-breadcrumbs{font-size:.78rem}.cms-profile summary{font-size:0}.cms-profile summary span{font-size:15px}.cms-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cms-dl{grid-template-columns:minmax(0,1fr)}.cms-dl dt{margin-top:6px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media (forced-colors: active){.cms-nav a.selected{outline:2px solid Highlight}.cms-skip-link:focus-visible{outline:3px solid Highlight}.cms-alert,.cms-badge{border:1px solid CanvasText}}
