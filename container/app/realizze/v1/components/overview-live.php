@@ -56,9 +56,9 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 <section aria-label="Indicadores financeiros" class="cards">
   <article class="card balance"><span class="label">Saldo disponível</span><div class="value"><?= $money($data['balance']) ?></div><span class="muted">Em contas e carteiras</span></article>
   <?php foreach ([
-    ['Resultado de ' . $period['short'], $data['result'], 'Receitas − despesas pagas', $data['result'] < 0 ? 'red' : 'green', '<path d="M3 12h4l3-7 4 14 3-7h4"/>', '/minha-conta?pagina=movimentacoes'],
-    ['A receber', $data['receivable'], $data['receivable_count'] . ' título' . ($data['receivable_count'] === 1 ? '' : 's') . ' em aberto', 'green', '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>', '/minha-conta?pagina=receber&situacao=open'],
-    ['A pagar', $data['payable'], $data['payable_count'] . ' título' . ($data['payable_count'] === 1 ? '' : 's') . ' em aberto', 'red', '<path d="M7 17 17 7m0 0H9m8 0v8"/>', '/minha-conta?pagina=pagar&situacao=open'],
+    ['Resultado de ' . $period['short'], $data['result'], 'Receitas − despesas pagas', $data['result'] < 0 ? 'red' : 'green', '<path d="M3 12h4l3-7 4 14 3-7h4"/>', \Moves\Services\AppUrl::section('movimentacoes')],
+    ['A receber', $data['receivable'], $data['receivable_count'] . ' título' . ($data['receivable_count'] === 1 ? '' : 's') . ' em aberto', 'green', '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>', \Moves\Services\AppUrl::section('receber', null, ['situacao' => 'open'])],
+    ['A pagar', $data['payable'], $data['payable_count'] . ' título' . ($data['payable_count'] === 1 ? '' : 's') . ' em aberto', 'red', '<path d="M7 17 17 7m0 0H9m8 0v8"/>', \Moves\Services\AppUrl::section('pagar', null, ['situacao' => 'open'])],
   ] as [$label, $value, $description, $color, $path, $href]): ?>
   <a class="card card-link" href="<?= $e($href) ?>"><div class="stat"><span class="stat-icon <?= $color === 'red' ? 'red-icon' : '' ?>" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?= $path ?></svg></span><div><span class="label"><?= $e($label) ?></span><div class="value <?= $color ?>"><?= $money($value) ?></div><span class="muted"><?= $e($description) ?></span></div></div></a>
   <?php endforeach; ?>
@@ -79,7 +79,7 @@ $seriesMax = max(1, ...array_merge(...array_map(static fn (array $m): array => [
 $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
 ?>
 <section class="card" aria-labelledby="overview-chart-title">
-  <div class="section-head"><h2 id="overview-chart-title">Receitas e despesas, últimos 6 meses</h2><a href="/minha-conta?pagina=relatorios">Ver relatórios</a></div>
+  <div class="section-head"><h2 id="overview-chart-title">Receitas e despesas, últimos 6 meses</h2><a href="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>">Ver relatórios</a></div>
   <div class="bars" role="img" aria-label="Gráfico de receitas e despesas pagas por mês">
     <?php foreach ($series as $key => $values): ?>
     <div class="bars-month"><div class="bars-pair"><span class="bar bar-income" data-height="<?= round($values['income'] / $seriesMax * 100, 1) ?>" title="Receitas: <?= $e(Finance::money($values['income'])) ?>"></span><span class="bar bar-expense" data-height="<?= round($values['expense'] / $seriesMax * 100, 1) ?>" title="Despesas: <?= $e(Finance::money($values['expense'])) ?>"></span></div><small><?= $e($shortMonths[substr((string) $key, 5)]) ?></small></div>
@@ -88,7 +88,7 @@ $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05'
   <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
 </section>
 <section class="content-grid" aria-label="Painéis financeiros">
-  <article class="card"><div class="section-head"><h2>Últimas movimentações</h2><a href="/minha-conta?pagina=movimentacoes">Ver todas</a></div>
+  <article class="card"><div class="section-head"><h2>Últimas movimentações</h2><a href="<?= $e(\Moves\Services\AppUrl::section('movimentacoes')) ?>">Ver todas</a></div>
     <?php if ($data['recent'] === []): ?><p class="muted">Nenhuma movimentação registrada.</p><?php else: ?>
     <ul class="overview-list">
       <?php foreach ($data['recent'] as $row): $in = $row['kind'] === 'income'; $transfer = $row['kind'] === 'transfer'; ?>
@@ -96,7 +96,7 @@ $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05'
       <?php endforeach; ?>
     </ul><?php endif; ?>
   </article>
-  <article class="card"><div class="section-head"><h2>Gastos por categoria</h2><a href="/minha-conta?pagina=relatorios">Ver relatórios</a></div>
+  <article class="card"><div class="section-head"><h2>Gastos por categoria</h2><a href="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>">Ver relatórios</a></div>
     <?php if ($categoryTotal === 0): ?><p class="muted">Sem despesas no período.</p><?php else: ?>
     <div class="donut-wrap">
       <svg class="donut" viewBox="0 0 120 120" role="img" aria-label="Gastos por categoria">
@@ -114,7 +114,7 @@ $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05'
       </ul>
     </div><?php endif; ?>
   </article>
-  <article class="card"><div class="section-head"><h2>Contas e cartões</h2><a href="/minha-conta?pagina=contas">Ver todas</a></div>
+  <article class="card"><div class="section-head"><h2>Contas e cartões</h2><a href="<?= $e(\Moves\Services\AppUrl::section('contas')) ?>">Ver todas</a></div>
     <?php if ($data['accounts'] === []): ?><p class="muted">Nenhuma conta cadastrada.</p><?php else: ?>
     <ul class="overview-list">
       <?php foreach ($data['accounts'] as $account): ?>

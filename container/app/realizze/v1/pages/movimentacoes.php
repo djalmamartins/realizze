@@ -24,7 +24,7 @@ try {
     $loadFailed = true;
 }
 $total = static fn (string $type): int => array_sum(array_map(static fn (array $r): int => $r['kind'] === $type ? (int) $r['amount_cents'] : 0, $all));
-$link = static fn (string $target, string $type = 'all'): string => '/minha-conta?' . http_build_query(['pagina' => 'movimentacoes', 'mes' => $target] + ($type === 'all' ? [] : ['tipo' => $type]));
+$link = static fn (string $target, string $type = 'all'): string => \Moves\Services\AppUrl::section('movimentacoes', null, ['mes' => $target] + ($type === 'all' ? [] : ['tipo' => $type]));
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 ?>

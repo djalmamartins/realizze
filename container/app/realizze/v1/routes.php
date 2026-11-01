@@ -22,9 +22,28 @@ return [
             header('Retry-After: 3600');
             require __DIR__ . '/default.php';
         };
-        $requirePreview = static function () use ($previewEnabled, $unavailable): bool {
-            if ($previewEnabled) {
+        // Um envio vale para a empresa da tela. Se outra aba trocou a empresa da sessão, nada é gravado.
+        $sameContext = static function (): bool {
+            if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || !is_string($_POST['context_organization_id'] ?? null)) {
                 return true;
+            }
+            $posted = (int) $_POST['context_organization_id'];
+            if ($posted === (int) (\Moves\Services\OrganizationContext::current()['id'] ?? 0)) {
+                return true;
+            }
+            $organization = $posted > 0 ? \Moves\Services\OrganizationAccess::authorizedOrganization($posted) : null;
+            if ($posted > 0 && $organization === null) {
+                \Moves\Services\AppError::render(403);
+                return false;
+            }
+            $_SESSION['finance_flash'] = ['error', 'Nada foi salvo: outra aba trocou a área ativa. Confira os dados e envie novamente.'];
+            header('Cache-Control: no-store');
+            header('Location: ' . ($organization === null ? '/p' : \Moves\Services\AppUrl::base($organization)), true, 303);
+            return false;
+        };
+        $requirePreview = static function () use ($previewEnabled, $unavailable, $sameContext): bool {
+            if ($previewEnabled) {
+                return $sameContext();
             }
             $unavailable();
             return false;
@@ -42,7 +61,8 @@ return [
             require __DIR__ . '/pages/dashboard.php';
         };
 
-        $renderContextDashboard = static function (string $context, string $section = 'overview', ?string $organizationSlug = null) use ($renderDashboard, $renderError): void {
+        $organizationSections = ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
+        $renderContextDashboard = static function (string $context, string $section = 'overview', ?string $organizationSlug = null) use ($renderDashboard, $renderError, $organizationSections): void {
             if (\Moves\Services\SessionAuth::current() === null) {
                 header('Location: /entrar', true, 302);
                 return;
@@ -57,7 +77,7 @@ return [
                     return;
                 }
             }
-            if (in_array($section, ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'], true) && $organization === null) {
+            if ((in_array($section, $organizationSections, true) || $section === 'contato-detalhe') && $organization === null) {
                 $renderError(404);
                 return;
             }
@@ -84,8 +104,20 @@ return [
             $router->get('/p' . ($slug === '' ? '' : '/' . $slug), static fn () => $renderContextDashboard('personal', $section), 'app.personal.' . $section);
             $router->get('/e/{organization}' . ($slug === '' ? '' : '/' . $slug), static fn (array $params) => $renderContextDashboard('organization', $section, (string) ($params['organization'] ?? '')), 'app.organization.' . $section);
         }
-        foreach (['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'] as $section) {
+        foreach ($organizationSections as $section) {
             $router->get('/e/{organization}/' . $section, static fn (array $params) => $renderContextDashboard('organization', $section, (string) ($params['organization'] ?? '')), 'app.organization.' . $section);
+        }
+        foreach (['clientes' => 'customer', 'fornecedores' => 'supplier'] as $listSlug => $listRole) {
+            $router->get('/e/{organization}/' . $listSlug . '/{contact}', static function (array $params) use ($renderContextDashboard, $renderError, $listRole): void {
+                $contact = filter_var($params['contact'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                if ($contact === false) {
+                    $renderError(404);
+                    return;
+                }
+                $_GET['contato_id'] = $contact;
+                $_GET['papel'] = $listRole;
+                $renderContextDashboard('organization', 'contato-detalhe', (string) ($params['organization'] ?? ''));
+            }, 'app.organization.' . $listSlug . '.detail');
         }
         foreach ($semantic as $slug => $section) {
             foreach (['/pf/pessoal', '/pj/minha-empresa'] as $oldBase) {
@@ -94,7 +126,7 @@ return [
                 });
             }
         }
-        foreach (['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'] as $section) {
+        foreach ($organizationSections as $section) {
             $router->get('/pj/minha-empresa/' . $section, static function () use ($section): void {
                 header('Location: ' . AppUrl::section($section, null, $_GET), true, 302);
             });

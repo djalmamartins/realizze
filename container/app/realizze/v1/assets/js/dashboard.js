@@ -347,6 +347,7 @@
     if (profile && incomingProfile) profile.setAttribute('href', incomingProfile.getAttribute('href') || '/p/perfil');
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
     document.body.dataset.context = next.body.dataset.context || 'pf';
+    document.body.dataset.organizationId = next.body.dataset.organizationId || '0';
     const errorStatus = next.body.dataset.appErrorStatus;
     if (errorStatus) document.body.dataset.appErrorStatus = errorStatus;
     else delete document.body.dataset.appErrorStatus;
@@ -437,6 +438,20 @@
       showLoader();
     }
   });
+
+  // Todo envio leva a empresa da tela: o servidor recusa se outra aba trocou a empresa da sessão.
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if ((form.getAttribute('method') || '').toLowerCase() !== 'post' || /\/(minha-conta\/contexto|sair|entrar)$/.test(form.action)) return;
+    let field = form.querySelector('input[name="context_organization_id"]');
+    if (!field) {
+      field = document.createElement('input');
+      field.type = 'hidden';
+      field.name = 'context_organization_id';
+      form.append(field);
+    }
+    field.value = document.body.dataset.organizationId || '0';
+  }, true);
 
   document.addEventListener('submit', async (event) => {
     const form = event.target;

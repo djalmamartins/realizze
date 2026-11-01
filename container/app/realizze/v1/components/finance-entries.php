@@ -33,7 +33,7 @@ try {
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 $today = date('Y-m-d');
-$link = static fn (string $target, string $situation = 'all'): string => '/minha-conta?' . http_build_query(['pagina' => $page, 'mes' => $target] + ($situation === 'all' ? [] : ['situacao' => $situation]));
+$link = static fn (string $target, string $situation = 'all'): string => \Moves\Services\AppUrl::section($page, null, ['mes' => $target] + ($situation === 'all' ? [] : ['situacao' => $situation]));
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
 <section class="card finance-workspace" aria-labelledby="entries-title">

@@ -102,7 +102,7 @@ $rowDialogs = '';
         <td><?= $e($row['email'] ?: ($row['mobile'] ?: ($row['phone'] ?: 'Não informado'))) ?></td>
         <td><span class="finance-badge is-<?= $active ? 'paid' : 'overdue' ?>"><?= $active ? 'Ativo' : 'Inativo' ?></span></td>
         <td class="finance-actions">
-          <button type="button" data-finance-open="contact-view-<?= $id ?>">Ver</button>
+          <a href="<?= $e(\Moves\Services\AppUrl::section($row['is_customer'] || $role !== 'supplier' ? ($role === 'supplier' ? 'fornecedores' : 'clientes') : 'fornecedores') . '/' . $id) ?>">Ver</a>
           <button type="button" data-finance-open="contact-edit-<?= $id ?>">Editar</button>
           <form method="post" action="/minha-conta/contatos/status"<?= $active ? ' data-finance-confirm="Inativar ' . $e($name) . '?"' : '' ?>><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="<?= $e($labels['back']) ?>"><input type="hidden" name="id" value="<?= $id ?>"><input type="hidden" name="active" value="<?= $active ? '0' : '1' ?>"><button type="submit"<?= $active ? ' class="is-danger"' : '' ?>><?= $active ? 'Inativar' : 'Reativar' ?></button></form>
         </td>

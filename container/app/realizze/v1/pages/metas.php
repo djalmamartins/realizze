@@ -5,7 +5,7 @@ use Moves\Services\FinanceContext;
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $csrf = (string) ($csrf ?? '');
 $period = Finance::period($_GET);
-$link = static fn (array $query): string => '/minha-conta?' . http_build_query(['pagina' => 'metas'] + $query);
+$link = static fn (array $query): string => \Moves\Services\AppUrl::section('metas', null, $query);
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 $loadFailed = false;

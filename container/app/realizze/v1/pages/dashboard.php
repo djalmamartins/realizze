@@ -40,9 +40,30 @@ $sections = [
     'perfil' => ['Meu perfil', 'Seus dados e a segurança da conta'],
     'equipe' => ['Equipe e Permissões', 'Quem acessa os dados da empresa'],
     'empresa' => ['Configurações da Empresa', 'Dados cadastrais da empresa'],
+    'contato-detalhe' => [($_GET['papel'] ?? '') === 'supplier' ? 'Fornecedor' : 'Cliente', 'Dados e histórico financeiro'],
+    'fluxo-de-caixa' => ['Fluxo de caixa', 'Previsto e realizado, separados'],
+    'faturas' => ['Cartões e faturas', 'Limites, faturas e parcelas dos cartões'],
+    'conciliacao' => ['Conciliação bancária', 'Extratos conferidos com os lançamentos'],
+    'centros-de-custo' => ['Centros de custos', 'Resultados por área, projeto ou unidade'],
+    'dre' => ['DRE gerencial', 'Resultado gerencial, sem valor de demonstração contábil'],
+    'obrigacoes' => ['Obrigações PJ/MEI', 'Calendário conforme o enquadramento da empresa'],
+    'recorrencias' => ['Assinaturas e recorrências', 'Despesas que se repetem e quanto custam'],
+    'ordens-de-servico' => ['Ordens de serviço', 'Módulo opcional para empresas de serviços'],
+    'permissoes' => ['Permissões', 'O que cada papel pode fazer na empresa'],
+    'seguranca' => ['Segurança', 'Acesso, sessões e políticas da empresa'],
+    'auditoria' => ['Auditoria', 'Registro das ações administrativas'],
 ];
 $requestedSection = $_GET['pagina'] ?? 'overview';
 $section = is_string($requestedSection) && isset($sections[$requestedSection]) ? $requestedSection : 'overview';
+if ($section === 'contato-detalhe') {
+    // Contato de outra empresa responde como inexistente.
+    try {
+        (new \Moves\Services\Contacts((int) \Moves\Services\FinanceContext::currentId()))->find((int) ($_GET['contato_id'] ?? 0));
+    } catch (\InvalidArgumentException $exception) {
+        \Moves\Services\AppError::render(404);
+        return;
+    }
+}
 $appView = new \MovesCode\View\Engine(dirname(__DIR__));
 $appView->addFolder('components', dirname(__DIR__) . '/components');
 $baseUrl = \Moves\Services\AppUrl::base($activeOrganization);
@@ -53,6 +74,9 @@ $items = [
 if ($activeOrganization !== null) {
     $items['clientes'] = ['building','Clientes',$baseUrl . '/clientes'];
     $items['fornecedores'] = ['building','Fornecedores',$baseUrl . '/fornecedores'];
+    foreach (['fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'] as $moduleSection) {
+        $items[$moduleSection] = ['list-filter', $sections[$moduleSection][0], $baseUrl . '/' . $moduleSection];
+    }
 }
 $items += [
     'contas' => ['credit-card','Contas e Cartões',$baseUrl . '/cartoes'], 'relatorios' => ['chart-no-axes-column','Relatórios',$baseUrl . '/relatorios'],
@@ -63,6 +87,26 @@ $items['integracoes'] = ['arrows-left-right','Integrações',$baseUrl . '/integr
 $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
     : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
+// Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
+$pendingSections = ['faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
+$navGroups = null;
+if ($activeOrganization !== null) {
+    $items['overview'][1] = 'Dashboard';
+    $items['receber'][1] = 'Receber e cobranças';
+    $items['contas'][1] = 'Bancos e contas';
+    $items['relatorios'][1] = 'Relatórios';
+    $items['equipe'][1] = 'Equipe';
+    $items['empresa'][1] = 'Configurações';
+    $items['notificacoes'] = ['list-filter', 'Notificações', $baseUrl . '/notificacoes'];
+    $items['suporte'] = ['message-circle', 'Ajuda e chamados', '/suporte'];
+    $navGroups = [
+        ['Financeiro', 'arrows-left-right', ['receber', 'pagar', 'movimentacoes', 'fluxo-de-caixa', 'contas', 'faturas', 'conciliacao']],
+        ['Cadastros', 'building', ['clientes', 'fornecedores', 'categorias', 'centros-de-custo']],
+        ['Gestão', 'chart-no-axes-column', ['relatorios', 'dre', 'planejamento', 'metas', 'recorrencias', 'obrigacoes', 'ordens-de-servico']],
+        ['Administração', 'settings', ['equipe', 'permissoes', 'empresa', 'seguranca', 'auditoria']],
+        ['Plataforma', 'message-circle', ['integracoes', 'notificacoes', 'suporte']],
+    ];
+}
 $iconPaths = [
     'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
     'arrow-down-left' => '<path d="M17 7 7 17M7 7v10h10"/>',
@@ -108,14 +152,14 @@ $icon = static function (string $name) use ($iconPaths): string {
 </style>
 </noscript>
 </head>
-<body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>">
+<body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>" data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>">
 <a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
 <noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros interativos não estão disponíveis nesta prévia.</p></noscript>
 <div class="shell" id="shell">
 <?= $appView->render('components::sidebar', [
     'items' => $items,
     'sections' => $sections,
-    'section' => $section,
+    'section' => $section === 'contato-detalhe' ? (($_GET['papel'] ?? '') === 'supplier' ? 'fornecedores' : 'clientes') : $section,
     'icon' => $icon,
     'name' => $name,
     'user' => $user,
@@ -123,6 +167,8 @@ $icon = static function (string $name) use ($iconPaths): string {
     'activeOrganization' => $activeOrganization,
     'organizations' => $organizations,
     'contextEnabled' => \Moves\Services\OrganizationContext::enabled(),
+    'navGroups' => $navGroups,
+    'pendingSections' => $pendingSections,
  ]) ?>
 <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
 <main class="main" id="overview" tabindex="-1">
@@ -136,17 +182,19 @@ $icon = static function (string $name) use ($iconPaths): string {
         'title' => $sections[$section][0],
         'description' => $sections[$section][1],
         'context' => $activeOrganization !== null || $section === 'empresarial' ? 'enterprise' : 'personal',
-        'live' => in_array($section, ['receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes'], true),
+        'live' => in_array($section, ['receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true),
     ],
     'appView' => $appView,
 ]) ?>
-<?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial'], true)): ?>
-<?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : $section), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
+<?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'contato-detalhe'], true)): ?>
+<?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
+<?php elseif (in_array($section, $pendingSections, true)): ?>
+<?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>
 <?php else: ?>
 <section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[$section][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
 <?php endif; ?>
 <?php endif; ?>
-<?php if (!in_array($section, ['overview', 'receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes'], true)): ?>
+<?php if (!in_array($section, ['overview', 'receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true)): ?>
 <p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Dados financeiros ainda não integrados · Nenhuma movimentação real é exibida</p>
 <?php endif; ?>
 </main>

@@ -34,6 +34,23 @@ foreach ($items as $index => $item) {
 <a href="<?= $sidebarHref(\Moves\Services\AppUrl::base($activeOrganization)) ?>" class="brand" aria-label="Realizze"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="152" height="38"></a>
 <?php require __DIR__ . '/context-switch.php'; ?>
 <nav class="nav" aria-label="Menu principal">
+<?php if (!empty($navGroups)): ?>
+<?php
+$pendingSections = $pendingSections ?? [];
+$navLink = static function (string $key) use ($items, $section, $sidebarHref, $icon, $escapeSidebar, $pendingSections): void {
+    $item = $items[$key] ?? null;
+    if ($item === null) return; ?>
+<a href="<?= $sidebarHref($item[2]) ?>"<?= $section === $key ? ' class="active" aria-current="page"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($item[0]) ?></span><?= $escapeSidebar($item[1]) ?><?php if (in_array($key, $pendingSections, true)): ?><span class="nav-soon" title="Em breve"><span class="sr-only">Em breve</span></span><?php endif; ?></a>
+<?php };
+$navLink('overview');
+foreach ($navGroups as [$groupTitle, $groupIcon, $groupKeys]):
+    $groupOpen = in_array($section, $groupKeys, true); ?>
+<details class="nav-group"<?= $groupOpen ? ' open' : '' ?>>
+<summary<?= $groupOpen ? ' class="is-active"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($groupIcon) ?></span><?= $escapeSidebar($groupTitle) ?></summary>
+<div class="nav-sub"><?php foreach ($groupKeys as $key) { $navLink($key); } ?></div>
+</details>
+<?php endforeach; ?>
+<?php else: ?>
 <?php foreach (['personal' => $activeOrganization ? 'Financeiro da empresa' : 'Finanças pessoais · PF', 'enterprise' => 'Gestão empresarial · PJ'] as $group => $heading): ?>
 <?php if ($sidebarGroups[$group] === []) continue; ?>
 <h2 class="nav-group-heading"><?= $heading ?></h2>
@@ -63,6 +80,7 @@ foreach ($sidebarGroups[$group] as $entry):
 <?php endif; ?>
 <?php endforeach; ?>
 <?php endforeach; ?>
+<?php endif; ?>
 </nav>
 <div class="sidebar-bottom">
 <div class="connect"><strong>Conexão bancária</strong><p>A importação de transações estará disponível após a integração segura.</p><button type="button" disabled title="Integração bancária indisponível">Em preparação</button></div>

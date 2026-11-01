@@ -63,8 +63,8 @@ $state = [
     'categoria' => $category === false ? '' : (string) $category, 'cliente' => $counterparty,
     'contato' => $contactFilter === false ? '' : (string) $contactFilter,
 ];
-$query = static fn (array $changes = []): string => '/minha-conta?' . http_build_query(array_filter(
-    ['pagina' => 'receber'] + array_merge($state, $changes),
+$query = static fn (array $changes = []): string => \Moves\Services\AppUrl::section('receber', null, array_filter(
+    array_merge($state, $changes),
     static fn (mixed $value): bool => $value !== '' && $value !== null
 ));
 $competence = date('Y-m', strtotime($start));
@@ -99,7 +99,7 @@ $renderState = static function () use ($state, $e): void {
     <label>Categoria<select name="categoria"><option value="">Todas</option><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $category !== false && (int) $category === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
     <label>Cliente ou origem<input name="cliente" value="<?= $e($counterparty) ?>" maxlength="160"></label>
     <label>Cliente cadastrado<select name="contato"><option value="">Todos</option><?php foreach ($customers as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= $contactFilter !== false && (int) $contactFilter === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
-    <div class="receivables-filter-actions"><button type="submit" class="primary">Filtrar</button><a href="/minha-conta?pagina=receber">Limpar</a></div>
+    <div class="receivables-filter-actions"><button type="submit" class="primary">Filtrar</button><a href="<?= $e(\Moves\Services\AppUrl::section('receber')) ?>">Limpar</a></div>
   </form>
 
   <?php if ($loadFailed): ?>
