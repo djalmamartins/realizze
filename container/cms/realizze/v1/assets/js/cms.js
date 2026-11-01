@@ -106,6 +106,9 @@
       area.hidden = true;
       area.removeAttribute('required');
       body.addEventListener('input', sync);
+      // O rótulo aponta para o textarea oculto: leva o foco para a área visível.
+      const label = area.id ? document.querySelector('label[for="' + area.id + '"]') : null;
+      if (label) label.addEventListener('click', (event) => { if (area.hidden) { event.preventDefault(); body.focus(); } });
       area.form.addEventListener('submit', sync);
     });
   };
