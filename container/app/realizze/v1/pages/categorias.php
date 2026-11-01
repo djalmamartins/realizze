@@ -9,6 +9,7 @@ $link = static fn (array $query): string => \Moves\Services\AppUrl::section('cat
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 $loadFailed = false;
+$categoryIcon = require dirname(__DIR__) . '/components/category-icon.php';
 $rows = [];
 try {
     $rows = (new Finance((int) FinanceContext::currentId()))->categoriesWithTotals($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
@@ -39,7 +40,7 @@ $month = $period['start']->format('Y-m');
       <h3><?= $e($title) ?></h3>
       <ul class="finance-account-list">
         <?php foreach ($list as $row): ?>
-        <li class="is-compact"><span class="finance-dot" style="background:<?= $e($row['color']) ?>"></span><span><strong><?= $e($row['name']) ?></strong><small><?= (int) $row['entries'] ?> lançamento<?= (int) $row['entries'] === 1 ? '' : 's' ?></small></span>
+        <li class="is-compact"><span class="category-icon" style="--category-color:<?= $e($row['color']) ?>"><?= $categoryIcon((string) $row['name']) ?></span><span><strong><?= $e($row['name']) ?></strong><small><?= (int) $row['entries'] ?> lançamento<?= (int) $row['entries'] === 1 ? '' : 's' ?></small></span>
           <span class="finance-row-end"><strong><?= $e(Finance::money((int) $row['total'])) ?></strong>
           <form method="post" action="/minha-conta/financeiro/categoria-excluir" data-finance-confirm="Excluir a categoria “<?= $e($row['name']) ?>”? Os lançamentos ficam sem categoria."><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="categorias"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $row['id'] ?>"><button type="submit" class="finance-link-danger" aria-label="Excluir <?= $e($row['name']) ?>">Excluir</button></form></span>
         </li>

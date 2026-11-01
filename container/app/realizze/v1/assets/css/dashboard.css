@@ -823,3 +823,8 @@ a.avatar{text-decoration:none}
 .tool-account button{color:#a4161a}
 .top,.page-heading{position:relative;z-index:40}
 @media(max-width:650px){.page-heading-meta .tool-menu:first-of-type{margin-left:auto}.top .toolbar .bell{margin:0}}
+
+/* APP — ícones de categoria, na cor escolhida para cada uma */
+.finance-account-list li.is-compact:has(.category-icon){grid-template-columns:40px 1fr auto}
+.category-icon{position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:11px;color:var(--category-color,#078b4c);isolation:isolate}
+.category-icon::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:currentColor;opacity:.13}
