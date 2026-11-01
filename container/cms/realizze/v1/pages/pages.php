@@ -1,32 +1,7 @@
-<?php
-/** CMS-UI-012: isolated layout preview, without data access or mutations. */
-?>
-<?php $cmsHeading = ['eyebrow' => 'Gerenciamento / Site', 'title' => 'Páginas do site', 'description' => 'Estruture e organize as páginas institucionais.', 'badge' => 'Prévia visual']; require __DIR__ . '/../components/page-heading.php'; ?>
-<div class="cms-detail-layout">
-<section class="cms-card" aria-label="Estrutura de Páginas do site"><div class="cms-module-head"><div><h2>Gerenciamento</h2><p>Estrutura preparada para integração com serviços seguros.</p></div><button type="button" disabled>Criar página</button></div>
-<div class="cms-form-preview"><div><label class="cms-field-label" for="cms-pages-one">Título da página</label><input id="cms-pages-one" class="cms-field" placeholder="Título da página" disabled></div><div><label class="cms-field-label" for="cms-pages-two">Endereço amigável</label><input id="cms-pages-two" class="cms-field" placeholder="Endereço amigável" disabled></div><div><label class="cms-field-label" for="cms-pages-three">Modelo de página</label><select id="cms-pages-three" class="cms-field" disabled><option>Selecione uma opção</option></select></div></div>
-<div class="cms-section-divider"></div><?php $cmsPreviewFilters = [
-    'title' => 'Filtros de páginas',
-    'description' => 'A pesquisa e os filtros serão liberados somente após autenticação e autorização administrativa.',
-    'fields' => [
-        ['id' => 'cms-pages-search', 'label' => 'Pesquisar página', 'type' => 'search', 'placeholder' => 'Título ou endereço'],
-        ['id' => 'cms-pages-filter-status', 'label' => 'Situação', 'type' => 'select', 'options' => ['Todas as situações']],
-        ['id' => 'cms-pages-filter-model', 'label' => 'Modelo', 'type' => 'select', 'options' => ['Todos os modelos']],
-    ],
-]; require __DIR__ . '/../components/preview-filters.php'; ?><div class="cms-module-head"><div><h2><span class="cms-list-heading-icon" aria-hidden="true"><?= $cmsIcon('pages') ?></span>Registros</h2><p>Sem dados carregados nesta prévia.</p></div><span class="cms-status">Indisponível</span></div><?php $cmsEmptyTable = [
-    'caption' => 'Páginas cadastradas',
-    'columns' => ['Título', 'Endereço', 'Modelo', 'Situação'],
-    'title' => 'Nenhuma página consultada',
-    'description' => 'A prévia não consulta páginas, versões ou conteúdo do banco.',
-]; require __DIR__ . '/../components/empty-table.php'; ?></section>
-<aside class="cms-card cms-detail-side"><h2>Publicação</h2><p>Opções deste módulo serão habilitadas depois da integração.</p><div class="cms-setting-row"><span>Controle de acesso</span><strong>Obrigatório</strong></div><div class="cms-setting-row"><span>Auditoria</span><strong>Planejada</strong></div><div class="cms-setting-row"><span>Persistência</span><strong>Desativada</strong></div><button type="button" disabled>Criar página</button></aside></div>
-<?php $cmsWorkflow = [
-    'title' => 'Fluxo previsto para páginas',
-    'steps' => [
-        ['title' => 'Rascunho', 'description' => 'Preparar estrutura e endereço da página sem publicação.'],
-        ['title' => 'Revisão', 'description' => 'Validar conteúdo, acessibilidade e histórico de versões.'],
-        ['title' => 'Autorização', 'description' => 'Exigir papel administrativo, CSRF e registro de auditoria.'],
-        ['title' => 'Publicação', 'description' => 'Disponibilizar somente após aprovação e validação de permissões.'],
-    ],
-]; require __DIR__ . '/../components/workflow-preview.php'; ?>
-<aside class="cms-notice"><strong>Funcionalidade indisponível</strong>A edição e a publicação de páginas exigirão revisão de permissões e histórico de versões.</aside>
+<?php $this->layout('default'); use Moves\Services\CmsContent; use Moves\Support\CmsView as V;
+$status = V::queryString('status'); $result = CmsContent::pages(['q' => V::queryString('q'), 'status' => $status], V::queryPage());
+$this->start('actions'); ?><a class="cms-btn-primary" href="/paginas/novo"><?= V::icon('plus') ?>Nova página</a><?php $this->stop(); ?>
+<section class="cms-list"><?= V::listHead('Lista de páginas', $result['total'] . ' registro(s)', V::searchForm('Buscar por título', ['status' => [$status, ['' => 'Todas', 'draft' => 'Rascunho', 'published' => 'Publicada'], 'Situação']])) ?>
+<?php if ($result['rows'] === []): ?><?= V::empty('Nenhuma página encontrada.', 'Enquanto não houver página publicada, o site mantém os textos dos templates.') ?><?php else: ?><div class="cms-table-wrap" tabindex="0" role="region" aria-label="Páginas"><table><thead><tr><th>Página</th><th>Endereço</th><th>Status</th><th>Atualizada</th><th class="cms-th-actions">Ações</th></tr></thead><tbody>
+<?php foreach ($result['rows'] as $row): ?><tr><td><div class="cms-cell"><?= $row['image_path'] ? '<img class="cms-thumb" src="' . V::e($row['image_path']) . '" alt="">' : '<i class="cms-thumb">' . V::icon('pages') . '</i>' ?><a href="/paginas/<?= (int) $row['id'] ?>"><?= V::e($row['title']) ?></a></div></td><td><code class="cms-chip">/<?= V::e($row['slug']) ?></code></td><td><?= V::badge($row['status'], $row['status'] === 'published' ? 'Publicada' : 'Rascunho') ?></td><td><?= V::date($row['updated_at']) ?></td><td class="cms-td-actions"><?= V::iconLink('/paginas/' . (int) $row['id'], 'Editar') ?><?= V::iconLink('/paginas/' . (int) $row['id'] . '/previa', 'Prévia', 'eye') ?></td></tr><?php endforeach; ?>
+</tbody></table></div><?= V::pager($result) ?><?php endif; ?></section>

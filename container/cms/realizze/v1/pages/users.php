@@ -1,31 +1,6 @@
-<?php /** CMS access screen: visual preview only. */ ?>
-<?php $cmsHeading = ['eyebrow' => 'Plataforma / Acesso', 'title' => 'Usuários e permissões', 'description' => 'Gerencie convites, perfis e acessos administrativos.', 'badge' => 'Prévia visual']; require __DIR__ . '/../components/page-heading.php'; ?>
-<div class="cms-detail-layout"><section class="cms-card"><div class="cms-module-head"><div><h2>Equipe administrativa</h2><p>Área preparada para gestão de usuários autorizados.</p></div><button type="button" disabled>Convidar usuário</button></div><div class="cms-form-preview"><div><label class="cms-field-label" for="cms-user-name">Nome</label><input id="cms-user-name" class="cms-field" placeholder="Nome completo" disabled></div><div><label class="cms-field-label" for="cms-user-email">E-mail</label><input id="cms-user-email" class="cms-field" type="email" placeholder="E-mail corporativo" disabled></div><div><label class="cms-field-label" for="cms-user-role">Perfil</label><select id="cms-user-role" class="cms-field" disabled><option>Selecione um perfil</option></select></div></div><div class="cms-section-divider"></div><h2><span class="cms-list-heading-icon" aria-hidden="true"><?= $cmsIcon('users') ?></span>Usuários cadastrados</h2><?php // CMS-UI-081: filtros visuais, sem leitura ou alteração de identidades.
-$cmsPreviewFilters = [
-    'title' => 'Filtrar usuários administrativos',
-    'description' => 'Pesquisa e classificação previstas. A prévia não consulta identidades, convites ou permissões.',
-    'fields' => [
-        ['id' => 'cms-users-filter-search', 'label' => 'Pesquisar usuário', 'type' => 'search', 'placeholder' => 'Nome ou e-mail'],
-        ['id' => 'cms-users-filter-role', 'label' => 'Papel administrativo', 'type' => 'select', 'options' => ['Todos os papéis', 'Administrador', 'Editor', 'Leitor']],
-        ['id' => 'cms-users-filter-status', 'label' => 'Situação do acesso', 'type' => 'select', 'options' => ['Todas as situações', 'Ativo', 'Convite pendente', 'Revogado']],
-    ],
-]; require __DIR__ . '/../components/preview-filters.php'; ?><?php $cmsEmptyTable = [
-    'caption' => 'Usuários administrativos',
-    'columns' => ['Nome', 'E-mail', 'Papel', 'Situação'],
-    'title' => 'Nenhum usuário consultado',
-    'description' => 'A prévia não consulta identidades, convites ou permissões reais.',
-]; require __DIR__ . '/../components/empty-table.php'; ?></section><aside class="cms-card cms-detail-side"><h2>Políticas de acesso</h2><p>Convites e permissões serão controlados por papéis e auditoria.</p><?php $cmsStatusRows = [
-    ['label' => 'Autenticação', 'status' => 'Pendente'],
-    ['label' => 'Autorização', 'status' => 'Pendente'],
-    ['label' => 'Auditoria', 'status' => 'Pendente'],
-]; require __DIR__ . '/../components/status-list.php'; ?>
-</aside></div><?php $cmsWorkflow = [
-    'title' => 'Fluxo previsto de acesso administrativo',
-    'steps' => [
-        ['title' => 'Convite', 'description' => 'Solicitar acesso sem expor contas ou convites nesta prévia.'],
-        ['title' => 'Identidade', 'description' => 'Validar autenticação administrativa e vínculo ativo.'],
-        ['title' => 'Permissões', 'description' => 'Conceder somente papéis autorizados, com proteção CSRF.'],
-        ['title' => 'Auditoria', 'description' => 'Registrar concessões, revogações e tentativas negadas.'],
-    ],
-]; require __DIR__ . '/../components/workflow-preview.php'; ?>
-<aside class="cms-notice"><strong>Acesso protegido</strong>Não é possível convidar, alterar ou consultar usuários até a implementação da segurança administrativa.</aside>
+<?php $this->layout('default'); use Moves\Services\CmsQuery as Q; use Moves\Services\PlatformDirectory as D; use Moves\Support\CmsView as V;
+$filters = ['q' => V::queryString('q'), 'status' => V::queryString('status')]; $result = D::users($filters, V::queryPage()); $n = static fn (string $s): string => (string) Q::value($s); ?>
+<?php $this->start('actions'); ?><a class="cms-btn" href="/usuarios-exportar">Exportar</a><?php $this->stop(); ?>
+<?= V::kpis([['users', 'Usuários', $n('SELECT COUNT(*) FROM users'), 'cadastrados'], ['check', 'Ativos', $n("SELECT COUNT(*) FROM users WHERE status='active'"), 'acessos confirmados'], ['clock', 'Suspensos', $n("SELECT COUNT(*) FROM users WHERE status='suspended'"), 'sem acesso'], ['shield', 'Administradores', $n("SELECT COUNT(*) FROM cms_admins WHERE status='active'"), 'perfis de gestão']]) ?>
+<section class="cms-list"><?= V::listHead('Lista de usuários', $result['total'] . ' registro(s)', V::searchForm('Buscar por nome ou e-mail', ['status' => [$filters['status'], ['' => 'Todas'] + D::USER_STATUS, 'Situação']])) ?>
+<?php if ($result['rows'] === []): ?><?= V::empty('Nenhum usuário encontrado.') ?><?php else: ?><div class="cms-table-wrap" tabindex="0" role="region" aria-label="Usuários"><table><thead><tr><th>Usuário</th><th>Plano</th><th>Status</th><th>Cadastro</th><th class="cms-th-actions">Ações</th></tr></thead><tbody><?php foreach ($result['rows'] as $u): ?><tr><td><div class="cms-cell"><i class="cms-avatar"><?= V::e(mb_strtoupper(mb_substr($u['first_name'], 0, 1) . mb_substr($u['last_name'], 0, 1))) ?></i><div><a href="/usuarios/<?= (int) $u['id'] ?>"><?= V::e(trim($u['first_name'] . ' ' . $u['last_name'])) ?></a><?= $u['admin_id'] ? ' ' . V::badge('info', 'Admin') : '' ?><br><small><?= V::e($u['email']) ?></small></div></div></td><td><?= V::e($u['plan_name'] ?? '—') ?></td><td><?= V::badge($u['status'], D::USER_STATUS[$u['status']] ?? $u['status']) ?></td><td><?= V::date($u['created_at'], false) ?></td><td class="cms-td-actions"><?= V::iconLink('/usuarios/' . (int) $u['id'], 'Abrir', 'eye') ?></td></tr><?php endforeach; ?></tbody></table></div><?= V::pager($result) ?><?php endif; ?></section>

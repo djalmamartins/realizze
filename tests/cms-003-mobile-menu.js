@@ -166,13 +166,13 @@ assert.equal(legacyClasses.has('cms-menu-open'), false, 'legacy desktop transiti
 console.log('OK - CMS-A11Y-061: keyboard, pointer, bidirectional breakpoint and hidden-toggle focus recovery.');
 
 // CMS-A11Y-083: administrative preview navigation stays perceivable in high contrast.
-const cmsCss = fs.readFileSync(path.join(__dirname, '../container/cms/realizze/v1/assets/css/responsive-fixes.css'), 'utf8');
+const cmsCss = fs.readFileSync(path.join(__dirname, '../container/cms/realizze/v1/assets/css/cms.css'), 'utf8');
 assert.match(cmsCss, /@media\s*\(forced-colors:\s*active\)/,
   'CMS supports system forced-color mode');
 assert.match(cmsCss, /\.cms-nav a\.selected[^}]*outline:\s*2px solid Highlight/s,
   'selected CMS page is outlined');
 assert.match(cmsCss, /\.cms-skip-link:focus-visible[^}]*outline:\s*3px solid Highlight/s,
   'CMS skip link retains visible focus');
-assert.match(cmsCss, /\.cms-preview-status[^}]*border:\s*1px solid CanvasText/s,
-  'read-only preview notice is distinguishable');
+assert.match(cmsCss, /\.cms-alert[^}]*border:\s*1px solid CanvasText/s,
+  'alerts are distinguishable');
 console.log('OK - CMS-A11Y-083: navegação e avisos visíveis em alto contraste.');

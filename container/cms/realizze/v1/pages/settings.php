@@ -1,49 +1,8 @@
-<?php /** CMS-UI-048: configuração administrativa apenas visual, sem operações. */ ?>
-<?php $cmsHeading = ['eyebrow' => 'Plataforma / Preferências', 'title' => 'Configurações', 'description' => 'Organize identidade, publicação e governança do CMS.', 'badge' => 'Prévia visual']; require __DIR__ . '/../components/page-heading.php'; ?>
-<div class="cms-detail-layout">
-  <section class="cms-card" aria-labelledby="cms-settings-identity-title">
-    <div class="cms-module-head">
-      <div><h2 id="cms-settings-identity-title">Identidade do site</h2><p>Os valores reais não são carregados nesta prévia.</p></div>
-      <span class="cms-status">Somente visualização</span>
-    </div>
-    <div class="cms-form-preview">
-      <div><label class="cms-field-label" for="cms-settings-name">Nome do site</label><input id="cms-settings-name" class="cms-field" placeholder="Nome público do site" disabled></div>
-      <div><label class="cms-field-label" for="cms-settings-url">Domínio principal</label><input id="cms-settings-url" class="cms-field" placeholder="Domínio autorizado" disabled></div>
-      <div><label class="cms-field-label" for="cms-settings-language">Idioma</label><select id="cms-settings-language" class="cms-field" disabled><option>Português (Brasil)</option></select></div>
-    </div>
-    <div class="cms-section-divider"></div>
-    <h2 id="cms-settings-editorial-title">SEO e publicação</h2>
-    <p>Metadados, indexação e aprovação editorial dependerão de autorização administrativa.</p>
-    <div class="cms-form-preview">
-      <div><label class="cms-field-label" for="cms-settings-description">Descrição institucional</label><input id="cms-settings-description" class="cms-field" placeholder="Descrição para mecanismos de busca" disabled></div>
-      <div><label class="cms-field-label" for="cms-settings-indexing">Indexação</label><select id="cms-settings-indexing" class="cms-field" disabled><option>Não consultado</option></select></div>
-    </div>
-    <button type="button" disabled>Salvar preferências</button>
-  </section>
-  <aside class="cms-card cms-detail-side" aria-labelledby="cms-settings-governance-title">
-    <h2 id="cms-settings-governance-title">Segurança e governança</h2>
-    <p>Nenhuma condição abaixo representa o estado de segurança em produção.</p>
-    <?php $cmsStatusRows = [
-    ['label' => 'Autenticação administrativa', 'status' => 'Pendente'],
-    ['label' => 'Autorização por papéis', 'status' => 'Pendente'],
-    ['label' => 'CSRF nas operações', 'status' => 'Obrigatório'],
-]; require __DIR__ . '/../components/status-list.php'; ?>
-<div class="cms-section-divider"></div>
-    <h2>Auditoria e privacidade</h2>
-    <p>Alterações de configuração precisarão registrar autor, ação e resultado sem expor segredos.</p>
-    <?php $cmsStatusRows = [
-    ['label' => 'Trilha de auditoria', 'status' => 'Pendente'],
-    ['label' => 'Retenção de eventos', 'status' => 'Não definida'],
-]; require __DIR__ . '/../components/status-list.php'; ?>
-</aside>
-</div>
-<?php $cmsWorkflow = [
-    'title' => 'Fluxo previsto de alterações de configuração',
-    'steps' => [
-        ['title' => 'Solicitação', 'description' => 'Preparar a alteração sem carregar ou modificar preferências reais nesta prévia.'],
-        ['title' => 'Validação', 'description' => 'Conferir domínio, metadados, impactos de publicação e valores permitidos.'],
-        ['title' => 'Autorização', 'description' => 'Exigir sessão administrativa, papel adequado e token CSRF válido.'],
-        ['title' => 'Registro e aplicação', 'description' => 'Auditar autor e resultado antes de aplicar qualquer mudança autorizada.'],
-    ],
-]; require __DIR__ . '/../components/workflow-preview.php'; ?>
-<aside class="cms-notice"><strong>Configurações bloqueadas</strong>Nenhuma preferência é lida ou modificada nesta prévia. O CMS permanece restrito à visualização local até autenticação, CSRF, autorização por papéis e auditoria estarem prontos.</aside>
+<?php $this->layout('default'); use Moves\Services\CmsSettings as S; use Moves\Services\ExternalNotifications as X; use Moves\Support\CmsView as V;
+$groups = []; foreach (S::FIELDS as $k => [$g, $l, $t]) { $groups[$g][$k] = [$l, $t]; }
+$meta = ['Identidade' => ['building', 'Nome e frase institucional'], 'Contatos' => ['mail', 'Telefones, e-mails e horário'], 'Redes sociais' => ['share', 'Perfis institucionais'], 'SEO padrão' => ['search', 'Título e descrição gerais'], 'Textos públicos' => ['pages', 'Rodapé do site'], 'Preferências administrativas' => ['settings', 'Uso do CMS']];
+$this->start('actions'); ?><a class="cms-btn" href="/chamados/notificacoes">Notificações</a><a class="cms-btn" href="<?= V::e(getenv('APP_URL') ?: '/') ?>" target="_blank" rel="noopener">Ver site</a><?php $this->stop(); ?>
+<?= V::kpis([['globe', 'Site público', S::get('company_name') ?: 'Realizze', (string) (getenv('APP_URL') ?: '')], ['mail', 'E-mail', X::emailConfigured() ? 'Configurado' : 'Incompleto', 'servidor no ambiente'], ['chat', 'Telegram', X::telegramConfigured() ? 'Credenciais presentes' : 'Aguardando', 'credenciais no ambiente'], ['shield', 'Ambiente', (string) (getenv('APP_ENV') ?: ''), 'definido no ambiente']]) ?>
+<form method="post" action="/acao/settings-save" class="cms-settings" data-settings><?= V::csrf() ?><nav class="cms-card cms-subnav" aria-label="Seções"><?php $i = 0; foreach ($groups as $g => $fields): ?><button type="button" data-settings-tab="<?= $i ?>"<?= $i === 0 ? ' aria-current="true"' : '' ?>><?= V::icon($meta[$g][0]) ?><span><strong><?= V::e($g) ?></strong><small><?= V::e($meta[$g][1]) ?></small></span></button><?php $i++; endforeach; ?></nav>
+<div><?php $i = 0; foreach ($groups as $g => $fields): ?><section class="cms-card" data-settings-panel="<?= $i ?>"><header class="cms-card-head"><div><h2><?= V::e($g) ?></h2><small><?= V::e($meta[$g][1]) ?></small></div><?= V::icon($meta[$g][0]) ?></header><div class="cms-form-grid"><?php foreach ($fields as $k => [$l, $t]): ?><?= V::field($l, $k, S::get($k), ['type' => $t]) ?><?php endforeach; ?></div></section><?php $i++; endforeach; ?>
+<div class="cms-card cms-savebar"><span>As alterações valem para o site depois de salvar. Segredos ficam no arquivo .env.</span><button class="cms-btn-primary">Salvar configurações</button></div></div></form>

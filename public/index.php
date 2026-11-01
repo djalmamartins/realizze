@@ -23,6 +23,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 
+\Moves\Services\SystemLog::register();
+
 // Configuração do roteador
 $router = new Router(
     getenv('APP_URL') ?: 'https://www.realizze.lab'
@@ -53,6 +55,7 @@ try {
 
 // Executar o roteador
 if (!$router->dispatch()) {
+    \Moves\Services\SystemLog::exception($router->exception());
     http_response_code($router->error() ?? 500);
     echo 'Erro: ' . ($router->error() ?? 500);
 }

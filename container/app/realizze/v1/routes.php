@@ -169,6 +169,8 @@ return [
         }
 
 
+        (require __DIR__ . '/components/support-routes.php')($router, $requirePreview);
+
         $router->post('/sair', static function () use ($requirePreview): void {
             if (!$requirePreview()) {
                 return;

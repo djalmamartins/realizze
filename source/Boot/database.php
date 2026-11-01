@@ -29,4 +29,7 @@ $pdo = new PDO(
     ]
 );
 
+// NOW() e datas gravadas pelo PHP precisam usar o mesmo fuso.
+$pdo->exec("SET time_zone = '" . date('P') . "'");
+
 Connection::configure($pdo);

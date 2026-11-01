@@ -11,22 +11,40 @@ return [
         $themePath = dirname(__FILE__);
         $view = new Engine($themePath);
         $view->addFolder('components', $themePath . '/components');
+        $site = \Moves\Services\CmsSite::class;
         $render = static function (string $page, array $data = []) use ($view): void {
             echo $view->render('pages/' . $page, $data);
+        };
+        // Metadados administrados no CMS valem para todos os templates da rota.
+        $renderRoute = static function (string $template, string $path) use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record($path);
+            $view->share(['seo' => $site::routeMeta($path)]);
+            $render($template);
+        };
+        $renderCmsPage = static function (array $page) use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/' . $page['slug']);
+            $view->share(['seo' => $site::autoMeta($page, $page['title'], $page['excerpt'], $page['content'], '/' . $page['slug'], $page['image_path'])]);
+            $render('cms-page', ['page' => $page]);
         };
         $pages = [
             '/' => ['home', 'web.home'],
             '/sobre' => ['about', 'web.about'],
             '/solucoes' => ['solutions', 'web.solutions'],
-            '/blog' => ['blog', 'web.blog'],
             '/contato' => ['contact', 'web.contact'],
             '/cadastrar' => ['register', 'web.register'],
             '/termos' => ['terms', 'web.terms'],
             '/privacidade' => ['privacy', 'web.privacy'],
         ];
         foreach ($pages as $path => [$template, $name]) {
-            $router->get($path, static function () use ($render, $template): void {
-                $render($template);
+            $router->get($path, static function () use ($renderRoute, $renderCmsPage, $site, $template, $path): void {
+                // Página publicada no CMS substitui o texto do template; sem ela, nada muda.
+                $slug = ltrim($path, '/');
+                $page = in_array($slug, \Moves\Services\CmsContent::TEMPLATE_PAGES, true) ? $site::publishedPage($slug) : null;
+                if ($page !== null) {
+                    $renderCmsPage($page);
+                    return;
+                }
+                $renderRoute($template, $path);
             }, $name);
         }
         $router->get('/recuperar-senha', static function () use ($render): void {
@@ -203,15 +221,54 @@ return [
             ]);
         }, 'web.email.confirm.submit');
 
-        $router->get('/blog/{slug}', static function (array $params) use ($render): void {
-            $posts = require __DIR__ . '/components/posts-data.php';
-            $slug = $params['slug'] ?? '';
-            if (!isset($posts[$slug])) {
+        $router->get('/planos', static function () use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/planos');
+            $view->share(['seo' => $site::routeMeta('/planos')]);
+            $render('plans', ['plans' => \Moves\Services\PlatformBilling::publicPlans()]);
+        }, 'web.plans');
+
+        $router->get('/blog', static function () use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/blog');
+            $view->share(['seo' => $site::routeMeta('/blog')]);
+            $page = filter_var($_GET['pagina'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+            $render('blog', ['result' => $site::publishedPosts($page)]);
+        }, 'web.blog');
+
+        $router->get('/blog/{slug}', static function (array $params) use ($view, $render, $site): void {
+            $post = $site::publishedPost((string) ($params['slug'] ?? ''));
+            if ($post === null) {
                 http_response_code(404);
                 $render('not-found');
                 return;
             }
-            $render('post', ['post' => $posts[$slug]]);
+            \Moves\Services\CmsAnalytics::record('/blog/' . $post['uri']);
+            $view->share(['seo' => $site::autoMeta($post, $post['title'], $post['subtitle'], $post['content'], '/blog/' . $post['uri'], $post['cover'])]);
+            $render('post', ['post' => $post]);
         }, 'web.post');
+
+        $router->get('/sitemap.xml', static function () use ($site): void {
+            header('Content-Type: application/xml; charset=utf-8');
+            echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+            foreach ($site::sitemapUrls() as $url => $updated) {
+                echo '<url><loc>' . htmlspecialchars($url, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>' . ($updated ? '<lastmod>' . date('Y-m-d', strtotime($updated)) . '</lastmod>' : '') . '</url>';
+            }
+            echo '</urlset>';
+        }, 'web.sitemap');
+
+        $router->get('/robots.txt', static function (): void {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "User-agent: *\nDisallow: /entrar\nDisallow: /minha-conta\nDisallow: /recuperar-senha\nDisallow: /redefinir-senha\nSitemap: " . rtrim((string) (getenv('APP_URL') ?: ''), '/') . "/sitemap.xml\n";
+        }, 'web.robots');
+
+        // Páginas criadas no CMS. Fica por último: rotas fixas têm precedência.
+        $router->get('/{slug}', static function (array $params) use ($render, $renderCmsPage, $site): void {
+            $page = $site::publishedPage((string) ($params['slug'] ?? ''));
+            if ($page === null) {
+                http_response_code(404);
+                $render('not-found');
+                return;
+            }
+            $renderCmsPage($page);
+        }, 'web.cms.page');
     },
 ];
