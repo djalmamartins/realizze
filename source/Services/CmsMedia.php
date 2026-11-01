@@ -30,6 +30,11 @@ final class CmsMedia
         return '/uploads/cms/' . ltrim($storedPath, '/');
     }
 
+    public static function urlById(int $id): string
+    {
+        return self::url((string) CmsQuery::value('SELECT stored_path FROM cms_media WHERE id=?', [$id]));
+    }
+
     public static function listing(array $filters, int $page): array
     {
         $where = '1=1';

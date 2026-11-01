@@ -197,6 +197,36 @@ try {
     $super->get('/conteudos?q=Artigo+E2E&type=article');
     $ok(str_contains($super->body, 'Artigo E2E'), 'Pesquisa e filtro de conteúdos');
 
+    $futureUri = 'agendado-e2e-' . bin2hex(random_bytes(3));
+    $super->get('/conteudos/novo');
+    $super->post('/acao/post-save', ['title' => 'Agendado E2E', 'uri' => $futureUri, 'subtitle' => 'x', 'content' => '<p>Futuro</p>', 'post_at' => date('Y-m-d\\TH:i', time() + 86400), 'video' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'author' => $users['editor']['id'], 'publish_after' => '1']);
+    $future = Q::one('SELECT * FROM posts WHERE uri=?', [$futureUri]);
+    $created['posts'][] = (int) $future['id'];
+    $ok($future['status'] === 'published' && $future['video'] === 'dQw4w9WgXcQ' && (int) $future['author'] === $users['editor']['id'], 'Salvar e publicar guarda autor e ID do vídeo');
+    $web->get('/blog/' . $futureUri);
+    $ok($web->status === 404, 'Publicação agendada ainda não aparece no site');
+    Q::run('UPDATE posts SET post_at=NOW() - INTERVAL 1 MINUTE WHERE id=?', [$future['id']]);
+    $web->get('/blog/' . $futureUri);
+    $ok($web->status === 200 && str_contains($web->body, 'youtube-nocookie.com/embed/dQw4w9WgXcQ'), 'Quando chega a data, o artigo aparece com o vídeo');
+    $super->post('/acao/post-save', ['title' => 'Vídeo ruim', 'uri' => 'video-ruim-e2e', 'subtitle' => 'x', 'content' => '<p>x</p>', 'video' => 'javascript:alert(1)']);
+    $ok(Q::value("SELECT COUNT(*) FROM posts WHERE uri='video-ruim-e2e'") == 0, 'Vídeo inválido recusado');
+    $super->post('/acao/post-save', ['title' => 'Autor ruim', 'uri' => 'autor-ruim-e2e', 'subtitle' => 'x', 'content' => '<p>x</p>', 'author' => $users['common']['id']]);
+    $ok(Q::value("SELECT COUNT(*) FROM posts WHERE uri='autor-ruim-e2e'") == 0, 'Autor sem acesso ao CMS recusado');
+    $png = tempnam(sys_get_temp_dir(), 'rzt') . '.png';
+    $image = imagecreatetruecolor(40, 30);
+    imagepng($image, $png);
+    $tmpFiles[] = $png;
+    $coverUri = 'capa-e2e-' . bin2hex(random_bytes(3));
+    $super->get('/conteudos/novo');
+    $super->post('/acao/post-save', ['title' => 'Capa E2E', 'uri' => $coverUri, 'subtitle' => 'x', 'content' => '<p>x</p>', 'cover_file' => new CURLFile($png, 'image/png', 'capa.png')]);
+    $coverPost = Q::one('SELECT id,cover FROM posts WHERE uri=?', [$coverUri]);
+    $created['posts'][] = (int) $coverPost['id'];
+    $mediaRow = Q::one('SELECT id,stored_path FROM cms_media WHERE original_name=? ORDER BY id DESC LIMIT 1', ['capa.png']);
+    $ok($mediaRow !== null && $coverPost['cover'] === '/uploads/cms/' . $mediaRow['stored_path'] && is_file(BASE_PATH . '/public' . $coverPost['cover']), 'Capa enviada entra na biblioteca e no artigo');
+    Q::run('UPDATE posts SET cover=NULL WHERE id=?', [$coverPost['id']]);
+    \Moves\Services\CmsMedia::delete((int) $mediaRow['id'], $users['super']['id']);
+    $ok(!is_file(BASE_PATH . '/public/uploads/cms/' . $mediaRow['stored_path']), 'Exclusão remove o arquivo de mídia');
+
     // ---- Menus e configurações ----
     $super->post('/acao/menu-save', ['location' => 'footer', 'label' => 'Link E2E', 'url' => '/teste-e2e', 'is_visible' => '1']);
     $web->get('/');

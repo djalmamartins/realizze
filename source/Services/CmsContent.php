@@ -132,7 +132,7 @@ final class CmsContent
 
     public static function savePost(?int $id, array $input, int $actorId): int
     {
-        $title = self::text($input['title'] ?? '', 190, 'Título');
+        $title = self::text($input['title'] ?? '', 140, 'Título');
         $type = is_string($input['post_type'] ?? null) && isset(self::POST_TYPES[$input['post_type']]) ? $input['post_type'] : 'article';
         if ($title === '') {
             throw new InvalidArgumentException('Informe o título.');
@@ -145,11 +145,18 @@ final class CmsContent
         if ($category !== null && CmsQuery::value('SELECT COUNT(*) FROM categories WHERE id=?', [$category]) == 0) {
             throw new InvalidArgumentException('Categoria inválida.');
         }
-        $values = [$category, $type, $title, $slug, self::text($input['subtitle'] ?? '', 500, 'Resumo'),
+        $author = filter_var($input['author'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: $actorId;
+        if (CmsQuery::value("SELECT COUNT(*) FROM cms_admins WHERE user_id=? AND status='active'", [$author]) == 0) {
+            throw new InvalidArgumentException('Autor inválido.');
+        }
+        $postAt = self::dateTime($input['post_at'] ?? '');
+        $video = self::youtubeId($input['video'] ?? '');
+        $extra = [$author, $video, $postAt];
+        $values = [$category, $type, $title, $slug, self::text($input['subtitle'] ?? '', 300, 'Resumo'),
             HtmlSanitizer::clean(is_string($input['content'] ?? null) ? $input['content'] : ''),
             self::mediaPath($input['cover'] ?? ''), ...self::seoValues($input)];
         if ($id === null) {
-            CmsQuery::run('INSERT INTO posts (category,post_type,title,uri,subtitle,content,cover,seo_title,seo_description,canonical_url,og_image,robots_index,author,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,\'draft\')', [...$values, $actorId]);
+            CmsQuery::run('INSERT INTO posts (category,post_type,title,uri,subtitle,content,cover,seo_title,seo_description,canonical_url,og_image,robots_index,author,video,post_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,COALESCE(?,NOW()),\'draft\')', [...$values, ...$extra]);
             $id = (int) \MovesCode\Model\Connection::get()->lastInsertId();
             CmsAudit::record($actorId, 'content.created', 'post', (string) $id, ['uri' => $slug]);
             return $id;
@@ -157,7 +164,7 @@ final class CmsContent
         if (self::post($id) === null) {
             throw new InvalidArgumentException('Conteúdo não encontrado.');
         }
-        CmsQuery::run('UPDATE posts SET category=?,post_type=?,title=?,uri=?,subtitle=?,content=?,cover=?,seo_title=?,seo_description=?,canonical_url=?,og_image=?,robots_index=? WHERE id=?', [...$values, $id]);
+        CmsQuery::run('UPDATE posts SET category=?,post_type=?,title=?,uri=?,subtitle=?,content=?,cover=?,seo_title=?,seo_description=?,canonical_url=?,og_image=?,robots_index=?,author=?,video=?,post_at=COALESCE(?,post_at) WHERE id=?', [...$values, ...$extra, $id]);
         CmsAudit::record($actorId, 'content.updated', 'post', (string) $id, ['uri' => $slug]);
         return $id;
     }
@@ -171,8 +178,40 @@ final class CmsContent
         if ($publish && trim($post['content']) === '') {
             throw new InvalidArgumentException('Escreva o conteúdo antes de publicar.');
         }
-        CmsQuery::run('UPDATE posts SET status=?, post_at=IF(?=1,NOW(),post_at) WHERE id=?', [$publish ? 'published' : 'draft', $publish && $post['status'] !== 'published' ? 1 : 0, $id]);
+        // Data futura fica como agendamento: o site só mostra quando ela chegar.
+        CmsQuery::run('UPDATE posts SET status=?, post_at=IF(?=1 AND post_at<=NOW(),NOW(),post_at) WHERE id=?', [$publish ? 'published' : 'draft', $publish && $post['status'] !== 'published' ? 1 : 0, $id]);
         CmsAudit::record($actorId, $publish ? 'content.published' : 'content.unpublished', 'post', (string) $id, ['uri' => $post['uri']]);
+    }
+
+    public static function authors(): array
+    {
+        return CmsQuery::all("SELECT u.id, CONCAT(u.first_name,' ',u.last_name) AS name FROM cms_admins a JOIN users u ON u.id=a.user_id WHERE a.status='active' ORDER BY name");
+    }
+
+    private static function dateTime(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+        if ($value === '') {
+            return null;
+        }
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $value);
+        if ($date === false || $date->format('Y-m-d\TH:i') !== $value) {
+            throw new InvalidArgumentException('Data de publicação inválida.');
+        }
+        return $date->format('Y-m-d H:i:s');
+    }
+
+    /** Aceita endereço do YouTube ou o ID do vídeo e guarda somente o ID. */
+    public static function youtubeId(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('~^(?:https?://(?:www\.|m\.)?(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/)|youtube-nocookie\.com/embed/|youtu\.be/))?([A-Za-z0-9_-]{11})(?:[?&#].*)?$~', $value, $match) !== 1) {
+            throw new InvalidArgumentException('Informe um endereço ou ID válido do YouTube.');
+        }
+        return $match[1];
     }
 
     public static function deletePost(int $id, int $actorId): void

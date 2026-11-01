@@ -135,8 +135,22 @@ final class CmsActions
 
     private function postSave(): array
     {
-        $id = Content::savePost($this->optionalId(), $_POST, $this->actor);
-        return ['Conteúdo salvo.', '/conteudos/' . $id];
+        $input = $_POST;
+        $cover = $_FILES['cover_file'] ?? null;
+        if (is_array($cover) && ($cover['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $mediaId = CmsMedia::upload($cover, ['title' => $this->str('title')], $this->actor);
+            $input['cover'] = CmsMedia::urlById($mediaId);
+        }
+        $id = Content::savePost($this->optionalId(), $input, $this->actor);
+        $next = $this->str('publish_after');
+        if ($next === '') {
+            return ['Conteúdo salvo.', '/conteudos/' . $id];
+        }
+        if (!CmsAuth::can($this->admin, 'content.publish')) {
+            throw new InvalidArgumentException('Conteúdo salvo, mas você não tem permissão para publicar.');
+        }
+        Content::setPostStatus($id, $next === '1', $this->actor);
+        return [$next === '1' ? 'Conteúdo publicado.' : 'Conteúdo voltou para rascunho.', '/conteudos/' . $id];
     }
 
     private function postPublish(): array

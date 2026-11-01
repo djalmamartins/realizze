@@ -82,7 +82,7 @@ final class CmsSite
     public static function publishedPosts(int $page, int $perPage = 9): array
     {
         return self::safe(static fn () => CmsQuery::page(
-            "FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE p.status='published' AND p.deleted_at IS NULL AND p.post_type IN ('article','news')",
+            "FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE p.status='published' AND p.deleted_at IS NULL AND p.post_at<=NOW() AND p.post_type IN ('article','news')",
             'p.id,p.title,p.uri,p.subtitle,p.cover,p.post_at,p.post_type,c.title AS category_title', 'p.post_at DESC, p.id DESC', [], $page, $perPage
         ), ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1]);
     }
@@ -90,7 +90,7 @@ final class CmsSite
     public static function publishedPost(string $uri): ?array
     {
         return self::safe(static fn () => CmsQuery::one(
-            "SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE p.uri=? AND p.status='published' AND p.deleted_at IS NULL AND p.post_type<>'help'",
+            "SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE p.uri=? AND p.status='published' AND p.deleted_at IS NULL AND p.post_at<=NOW() AND p.post_type<>'help'",
             [$uri]
         ), null);
     }
