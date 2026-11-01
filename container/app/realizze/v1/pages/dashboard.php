@@ -180,12 +180,15 @@ $icon = static function (string $name) use ($iconPaths): string {
 <div class="section-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Abrir menu" aria-controls="app-sidebar" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 <?= $appView->render('components::page-heading', [
     'pageHeading' => [
+        'section' => $section,
         'title' => $sections[$section][0],
         'description' => $sections[$section][1],
         'context' => $activeOrganization !== null || $section === 'empresarial' ? 'enterprise' : 'personal',
         'live' => in_array($section, ['receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true),
     ],
     'appView' => $appView,
+    'name' => $name,
+    'user' => $user,
 ]) ?>
 <?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>

@@ -490,6 +490,19 @@
   document.addEventListener('app:swapped', syncAllContacts);
   syncAllContacts();
 
+  // Painéis do topo: um por vez; fecham ao clicar fora ou com Esc.
+  document.addEventListener('toggle', (event) => {
+    if (!event.target.matches?.('.tool-menu') || !event.target.open) return;
+    document.querySelectorAll('.tool-menu[open]').forEach((menu) => { if (menu !== event.target) menu.open = false; });
+  }, true);
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('.tool-menu[open]').forEach((menu) => { if (!menu.contains(event.target)) menu.open = false; });
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.tool-menu[open]').forEach((menu) => { menu.open = false; menu.querySelector('summary')?.focus(); });
+  });
+
   window.addEventListener('popstate', () => {
     const url = new URL(location.href);
     if (document.body.dataset.appErrorStatus) location.reload();

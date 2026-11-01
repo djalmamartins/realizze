@@ -792,3 +792,34 @@ a.bell{display:grid;place-items:center;color:inherit}
 .role-notes small{display:block;margin-top:2px;color:#52695a}
 @media(max-width:650px){.alert-group,.integration-grid,.role-notes{margin-inline:20px}}
 .card:has(>.bars){margin-bottom:20px}
+
+/* APP — barra de ferramentas em todas as telas; o período do topo substitui o do cartão */
+.page-heading-meta{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px}
+.page-heading-meta .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;width:auto}
+a.avatar{text-decoration:none}
+.main:has(.page-heading .months-live) .finance-month{display:none}
+.main:has(.page-heading .months-live) .finance-filter-bar:not(:has(.finance-status)){display:none}
+.main:has(.page-heading .months-live) .finance-filter-bar:has(.finance-status){justify-content:flex-end}
+@media(max-width:650px){.page-heading-meta{justify-content:flex-start;width:100%}.page-heading-meta .toolbar{width:100%}.page-heading-meta .months-live{flex:1 1 100%;justify-content:space-between}.page-heading-meta .bell{margin-left:auto}}
+
+/* APP — painéis do sininho e da conta */
+.tool-menu{position:relative}
+.tool-menu summary{display:grid;place-items:center;position:relative;cursor:pointer;list-style:none}
+.tool-menu summary::-webkit-details-marker{display:none}
+.bell-count{position:absolute;top:-6px;right:-8px;display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:#d92d36;color:#fff;font-size:11px;font-weight:700}
+.tool-panel{position:absolute;z-index:60;top:calc(100% + 10px);right:0;display:grid;gap:4px;width:320px;max-width:calc(100vw - 32px);padding:12px;border:1px solid #e3ebe6;border-radius:14px;background:#fff;box-shadow:0 18px 40px #0b241a29;color:#121a31}
+.tool-title{padding:4px 6px 8px;font-size:14px}
+.tool-empty{margin:0;padding:10px 6px;color:#52695a;font-size:13px}
+.tool-alerts{display:grid;margin:0;padding:0;list-style:none}
+.tool-alerts li{display:flex;justify-content:space-between;gap:10px;padding:9px 6px;border-top:1px solid #eef3f0;font-size:13px}
+.tool-alerts small,.tool-who small,.tool-account a small{display:block;color:#6b7a73;font-size:12px;font-weight:400}
+.tool-alerts b{white-space:nowrap}
+.tool-more{padding:9px 6px 4px;border-top:1px solid #eef3f0;color:#066f3e;font-size:13px;font-weight:600;text-align:center}
+.tool-account{width:250px}
+.tool-who{margin:0 0 4px;padding:4px 8px 10px;border-bottom:1px solid #eef3f0;overflow-wrap:anywhere}
+.tool-account a,.tool-account button{display:block;width:100%;padding:9px 8px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.tool-account a:hover,.tool-account button:hover{background:#f3f7f5}
+.tool-account form{margin:4px 0 0;border-top:1px solid #eef3f0;padding-top:4px}
+.tool-account button{color:#a4161a}
+.top,.page-heading{position:relative;z-index:40}
+@media(max-width:650px){.page-heading-meta .tool-menu:first-of-type{margin-left:auto}.top .toolbar .bell{margin:0}}
