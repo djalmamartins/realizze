@@ -84,3 +84,7 @@
 .sc-details div{display:grid;gap:2px}
 .sc-details span{color:#6b7280}
 @media(max-width:820px){.sc-hero{padding:44px 0 80px}.sc-contact-grid{grid-template-columns:minmax(0,1fr)}.sc-search{flex-direction:column}}
+.sc-form h2,.sc-details h2{font-size:1.35rem}
+.sc-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.site-navigation a{white-space:nowrap}
+@media(max-width:540px){.sc-form-grid{grid-template-columns:minmax(0,1fr)}}
