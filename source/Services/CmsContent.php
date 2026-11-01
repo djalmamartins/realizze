@@ -225,7 +225,7 @@ final class CmsContent
     // ---- Categorias e FAQ ----
     public static function categories(): array
     {
-        return CmsQuery::all("SELECT c.*, (SELECT COUNT(*) FROM posts p WHERE p.category=c.id AND p.deleted_at IS NULL) AS posts_count FROM categories c WHERE c.type='post' ORDER BY c.title");
+        return CmsQuery::all("SELECT c.*, (SELECT COUNT(*) FROM posts p WHERE p.category=c.id AND p.deleted_at IS NULL) AS posts_count FROM categories c WHERE c.type IN ('post','help') ORDER BY c.type, c.title");
     }
 
     public static function saveCategory(?int $id, array $input, int $actorId): void
@@ -236,18 +236,45 @@ final class CmsContent
             throw new InvalidArgumentException('Nome de categoria vazio ou repetido.');
         }
         $description = self::text($input['description'] ?? '', 500, 'Descrição');
+        $kind = ($input['type'] ?? '') === 'help' ? 'help' : 'post';
         if ($id === null) {
-            CmsQuery::run("INSERT INTO categories (title,uri,description,type) VALUES (?,?,?,'post')", [$title, $uri, $description]);
+            CmsQuery::run('INSERT INTO categories (title,uri,description,type) VALUES (?,?,?,?)', [$title, $uri, $description, $kind]);
         } else {
-            CmsQuery::run("UPDATE categories SET title=?,uri=?,description=? WHERE id=? AND type='post'", [$title, $uri, $description, $id]);
+            CmsQuery::run('UPDATE categories SET title=?,uri=?,description=? WHERE id=?', [$title, $uri, $description, $id]);
         }
         CmsAudit::record($actorId, 'content.category_saved', 'category', $id === null ? null : (string) $id, ['title' => $title]);
     }
 
     public static function deleteCategory(int $id, int $actorId): void
     {
-        CmsQuery::run("DELETE FROM categories WHERE id=? AND type='post'", [$id]);
+        CmsQuery::run('DELETE FROM categories WHERE id=?', [$id]);
         CmsAudit::record($actorId, 'content.category_deleted', 'category', (string) $id);
+    }
+
+    /** Base de conhecimento: matérias com visualizações e avaliação dos leitores. */
+    public static function helpListing(array $filters, int $page): array
+    {
+        $where = "p.post_type='help' AND p.deleted_at IS NULL";
+        $args = [];
+        if (($filters['q'] ?? '') !== '') {
+            $where .= ' AND p.title LIKE ?';
+            $args[] = '%' . $filters['q'] . '%';
+        }
+        return CmsQuery::page(
+            'FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE ' . $where,
+            'p.id,p.title,p.status,p.views,c.title AS folder,(SELECT COUNT(*) FROM help_article_votes v WHERE v.post_id=p.id) AS votes,(SELECT SUM(v.helpful) FROM help_article_votes v WHERE v.post_id=p.id) AS helpful',
+            'c.title, p.title', $args, $page
+        );
+    }
+
+    public static function helpFolders(): array
+    {
+        return CmsQuery::all("SELECT c.*, (SELECT COUNT(*) FROM posts p WHERE p.category=c.id AND p.deleted_at IS NULL) AS posts_count FROM categories c WHERE c.type='help' ORDER BY c.title");
+    }
+
+    public static function voteHelp(int $postId, int $userId, bool $helpful): void
+    {
+        CmsQuery::run('INSERT INTO help_article_votes (post_id,user_id,helpful) VALUES (?,?,?) ON DUPLICATE KEY UPDATE helpful=VALUES(helpful)', [$postId, $userId, $helpful ? 1 : 0]);
     }
 
     public static function faqs(): array

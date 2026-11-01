@@ -18,6 +18,13 @@ return static function (Router $router, callable $requirePreview): void {
     $router->get('/minha-assinatura', static fn () => $page('assinatura'), 'app.subscription');
     $router->get('/suporte/ajuda', static fn () => $page('suporte-ajuda'), 'app.support.help');
     $router->get('/suporte/ajuda/{uri}', static fn (array $params) => $page('suporte-artigo', ['uri' => (string) ($params['uri'] ?? '')]), 'app.support.article');
+    $router->get('/suporte/notificacoes', static fn () => $page('suporte-notificacoes'), 'app.support.notifications');
+    $router->get('/suporte/atualizacoes', static fn () => $page('suporte-atualizacoes'), 'app.support.updates');
+    $router->post('/suporte/ajuda/{uri}/votar', static function (array $params) use ($allowed): void {
+        if ($allowed()) {
+            (new \Moves\App\SupportActions())->voteHelp((string) ($params['uri'] ?? ''));
+        }
+    }, 'app.support.vote');
     $router->get('/suporte/novo', static fn () => $page('suporte-novo'), 'app.support.new');
     $router->get('/suporte/anexo/{id}', static function (array $params) use ($allowed): void {
         if ($allowed()) {

@@ -149,12 +149,12 @@ final class HelpdeskNotifier
     // ---- Caixa de entrada ----
     public static function inbox(int $userId, string $audience, int $limit = 30): array
     {
-        return CmsQuery::all('SELECT * FROM notifications WHERE user_id=? AND audience=? ORDER BY id DESC LIMIT ' . max(1, min($limit, 100)), [$userId, $audience]);
+        return CmsQuery::all('SELECT * FROM notifications WHERE user_id=? AND audience=? AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY id DESC LIMIT ' . max(1, min($limit, 100)), [$userId, $audience]);
     }
 
     public static function unread(int $userId, string $audience): int
     {
-        return (int) CmsQuery::value('SELECT COUNT(*) FROM notifications WHERE user_id=? AND audience=? AND read_at IS NULL', [$userId, $audience]);
+        return (int) CmsQuery::value('SELECT COUNT(*) FROM notifications WHERE user_id=? AND audience=? AND read_at IS NULL AND (expires_at IS NULL OR expires_at > NOW())', [$userId, $audience]);
     }
 
     public static function markAllRead(int $userId, string $audience): void

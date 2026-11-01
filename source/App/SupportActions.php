@@ -76,6 +76,24 @@ final class SupportActions
         return $message;
     }
 
+    public function voteHelp(string $uri): void
+    {
+        header('Cache-Control: no-store');
+        $user = SessionAuth::current();
+        if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) {
+            http_response_code(403);
+            return;
+        }
+        $article = \Moves\Services\CmsSite::helpArticle('uri', $uri);
+        if ($article === null) {
+            http_response_code(404);
+            return;
+        }
+        \Moves\Services\CmsContent::voteHelp((int) $article['id'], (int) $user['id'], ($_POST['helpful'] ?? '') === '1');
+        $_SESSION['support_flash'] = ['success', 'Obrigado pela sua avaliação.'];
+        header('Location: /suporte/ajuda/' . rawurlencode($uri), true, 303);
+    }
+
     public function download(int $attachmentId): void
     {
         $user = SessionAuth::current();

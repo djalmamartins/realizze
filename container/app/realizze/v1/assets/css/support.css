@@ -75,3 +75,9 @@
 .sp-dl dd{margin:0}
 .sp-article{overflow-wrap:anywhere}
 .sp-article img{max-width:100%;height:auto}
+.sp-vote{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.sp-note{padding:12px 4px;border-top:1px solid #e5e7eb}
+.sp-note p{margin:3px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.sp-note small{color:#6b7280}
+.sp-note-warning strong{color:#92580a}
+.sp-note-critical strong{color:#b42318}

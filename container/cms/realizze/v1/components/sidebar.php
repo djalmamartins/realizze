@@ -5,10 +5,10 @@ use Moves\Support\CmsView as V;
 
 $cmsIcon = require __DIR__ . '/icons.php';
 $menu = [
-    'Visão geral' => [['dashboard', '/', 'Dashboard', 'overview', 'dashboard.view']],
+    'Visão geral' => [['dashboard', '/', 'Dashboard', 'overview', 'dashboard.view'], ['reports', '/relatorios', 'Relatórios', 'chart', 'reports.view'], ['broadcasts', '/comunicacoes', 'Notificações', 'bell', 'broadcasts.send']],
     'Site' => [
         ['pages', '/paginas', 'Páginas', 'pages', 'pages.manage'], ['contents', '/conteudos', 'Conteúdos', 'edit', 'content.manage'],
-        ['media', '/midia', 'Mídia', 'media', 'media.manage'], ['menus', '/menus', 'Menus', 'menu', 'menus.manage'], ['seo', '/seo', 'SEO', 'search', 'seo.manage'],
+        ['media', '/midia', 'Mídia', 'media', 'media.manage'], ['slides', '/destaques', 'Destaques', 'layers', 'content.manage'], ['testimonials', '/depoimentos', 'Depoimentos', 'quote', 'content.manage'], ['menus', '/menus', 'Menus', 'menu', 'menus.manage'], ['seo', '/seo', 'SEO', 'search', 'seo.manage'],
     ],
     'Plataforma' => [
         ['users', '/usuarios', 'Usuários', 'users', 'users.view'], ['companies', '/empresas', 'Empresas', 'building', 'companies.view'],
@@ -16,12 +16,12 @@ $menu = [
     ],
     'Atendimento' => [
         ['tickets', '/chamados', 'Chamados', 'chat', 'tickets.view'], ['queue', '/chamados/fila', 'Fila de atendimento', 'clock', 'tickets.view'],
-        ['ticket-categories', '/chamados/categorias', 'Categorias', 'list', 'tickets.categories'], ['quick-replies', '/chamados/respostas', 'Respostas rápidas', 'edit', 'tickets.categories'], ['knowledge', '/conteudos?type=help', 'Base de conhecimento', 'pages', 'content.manage'], ['ticket-team', '/chamados/equipe', 'Equipe', 'users', 'tickets.view'],
+        ['ticket-categories', '/chamados/categorias', 'Categorias', 'list', 'tickets.categories'], ['quick-replies', '/chamados/respostas', 'Respostas rápidas', 'edit', 'tickets.categories'], ['knowledge', '/base-de-conhecimento', 'Base de conhecimento', 'pages', 'content.manage'], ['ticket-team', '/chamados/equipe', 'Equipe', 'users', 'tickets.view'],
         ['ticket-reports', '/chamados/relatorios', 'Relatórios de atendimento', 'chart', 'tickets.reports'], ['ticket-notifications', '/chamados/notificacoes', 'Configurações de notificações', 'bell', 'notifications.configure'],
     ],
     'Administração' => [
         ['admins', '/administradores', 'Administradores', 'shield', 'admins.manage'], ['permissions', '/permissoes', 'Permissões', 'key', 'permissions.manage'],
-        ['audit', '/auditoria', 'Auditoria', 'clock', 'audit.view'], ['settings', '/configuracoes', 'Configurações', 'settings', 'settings.manage'],
+        ['audit', '/auditoria', 'Auditoria', 'clock', 'audit.view'], ['settings', '/configuracoes', 'Configurações', 'settings', 'settings.manage'], ['versions', '/versoes', 'Versões', 'tag', 'versions.manage'], ['system-logs', '/log', 'Log', 'alert', 'system_logs.view'],
     ],
 ];
 ?>

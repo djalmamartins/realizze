@@ -17,10 +17,12 @@ return [
         };
         // Metadados administrados no CMS valem para todos os templates da rota.
         $renderRoute = static function (string $template, string $path) use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record($path);
             $view->share(['seo' => $site::routeMeta($path)]);
             $render($template);
         };
         $renderCmsPage = static function (array $page) use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/' . $page['slug']);
             $view->share(['seo' => $site::autoMeta($page, $page['title'], $page['excerpt'], $page['content'], '/' . $page['slug'], $page['image_path'])]);
             $render('cms-page', ['page' => $page]);
         };
@@ -220,11 +222,13 @@ return [
         }, 'web.email.confirm.submit');
 
         $router->get('/planos', static function () use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/planos');
             $view->share(['seo' => $site::routeMeta('/planos')]);
             $render('plans', ['plans' => \Moves\Services\PlatformBilling::publicPlans()]);
         }, 'web.plans');
 
         $router->get('/blog', static function () use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/blog');
             $view->share(['seo' => $site::routeMeta('/blog')]);
             $page = filter_var($_GET['pagina'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
             $render('blog', ['result' => $site::publishedPosts($page)]);
@@ -237,6 +241,7 @@ return [
                 $render('not-found');
                 return;
             }
+            \Moves\Services\CmsAnalytics::record('/blog/' . $post['uri']);
             $view->share(['seo' => $site::autoMeta($post, $post['title'], $post['subtitle'], $post['content'], '/blog/' . $post['uri'], $post['cover'])]);
             $render('post', ['post' => $post]);
         }, 'web.post');

@@ -8,6 +8,15 @@
   // Editor simples sobre o textarea; o servidor continua sanitizando o HTML ao salvar.
   const enhanceEditors = () => {
     if (typeof document.querySelectorAll !== 'function') return;
+    const theme = document.getElementById('cms-theme');
+    if (theme) {
+      theme.addEventListener('click', () => {
+        const dark = document.documentElement.dataset.theme !== 'dark';
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        theme.setAttribute('aria-pressed', String(dark));
+        try { localStorage.setItem('cms-theme', dark ? 'dark' : 'light'); } catch (_error) { /* só preferência */ }
+      });
+    }
     document.querySelectorAll('[data-settings]').forEach((form) => {
       const tabs = form.querySelectorAll('[data-settings-tab]');
       const show = (index) => {

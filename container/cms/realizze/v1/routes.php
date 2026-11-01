@@ -65,6 +65,15 @@ return [
         // caminho => [template, permissão, título, grupo do menu, item do menu]
         $pages = [
             '/' => ['dashboard', 'dashboard.view', 'Dashboard', 'Visão geral', 'dashboard'],
+            '/relatorios' => ['reports', 'reports.view', 'Relatórios de acesso', 'Visão geral', 'reports'],
+            '/comunicacoes' => ['broadcasts', 'broadcasts.send', 'Central de notificações', 'Visão geral', 'broadcasts'],
+            '/destaques' => ['slides', 'content.manage', 'Banners e destaques', 'Site', 'slides'],
+            '/destaques/novo' => ['slide-form', 'content.manage', 'Novo destaque', 'Site', 'slides'],
+            '/destaques/{id}' => ['slide-form', 'content.manage', 'Editar destaque', 'Site', 'slides'],
+            '/depoimentos' => ['testimonials', 'content.manage', 'Depoimentos', 'Site', 'testimonials'],
+            '/base-de-conhecimento' => ['knowledge', 'content.manage', 'Base de conhecimento', 'Atendimento', 'knowledge'],
+            '/versoes' => ['versions', 'versions.manage', 'Versões', 'Administração', 'versions'],
+            '/log' => ['system-logs', 'system_logs.view', 'Log do sistema', 'Administração', 'system-logs'],
             '/paginas' => ['pages', 'pages.manage', 'Páginas', 'Site', 'pages'],
             '/paginas/novo' => ['page-form', 'pages.manage', 'Nova página', 'Site', 'pages'],
             '/paginas/{id}' => ['page-form', 'pages.manage', 'Editar página', 'Site', 'pages'],
@@ -177,6 +186,25 @@ return [
             }
             \Moves\Services\Helpdesk::streamAttachment($attachment);
         }, 'cms.ticket.attachment');
+
+        $router->get('/usuarios-exportar', static function () use ($guard): void {
+            $admin = $guard('users.view');
+            if ($admin === null) {
+                return;
+            }
+            \Moves\Services\CmsAudit::record((int) $admin['id'], 'users.exported', 'user');
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="usuarios-realizze.csv"');
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Nome', 'E-mail', 'Situação', 'Cadastro'], ';');
+            // Prefixo evita que planilhas executem nomes iniciados por =, +, - ou @.
+            $safe = static fn (string $v): string => preg_match('/^[=+\-@\t\r]/', $v) === 1 ? "'" . $v : $v;
+            foreach (\Moves\Services\CmsQuery::all('SELECT first_name,last_name,email,status,created_at FROM users ORDER BY id') as $u) {
+                fputcsv($out, [$safe(trim($u['first_name'] . ' ' . $u['last_name'])), $safe($u['email']), $u['status'], $u['created_at']], ';');
+            }
+            fclose($out);
+        }, 'cms.users.export');
 
         $router->post('/acao/{name}', static function (array $params) use ($gate): void {
             if ($gate()) {

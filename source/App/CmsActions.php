@@ -27,6 +27,10 @@ final class CmsActions
         'category-save' => ['content.manage', 'categorySave'], 'category-delete' => ['content.manage', 'categoryDelete'],
         'faq-save' => ['content.manage', 'faqSave'], 'faq-delete' => ['content.manage', 'faqDelete'],
         'media-upload' => ['media.manage', 'mediaUpload'], 'media-update' => ['media.manage', 'mediaUpdate'], 'media-delete' => ['media.manage', 'mediaDelete'], 'media-delete-bulk' => ['media.manage', 'mediaDeleteBulk'],
+        'slide-save' => ['content.manage', 'slideSave'], 'slide-delete' => ['content.manage', 'slideDelete'],
+        'testimonial-save' => ['content.manage', 'testimonialSave'], 'testimonial-delete' => ['content.manage', 'testimonialDelete'],
+        'broadcast-send' => ['broadcasts.send', 'broadcastSend'], 'broadcast-cancel' => ['broadcasts.send', 'broadcastCancel'],
+        'version-publish' => ['versions.manage', 'versionPublish'], 'system-log-resolve' => ['system_logs.view', 'systemLogResolve'],
         'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'], 'seo-save' => ['seo.manage', 'seoSave'],
         'user-suspend' => ['users.manage', 'userSuspend'], 'company-status' => ['companies.manage', 'companyStatus'], 'company-support-access' => ['companies.manage', 'companySupportAccess'],
         'plan-save' => ['plans.manage', 'planSave'],
@@ -220,6 +224,58 @@ final class CmsActions
     {
         [$deleted, $kept] = CmsMedia::deleteMany(is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [], $this->actor);
         return [$deleted . ' arquivo(s) excluído(s).' . ($kept > 0 ? ' ' . $kept . ' em uso ficaram de fora.' : '')];
+    }
+
+    private function slideSave(): array
+    {
+        $id = \Moves\Services\CmsShowcase::saveSlide($this->optionalId(), $_POST, $this->actor);
+        return ['Destaque salvo.', '/destaques/' . $id];
+    }
+
+    private function slideDelete(): array
+    {
+        \Moves\Services\CmsShowcase::deleteSlide($this->id(), $this->actor);
+        return ['Destaque excluído.', '/destaques'];
+    }
+
+    private function testimonialSave(): array
+    {
+        $input = $_POST;
+        $photo = $_FILES['photo_file'] ?? null;
+        if (is_array($photo) && ($photo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $input['photo_path'] = CmsMedia::urlById(CmsMedia::upload($photo, ['title' => 'Depoimento: ' . $this->str('person_name')], $this->actor));
+        }
+        \Moves\Services\CmsShowcase::saveTestimonial($this->optionalId(), $input, $this->actor);
+        return ['Depoimento salvo.', '/depoimentos'];
+    }
+
+    private function testimonialDelete(): array
+    {
+        \Moves\Services\CmsShowcase::deleteTestimonial($this->id(), $this->actor);
+        return ['Depoimento excluído.', '/depoimentos'];
+    }
+
+    private function broadcastSend(): array
+    {
+        \Moves\Services\CmsBroadcasts::create($_POST, $this->actor);
+        return ['Comunicação registrada.', '/comunicacoes'];
+    }
+
+    private function broadcastCancel(): array
+    {
+        \Moves\Services\CmsBroadcasts::cancel($this->id(), $this->actor);
+        return ['Comunicação cancelada.'];
+    }
+
+    private function versionPublish(): array
+    {
+        \Moves\Services\CmsVersions::publish($_POST, $this->actor);
+        return ['Versão publicada.', '/versoes?produto=' . rawurlencode($this->str('product'))];
+    }
+
+    private function systemLogResolve(): array
+    {
+        return [\Moves\Services\SystemLog::resolve(is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [], $this->actor) . ' ocorrência(s) resolvida(s).'];
     }
 
     private function menuSave(): array

@@ -129,7 +129,7 @@ try {
 
     $super = $login('cms.realizze.lab', 'super');
     $ok($super->status === 303, 'Administrador autentica');
-    foreach (['/', '/paginas', '/paginas/novo', '/conteudos', '/conteudos/novo', '/conteudos/categorias', '/conteudos/faq', '/midia', '/menus', '/seo', '/usuarios', '/empresas', '/planos', '/planos/novo', '/assinaturas', '/cobrancas', '/chamados', '/chamados/fila', '/chamados/categorias', '/chamados/respostas', '/chamados/equipe', '/chamados/relatorios', '/chamados/notificacoes', '/notificacoes', '/administradores', '/permissoes', '/auditoria', '/configuracoes'] as $path) {
+    foreach (['/', '/paginas', '/paginas/novo', '/conteudos', '/conteudos/novo', '/conteudos/categorias', '/conteudos/faq', '/midia', '/menus', '/seo', '/usuarios', '/empresas', '/planos', '/planos/novo', '/assinaturas', '/cobrancas', '/chamados', '/chamados/fila', '/chamados/categorias', '/chamados/respostas', '/chamados/equipe', '/chamados/relatorios', '/chamados/notificacoes', '/notificacoes', '/relatorios', '/comunicacoes', '/destaques', '/destaques/novo', '/depoimentos', '/base-de-conhecimento', '/versoes', '/log', '/administradores', '/permissoes', '/auditoria', '/configuracoes'] as $path) {
         $super->get($path);
         $ok($super->status === 200 && str_contains($super->body, 'id="cms-content"') && !str_contains($super->body, 'Warning:') && !str_contains($super->body, 'Fatal'), "Tela {$path}");
     }
@@ -508,6 +508,96 @@ try {
     $ok((new \Moves\Models\HelpdeskTicket())->findById($tid)?->protocol === $proto, 'Model de chamado lê o banco');
     $ok((new \Moves\Models\Plan())->findById($planId)?->plan_key === $key, 'Model de plano lê o banco');
 
+    // Destaques e depoimentos
+    $super->get('/destaques/novo');
+    $slideTitle = 'Destaque ' . bin2hex(random_bytes(3));
+    $super->post('/acao/slide-save', ['title' => $slideTitle, 'content' => '<p>Chamada</p><script>x</script>', 'link_url' => 'javascript:alert(1)', 'status' => 'published']);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_slides WHERE title=?', [$slideTitle]) == 0, 'Destino perigoso do destaque recusado');
+    $super->post('/acao/slide-save', ['title' => $slideTitle, 'content' => '<p>Chamada</p><script>x</script>', 'link_url' => '/planos', 'link_label' => 'Ver planos', 'status' => 'published']);
+    $web->get('/');
+    $ok(str_contains($web->body, $slideTitle) && !str_contains($web->body, '<script>x'), 'Destaque publicado aparece no site, sanitizado');
+    $editor->get('/depoimentos');
+    $quote = 'Depoimento ' . bin2hex(random_bytes(3));
+    $editor->post('/acao/testimonial-save', ['person_name' => 'Pessoa Teste', 'body' => $quote, 'rating' => '9', 'status' => 'published']);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_testimonials WHERE body=?', [$quote]) == 0, 'Nota fora de 1 a 5 recusada');
+    $editor->post('/acao/testimonial-save', ['person_name' => 'Pessoa Teste', 'body' => $quote, 'rating' => '4', 'status' => 'published']);
+    $web->get('/');
+    $ok(str_contains($web->body, $quote), 'Depoimento publicado aparece no site');
+    Q::run('DELETE FROM cms_slides WHERE title=?', [$slideTitle]);
+    Q::run('DELETE FROM cms_testimonials WHERE body=?', [$quote]);
+
+    // Notificações para os usuários
+    $supportStaff->get('/chamados');
+    $supportStaff->post('/acao/broadcast-send', ['title' => 'Sem permissão', 'body' => 'x']);
+    $ok($supportStaff->status === 403, 'Suporte não envia comunicação');
+    $super->get('/comunicacoes');
+    $notice = 'Aviso ' . bin2hex(random_bytes(3));
+    $super->post('/acao/broadcast-send', ['title' => $notice, 'body' => 'Manutenção programada', 'audience' => 'customers', 'channel' => 'internal']);
+    $broadcast = Q::one('SELECT * FROM cms_broadcasts WHERE title=?', [$notice]);
+    $ok($broadcast['status'] === 'sent' && (int) $broadcast['recipients'] >= 8, 'Comunicação entregue a todos os clientes ativos');
+    $other->get('/suporte/notificacoes');
+    $ok(str_contains($other->body, $notice) && str_contains($other->body, 'Manutenção programada'), 'Cliente lê a comunicação no App');
+    $repeat = (int) Q::value('SELECT COUNT(*) FROM notifications WHERE broadcast_id=?', [$broadcast['id']]);
+    \Moves\Services\CmsBroadcasts::dispatchDue();
+    $ok((int) Q::value('SELECT COUNT(*) FROM notifications WHERE broadcast_id=?', [$broadcast['id']]) === $repeat, 'Processar de novo não duplica');
+    $later = 'Agendado ' . bin2hex(random_bytes(3));
+    $super->post('/acao/broadcast-send', ['title' => $later, 'body' => 'Depois', 'scheduled_at' => date('Y-m-d\\TH:i', time() + 7200)]);
+    $scheduled = Q::one('SELECT * FROM cms_broadcasts WHERE title=?', [$later]);
+    $ok($scheduled['status'] === 'scheduled' && Q::value('SELECT COUNT(*) FROM notifications WHERE broadcast_id=?', [$scheduled['id']]) == 0, 'Agendada não é entregue antes da hora');
+    $super->post('/acao/broadcast-cancel', ['id' => $scheduled['id']]);
+    $ok(Q::value('SELECT status FROM cms_broadcasts WHERE id=?', [$scheduled['id']]) === 'canceled', 'Agendada pode ser cancelada');
+    Q::run('DELETE FROM cms_broadcasts WHERE id IN (?,?)', [$broadcast['id'], $scheduled['id']]);
+
+    // Versões
+    $super->get('/versoes');
+    $number = '9.' . random_int(100, 999) . '.0';
+    $super->post('/acao/version-publish', ['product' => 'app', 'version' => $number, 'name' => 'Teste', 'notes' => 'Notas de teste']);
+    $super->post('/acao/version-publish', ['product' => 'app', 'version' => $number, 'name' => 'Duplicada', 'notes' => 'x']);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_versions WHERE product=? AND version=?', ['app', $number]) == 1, 'Versão publicada sem duplicar');
+    $other->get('/suporte/atualizacoes');
+    $ok(str_contains($other->body, $number), 'Atualização aparece no App');
+    Q::run('DELETE FROM cms_versions WHERE product=? AND version=?', ['app', $number]);
+
+    // Log técnico
+    $logMessage = 'Falha de teste ' . bin2hex(random_bytes(3)) . ' usuario@example.com password=abc123';
+    \Moves\Services\SystemLog::record('error', $logMessage, 'tests/x.php:1');
+    \Moves\Services\SystemLog::record('error', $logMessage, 'tests/x.php:1');
+    $logRow = Q::one('SELECT * FROM cms_system_logs WHERE source=? ORDER BY id DESC LIMIT 1', ['tests/x.php:1']);
+    $ok((int) $logRow['occurrences'] === 2, 'Log agrupa ocorrências iguais');
+    $ok(!str_contains($logRow['message'], 'usuario@example.com') && !str_contains($logRow['message'], 'abc123'), 'Log não guarda e-mail nem senha');
+    $editor->get('/log');
+    $ok($editor->status === 403, 'Editor não abre o log');
+    $super->get('/log');
+    $super->post('/acao/system-log-resolve', ['ids[0]' => $logRow['id']]);
+    $ok(Q::value('SELECT status FROM cms_system_logs WHERE id=?', [$logRow['id']]) === 'resolved', 'Ocorrência marcada como resolvida');
+    Q::run('DELETE FROM cms_system_logs WHERE id=?', [$logRow['id']]);
+
+    // Acessos ao site
+    $viewPath = '/teste-acesso-' . bin2hex(random_bytes(3));
+    $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 teste'; $_SERVER['REQUEST_METHOD'] = 'GET'; $_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+    \Moves\Services\CmsAnalytics::record($viewPath);
+    $view = Q::one('SELECT * FROM cms_page_views WHERE path=?', [$viewPath]);
+    $ok($view !== null && !str_contains(json_encode($view), '198.51.100.7'), 'Acesso registrado sem guardar IP');
+    $_SERVER['HTTP_USER_AGENT'] = 'Googlebot/2.1';
+    \Moves\Services\CmsAnalytics::record($viewPath);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_page_views WHERE path=?', [$viewPath]) == 1, 'Robôs não contam como acesso');
+    $report = \Moves\Services\CmsAnalytics::report(30);
+    $ok(count($report['series']) === 30 && $report['views'] >= 1, 'Relatório calcula os 30 dias');
+    Q::run('DELETE FROM cms_page_views WHERE path=?', [$viewPath]);
+    unset($_SERVER['HTTP_USER_AGENT'], $_SERVER['REQUEST_METHOD'], $_SERVER['REMOTE_ADDR']);
+
+    // Exportação e voto na ajuda
+    $super->get('/usuarios-exportar');
+    $ok($super->status === 200 && str_contains($super->body, 'Situação') && !str_contains($super->body, $hash), 'Exportação de usuários sem senha');
+    $editor->get('/usuarios-exportar');
+    $ok($editor->status === 403, 'Editor não exporta usuários');
+    $other->get('/suporte/ajuda/' . $helpUri);
+    $other->post('/suporte/ajuda/' . $helpUri . '/votar', ['helpful' => '1']);
+    $other->get('/suporte/ajuda/' . $helpUri);
+    $other->post('/suporte/ajuda/' . $helpUri . '/votar', ['helpful' => '0']);
+    $ok(Q::value('SELECT COUNT(*) FROM help_article_votes WHERE post_id=?', [$helpId]) == 1 && Q::value('SELECT helpful FROM help_article_votes WHERE post_id=?', [$helpId]) == 0, 'Voto único por pessoa');
+    $ok((int) Q::value('SELECT views FROM posts WHERE id=?', [$helpId]) >= 1, 'Visualizações da ajuda contadas');
+
     // Privacidade
     $supportStaff->get('/chamados/' . $tid);
     $ok(!str_contains($supportStaff->body, 'finance_') && !str_contains($supportStaff->body, 'Saldo'), 'Atendente não recebe dados financeiros do cliente');
@@ -547,9 +637,11 @@ try {
         $web->get($path);
         $ok($web->status === 200, "Site {$path}");
     }
-    $customer->get('/pf/pessoal');
+    $customer->get('/minha-conta');
+    if ($customer->status === 302) { $customer->get(parse_url($customer->location, PHP_URL_PATH)); }
     $ok($customer->status === 200 && str_contains($customer->body, 'id="sp-tab"') && str_contains($customer->body, 'id="sp-panel"'), 'Painel financeiro abre com a aba de suporte');
-    $customer->get('/pf/pessoal/receber');
+    $customer->get('/minha-conta?pagina=receber');
+    if ($customer->status === 302) { $customer->get(parse_url($customer->location, PHP_URL_PATH)); }
     $ok($customer->status === 200, 'Módulo Receber continua abrindo');
 } finally {
     $ids = array_column($users, 'id');

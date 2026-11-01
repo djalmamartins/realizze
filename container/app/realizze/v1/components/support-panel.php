@@ -33,8 +33,9 @@ $modules = ['Geral', 'Receber', 'Pagar', 'Movimentações', 'Cartões', 'Relató
   <button type="button" class="sp-option" data-sp-go="service"><strong>Atendimento</strong><span>Envie dúvidas, solicitações ou sugestões.</span></button>
   <a class="sp-option" href="/suporte/ajuda"><strong>Base de conhecimento</strong><span>Tutoriais e respostas sobre o Realizze.</span></a>
   <a class="sp-option" href="/minha-assinatura"><strong>Minha assinatura</strong><span>Plano, limites e situação.</span></a>
-  <a class="sp-option" href="/suporte"><strong>Meus chamados<?= $panelUnread > 0 ? ' (' . (int) $panelUnread . ' novidades)' : '' ?></strong><span>Acompanhe situação, respostas e histórico.</span></a>
-  <a class="sp-option" href="<?= V::e($siteUrl) ?>/blog" target="_blank" rel="noopener"><strong>Atualizações</strong><span>Acompanhe as novidades da plataforma.</span></a>
+  <a class="sp-option" href="/suporte"><strong>Meus chamados</strong><span>Acompanhe situação, respostas e histórico.</span></a>
+  <a class="sp-option" href="/suporte/notificacoes"><strong>Notificações<?= $panelUnread > 0 ? ' (' . (int) $panelUnread . ')' : '' ?></strong><span>Avisos da equipe e dos seus chamados.</span></a>
+  <a class="sp-option" href="/suporte/atualizacoes"><strong>Atualizações</strong><span>Acompanhe as novidades da plataforma.</span></a>
   <?php if ($suggestionCategory !== ''): ?><button type="button" class="sp-option" data-sp-go="form" data-sp-category="<?= V::e($suggestionCategory) ?>"><strong>Sugestões</strong><span>Envie uma ideia de novo recurso.</span></button><?php endif; ?>
   <?php if (!empty($panelSettings['support_email']) || !empty($panelSettings['contact_phone'])): ?><h3>Contato</h3><?php if (!empty($panelSettings['contact_phone'])): ?><p><?= V::e($panelSettings['contact_phone']) ?></p><?php endif; ?><?php if (!empty($panelSettings['support_email'])): ?><p><a href="mailto:<?= V::e($panelSettings['support_email']) ?>"><?= V::e($panelSettings['support_email']) ?></a></p><?php endif; ?><?php endif; ?>
   <?php if (!empty($panelSettings['support_hours'])): ?><h3>Expediente</h3><p><?= V::e($panelSettings['support_hours']) ?></p><?php endif; ?>
