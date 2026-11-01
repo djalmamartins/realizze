@@ -12,7 +12,7 @@ Fora do ambiente local, o CMS só abre com `REALIZZE_CMS_ENABLED=1`.
 
 ## Migrations
 
-`100` administração, `101` conteúdo, `102` planos e cobranças, `103` atendimento. São aditivas e usam numeração própria para não colidir com as do App.
+`100` administração, `101` conteúdo, `102` planos e cobranças, `103` atendimento, `104` respostas rápidas. São aditivas e usam numeração própria para não colidir com as do App.
 
 ## Papéis
 
