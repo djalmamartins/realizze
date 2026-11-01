@@ -59,6 +59,18 @@ $items += [
     'planejamento' => ['calendar-days','Planejamento',$baseUrl . '/planejamento'], 'metas' => ['target','Metas',$baseUrl . '/metas'],
     'categorias' => ['list-filter','Categorias',$baseUrl . '/categorias'],
 ];
+// PF: metas e planejamento antes dos cartões; relatórios permanecem após os cartões.
+// Reordena somente os itens já disponíveis, sem inventar rotas ou módulos.
+if ($activeOrganization === null) {
+    $order = ['overview', 'receber', 'pagar', 'movimentacoes', 'metas', 'planejamento', 'contas', 'relatorios'];
+    $sortedItems = [];
+    foreach ($order as $key) {
+        if (isset($items[$key])) {
+            $sortedItems[$key] = $items[$key];
+        }
+    }
+    $items = $sortedItems + $items;
+}
 $items['integracoes'] = ['arrows-left-right','Integrações',$baseUrl . '/integracoes'];
 $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
