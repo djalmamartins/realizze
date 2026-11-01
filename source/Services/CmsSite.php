@@ -128,11 +128,55 @@ final class CmsSite
         return self::safe(static fn () => CmsSettings::publicValues(), []);
     }
 
+    /**
+     * SEO automático: título, descrição, URL e imagem social saem do próprio conteúdo.
+     * O que for preenchido à mão no CMS tem prioridade. Calculado na leitura, nunca fica defasado.
+     */
+    public static function autoMeta(array $source, string $title, string $summary, string $html, string $path, ?string $image): array
+    {
+        $description = trim($summary) !== '' ? $summary : (string) preg_replace('/\s+/u', ' ', trim(html_entity_decode(strip_tags(str_replace('<', ' <', $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        if (mb_strlen($description) > 155) {
+            $cut = mb_substr($description, 0, 155);
+            $space = mb_strrpos($cut, ' ');
+            $description = rtrim($space === false ? $cut : mb_substr($cut, 0, $space), " ,.;:") . '…';
+        }
+        $meta = self::meta($source, $title . ' | Realizze', $description);
+        $meta['canonical'] = $meta['canonical'] !== '' ? $meta['canonical'] : self::absolute($path);
+        $meta['ogImage'] = $meta['ogImage'] !== '' ? $meta['ogImage'] : (string) $image;
+        return $meta;
+    }
+
+    private static function absolute(string $path): string
+    {
+        return rtrim((string) (getenv('APP_URL') ?: ''), '/') . $path;
+    }
+
+    /** Sitemap: somente o que está publicado, já visível e indexável. */
+    public static function sitemapUrls(): array
+    {
+        $noindex = self::safe(static fn () => array_column(CmsQuery::all('SELECT route_path FROM cms_seo_routes WHERE robots_index=0'), 'route_path'), []);
+        $urls = [];
+        foreach (array_keys(self::SEO_ROUTES) as $path) {
+            if (!in_array($path, $noindex, true)) {
+                $urls[self::absolute($path)] = null;
+            }
+        }
+        foreach (self::safe(static fn () => CmsQuery::all("SELECT slug, updated_at FROM cms_pages WHERE status='published' AND robots_index=1"), []) as $page) {
+            $urls[self::absolute('/' . $page['slug'])] = $page['updated_at'];
+        }
+        foreach (self::safe(static fn () => CmsQuery::all("SELECT uri, updated_at FROM posts WHERE status='published' AND deleted_at IS NULL AND robots_index=1 AND post_at<=NOW() AND post_type IN ('article','news','institutional')"), []) as $post) {
+            $urls[self::absolute('/blog/' . $post['uri'])] = $post['updated_at'];
+        }
+        return $urls;
+    }
+
     /** Metadados da rota: valores vazios mantêm os textos do template. */
     public static function routeMeta(string $path): array
     {
         $row = self::safe(static fn () => CmsQuery::one('SELECT * FROM cms_seo_routes WHERE route_path=?', [$path]), null);
-        return self::meta($row ?? []);
+        $meta = self::meta($row ?? []);
+        $meta['canonical'] = $meta['canonical'] !== '' ? $meta['canonical'] : self::absolute($path);
+        return $meta;
     }
 
     public static function meta(array $source, string $title = '', string $description = ''): array

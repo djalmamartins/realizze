@@ -21,7 +21,7 @@ return [
             $render($template);
         };
         $renderCmsPage = static function (array $page) use ($view, $render, $site): void {
-            $view->share(['seo' => $site::meta($page, $page['title'] . ' | Realizze', $page['excerpt'])]);
+            $view->share(['seo' => $site::autoMeta($page, $page['title'], $page['excerpt'], $page['content'], '/' . $page['slug'], $page['image_path'])]);
             $render('cms-page', ['page' => $page]);
         };
         $pages = [
@@ -237,9 +237,23 @@ return [
                 $render('not-found');
                 return;
             }
-            $view->share(['seo' => $site::meta($post, $post['title'] . ' | Realizze', $post['subtitle'])]);
+            $view->share(['seo' => $site::autoMeta($post, $post['title'], $post['subtitle'], $post['content'], '/blog/' . $post['uri'], $post['cover'])]);
             $render('post', ['post' => $post]);
         }, 'web.post');
+
+        $router->get('/sitemap.xml', static function () use ($site): void {
+            header('Content-Type: application/xml; charset=utf-8');
+            echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+            foreach ($site::sitemapUrls() as $url => $updated) {
+                echo '<url><loc>' . htmlspecialchars($url, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>' . ($updated ? '<lastmod>' . date('Y-m-d', strtotime($updated)) . '</lastmod>' : '') . '</url>';
+            }
+            echo '</urlset>';
+        }, 'web.sitemap');
+
+        $router->get('/robots.txt', static function (): void {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "User-agent: *\nDisallow: /entrar\nDisallow: /minha-conta\nDisallow: /recuperar-senha\nDisallow: /redefinir-senha\nSitemap: " . rtrim((string) (getenv('APP_URL') ?: ''), '/') . "/sitemap.xml\n";
+        }, 'web.robots');
 
         // Páginas criadas no CMS. Fica por último: rotas fixas têm precedência.
         $router->get('/{slug}', static function (array $params) use ($render, $renderCmsPage, $site): void {

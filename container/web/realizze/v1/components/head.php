@@ -5,6 +5,10 @@
 <meta name="description" content="<?= $this->e($description ?? '') ?>">
 <?php if (!empty($noindex)): ?><meta name="robots" content="noindex, nofollow"><?php endif; ?>
 <?php if (!empty($canonical)): ?><link rel="canonical" href="<?= $this->e($canonical) ?>"><?php endif; ?>
+<?php if (!empty($canonical)): ?><meta property="og:url" content="<?= $this->e($canonical) ?>"><?php endif; ?>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Realizze">
+<meta name="twitter:card" content="<?= !empty($ogImage) ? 'summary_large_image' : 'summary' ?>">
 <meta property="og:title" content="<?= $this->e($title ?? 'Realizze') ?>">
 <meta property="og:description" content="<?= $this->e($description ?? '') ?>">
 <?php if (!empty($ogImage)): ?><meta property="og:image" content="<?= $this->e((getenv('APP_URL') ?: '') . $ogImage) ?>"><?php endif; ?>

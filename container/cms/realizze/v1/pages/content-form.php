@@ -8,7 +8,7 @@ $status = $p['status'] ?? 'draft'; $canPublish = CmsAuth::can($admin, 'content.p
 $postAt = isset($p['post_at']) ? date('Y-m-d\TH:i', strtotime($p['post_at'])) : date('Y-m-d\TH:i');
 $scheduled = $status === 'published' && isset($p['post_at']) && strtotime($p['post_at']) > time();
 $base = rtrim((string) (getenv('APP_URL') ?: ''), '/') . '/blog/'; ?>
-<div class="cms-page-tools"><p>Crie o conteúdo, organize a publicação e acompanhe como ele aparece no site.</p><a class="cms-btn" href="/conteudos">Voltar</a></div>
+<div class="cms-page-tools"><a class="cms-btn" href="/conteudos">Voltar</a></div>
 <form class="cms-editor-layout" method="post" action="/acao/post-save" enctype="multipart/form-data"><?= V::csrf() ?><input type="hidden" name="id" value="<?= (int) ($id ?? 0) ?: '' ?>">
 <div class="cms-card">
  <div class="cms-field"><label for="post-title">Título *</label><input id="post-title" name="title" required maxlength="140" value="<?= V::e($p['title'] ?? '') ?>" data-counter="post-title-count"><small id="post-title-count" aria-live="polite"></small></div>

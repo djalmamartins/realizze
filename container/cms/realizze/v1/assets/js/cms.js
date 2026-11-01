@@ -17,9 +17,9 @@
     const slugify = (text) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     document.querySelectorAll('[data-slug-preview]').forEach((output) => {
       const form = output.closest('form');
-      const slug = form.querySelector('[name="uri"]');
+      const slug = form.querySelector('[name="' + (output.dataset.slugField || 'uri') + '"]');
       const title = form.querySelector('[name="title"]');
-      const update = () => { output.textContent = output.dataset.slugPreview + (slugify(slug.value || title.value) || 'titulo-do-artigo'); };
+      const update = () => { output.textContent = output.dataset.slugPreview + (slugify(slug.value || title.value) || 'endereco'); };
       slug.addEventListener('input', update);
       title.addEventListener('input', update);
       update();

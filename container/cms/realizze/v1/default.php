@@ -5,6 +5,14 @@ use Moves\Support\CmsView as V;
 
 $css = BASE_PATH . '/public/assets/realizze-cms/v1/css/cms.min.css';
 $js = BASE_PATH . '/public/assets/realizze-cms/v1/js/cms.min.js';
+$subtitles = [
+    'pages' => 'Crie, publique e acompanhe as páginas do site.', 'contents' => 'Artigos, notícias, ajuda e conteúdos institucionais.',
+    'media' => 'Imagens e documentos usados no site.', 'menus' => 'Navegação do cabeçalho e do rodapé.', 'seo' => 'Títulos, descrições e indexação de cada rota.',
+    'users' => 'Contas da plataforma, sem dados financeiros privados.', 'companies' => 'Empresas cadastradas, responsáveis e membros.', 'plans' => 'Ofertas, preços e histórico de alterações.',
+    'subscriptions' => 'Contratos, renovações e histórico.', 'charges' => 'Cobranças da assinatura Realizze.', 'tickets' => 'Todos os atendimentos em um só lugar.', 'queue' => 'O que precisa de atenção, por prioridade.',
+    'ticket-categories' => 'Como os chamados são classificados.', 'quick-replies' => 'Textos prontos para responder mais rápido.', 'ticket-team' => 'Quem atende e quanto há em aberto.', 'ticket-reports' => 'Tempos, volumes e avaliações.',
+    'ticket-notifications' => 'Canais de aviso e metas de atendimento.', 'admins' => 'Quem acessa o CMS e com qual papel.', 'permissions' => 'O que cada papel pode fazer.', 'audit' => 'Registro das ações administrativas.', 'settings' => 'Dados institucionais e preferências.',
+];
 $unread = isset($admin) ? \Moves\Services\HelpdeskNotifier::unread((int) $admin['id'], 'staff') : 0;
 ?>
 <!doctype html>
@@ -29,7 +37,7 @@ $unread = isset($admin) ? \Moves\Services\HelpdeskNotifier::unread((int) $admin[
  </div>
 </header>
 <main class="cms-content" id="cms-content" tabindex="-1">
-<header class="cms-page-head"><?php if (($group ?? '') !== ''): ?><span class="cms-eyebrow"><?= V::e($group) ?></span><?php endif; ?><h1 id="cms-page-title"><?= V::e($title ?? '') ?></h1></header>
+<header class="cms-page-head"><?php if (($group ?? '') !== ''): ?><span class="cms-eyebrow"><?= V::e($group) ?></span><?php endif; ?><h1 id="cms-page-title"><?= V::e($title ?? '') ?></h1><?php if (isset($subtitles[$section ?? '']) && !isset($id)): ?><p><?= V::e($subtitles[$section]) ?></p><?php endif; ?></header>
 <?php if (!empty($flash)): ?><div class="cms-alert cms-alert-<?= $flash[0] === 'success' ? 'ok' : 'bad' ?>" role="<?= $flash[0] === 'success' ? 'status' : 'alert' ?>"><?= V::e($flash[1]) ?></div><?php endif; ?>
 <?= $this->section('content', '') ?>
 </main>

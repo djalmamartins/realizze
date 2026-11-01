@@ -79,6 +79,10 @@ Recomendação: Telegram para a equipe agora. WhatsApp Cloud API direto só quan
 
 Artigos do tipo Ajuda em Conteúdos aparecem em `/suporte/ajuda` no App e em `/ajuda` no CMS, e não entram no blog. `/minha-assinatura` mostra plano, situação e limites do contexto atual. Os limites são apenas exibidos: nenhum módulo do App os aplica ainda.
 
+## SEO automático
+
+Páginas e artigos geram título, descrição, URL canônica e imagem social a partir do conteúdo, em `CmsSite::autoMeta`. Campos preenchidos em "Personalizar SEO" têm prioridade. `/sitemap.xml` lista só o que está publicado e indexável; `/robots.txt` aponta o sitemap.
+
 ## Testes
 
 Dentro do `dev-apache`, como `www-data`: `php tests/cms-100-e2e.php`. Cria e remove os próprios dados e substitui os transportes externos.

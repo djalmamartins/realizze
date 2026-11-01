@@ -227,6 +227,24 @@ try {
     \Moves\Services\CmsMedia::delete((int) $mediaRow['id'], $users['super']['id']);
     $ok(!is_file(BASE_PATH . '/public/uploads/cms/' . $mediaRow['stored_path']), 'Exclusão remove o arquivo de mídia');
 
+    // SEO automático: nenhum campo de SEO preenchido
+    $autoSlug = 'auto-seo-' . bin2hex(random_bytes(3));
+    $super->get('/paginas/novo');
+    $super->post('/acao/page-save', ['title' => 'Página Automática', 'slug' => $autoSlug, 'content' => '<h2>Olá</h2><p>Texto da <b>página</b> ' . str_repeat('palavra ', 40) . '</p>', 'publish_after' => '1']);
+    $autoId = (int) Q::value('SELECT id FROM cms_pages WHERE slug=?', [$autoSlug]);
+    $created['pages'][] = $autoId;
+    $web->get('/' . $autoSlug);
+    $ok(str_contains($web->body, '<title>Página Automática | Realizze'), 'Título SEO automático');
+    $ok(preg_match('/name="description" content="(Olá Texto da página [^"]+)"/u', $web->body, $autoDesc) === 1 && mb_strlen(html_entity_decode($autoDesc[1])) <= 156, 'Descrição automática vem do conteúdo, sem HTML e com limite');
+    $ok(str_contains($web->body, 'rel="canonical" href="https://www.realizze.lab/' . $autoSlug . '"') && !str_contains($web->body, 'noindex'), 'URL canônica automática e página indexável');
+    $web->get('/sitemap.xml');
+    $ok(str_contains($web->body, '/' . $autoSlug . '</loc>') && str_contains($web->body, '<loc>'), 'Página publicada entra no sitemap');
+    $super->post('/acao/page-publish', ['id' => $autoId, 'publish' => '0']);
+    $web->get('/sitemap.xml');
+    $ok(!str_contains($web->body, '/' . $autoSlug . '</loc>'), 'Rascunho sai do sitemap');
+    $web->get('/robots.txt');
+    $ok(str_contains($web->body, 'Sitemap: https://www.realizze.lab/sitemap.xml'), 'Robots aponta o sitemap');
+
     // ---- Menus e configurações ----
     $super->post('/acao/menu-save', ['location' => 'footer', 'label' => 'Link E2E', 'url' => '/teste-e2e', 'is_visible' => '1']);
     $web->get('/');

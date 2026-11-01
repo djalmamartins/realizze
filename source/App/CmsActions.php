@@ -117,7 +117,15 @@ final class CmsActions
     private function pageSave(): array
     {
         $id = Content::savePage($this->optionalId(), $_POST, $this->actor);
-        return ['Página salva.', '/paginas/' . $id];
+        $next = $this->str('publish_after');
+        if ($next === '') {
+            return ['Página salva.', '/paginas/' . $id];
+        }
+        if (!CmsAuth::can($this->admin, 'content.publish')) {
+            throw new InvalidArgumentException('Página salva, mas você não tem permissão para publicar.');
+        }
+        Content::setPageStatus($id, $next === '1', $this->actor);
+        return [$next === '1' ? 'Página publicada.' : 'Página voltou para rascunho.', '/paginas/' . $id];
     }
 
     private function pagePublish(): array
