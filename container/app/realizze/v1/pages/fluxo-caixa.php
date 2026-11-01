@@ -41,13 +41,20 @@ try {
         if ($row['kind'] === 'transfer') continue;
         $add($bucketOf(new DateTimeImmutable($row['paid_at'])), $row['kind'] === 'income' ? 'in_done' : 'out_done', (int) $row['amount_cents']);
     }
-    foreach (['income' => 'in_open', 'expense' => 'out_open'] as $kind => $column) {
-        foreach ($finance->entries($kind, $start->format('Y-m-d'), $end->format('Y-m-d'), 'all') as $row) {
-            if (!empty($row['paid_at']) || in_array($row['status'] ?? '', ['cancelled', 'canceled'], true)) continue;
-            $due = new DateTimeImmutable($row['due_date']);
-            $add($bucketOf($due), $column, (int) $row['amount_cents']);
-            if ($due < $today) $overdue += (int) $row['amount_cents'];
+    // Receitas vêm de Receivables, que conhece cancelamentos; Finance::entries não informa a situação.
+    $open = array_map(static fn (array $row): array => $row + ['column' => 'out_open'], array_filter($finance->entries('expense', $start->format('Y-m-d'), $end->format('Y-m-d'), 'open')));
+    $receivables = new \Moves\Services\Receivables((int) FinanceContext::currentId());
+    $page = 1;
+    do {
+        $listing = $receivables->listing(['start' => $start->format('Y-m-d'), 'end' => $end->format('Y-m-d'), 'page' => $page, 'per_page' => 50]);
+        foreach ($listing['rows'] as $row) {
+            if (!in_array($row['display_status'], ['cancelled', 'received'], true)) $open[] = $row + ['column' => 'in_open'];
         }
+    } while ($page++ < $listing['pages']);
+    foreach ($open as $row) {
+        $due = new DateTimeImmutable($row['due_date']);
+        $add($bucketOf($due), $row['column'], (int) $row['amount_cents']);
+        if ($due < $today) $overdue += (int) $row['amount_cents'];
     }
     if ($grouping === 'dia') uksort($buckets, static fn (string $a, string $b): int => strcmp(substr($a, 3) . $a, substr($b, 3) . $b));
 } catch (Throwable $exception) {

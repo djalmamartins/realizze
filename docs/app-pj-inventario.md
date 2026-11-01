@@ -88,7 +88,7 @@ Nada disto foi implementado pela interface. As telas mostram o estado real até 
 
 ## Contratos do brief ampliado (16 referências)
 
-**C16. Cobrança.** Sobre `Receivables`, sem segundo motor: número sequencial, itens (descrição, quantidade, unidade, valor, desconto), anexos, lembretes, agendamento, filtro por forma de pagamento, PDF. PIX e boleto só com provedor autorizado.
+**C16. Cobrança.** Sobre `Receivables`, sem segundo motor: número sequencial, itens (descrição, quantidade, unidade, valor, desconto), lembretes, agendamento, filtro por forma de pagamento, PDF. PIX e boleto só com provedor autorizado. Anexos: reutilizar `finance_entry_attachments` e o serviço `FinanceAttachments` (migration 008, ainda não aplicada), sem outra tabela. Criação com opções: `Receivables::createWithOptions`; o `create` original continua igual.
 
 **C17. Metas.** Em `finance_goals`: prazo por categoria, ícone, imagem, contribuição planejada, conta vinculada. Previsão de conclusão com a hipótese exposta na resposta. Conquistas só derivadas de eventos reais.
 
@@ -111,3 +111,5 @@ Nada disto foi implementado pela interface. As telas mostram o estado real até 
 Todo contrato deve trazer testes de isolamento entre empresas e de permissão negada.
 
 **C26. Recebimento parcial fora do saldo (defeito).** `Receivables::settle` só preenche `paid_at` na quitação total. Por isso `Finance::accountsWithBalance`, `movements` e o Fluxo de caixa ignoram o dinheiro de baixas parciais até a última parcela, e na quitação contam o valor inteiro na conta do lançamento, mesmo que a baixa tenha ido para outra conta. Saldo e realizado devem somar `finance_entry_settlements`, sem contar duas vezes. O saldo projetado do Fluxo de caixa continua correto porque soma o valor inteiro do que está em aberto.
+
+**C27. Cancelados nos totais (defeito).** `Finance::summary`, `entries`, `overview`, `openCount` e `monthlySeries` não excluem lançamentos com `status = 'cancelled'`, então um recebimento cancelado continua somando em "A receber" no dashboard e em Pagar/Receber da PF. Teste real: cobrança de R$ 999,00 cancelada seguiu em aberto. `entries` também deveria devolver `status`.

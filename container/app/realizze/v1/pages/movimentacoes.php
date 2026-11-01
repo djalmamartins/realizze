@@ -13,18 +13,25 @@ $kind = in_array($_GET['tipo'] ?? '', ['income', 'expense', 'transfer'], true) ?
 $monthNames = [1 => 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 $monthLabel = $monthNames[(int) $start->format('n')] . ' de ' . $start->format('Y');
 $rows = $all = $accounts = [];
+$search = $accountFilter = '';
 $loadFailed = false;
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $accounts = $finance->accounts();
     $all = $finance->movements($start->format('Y-m-d'), $end->format('Y-m-d'));
-    $rows = $kind === 'all' ? $all : array_values(array_filter($all, static fn (array $r): bool => $r['kind'] === $kind));
+    $search = is_string($_GET['busca'] ?? null) ? mb_substr(trim($_GET['busca']), 0, 120) : '';
+    $accountFilter = is_string($_GET['conta'] ?? null) ? $_GET['conta'] : '';
+    $rows = array_values(array_filter($all, static function (array $r) use ($kind, $search, $accountFilter): bool {
+        return ($kind === 'all' || $r['kind'] === $kind)
+            && ($accountFilter === '' || $r['account'] === $accountFilter || $r['target_account'] === $accountFilter)
+            && ($search === '' || mb_stripos($r['description'], $search) !== false || mb_stripos((string) ($r['category'] ?? ''), $search) !== false);
+    }));
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
 }
 $total = static fn (string $type): int => array_sum(array_map(static fn (array $r): int => $r['kind'] === $type ? (int) $r['amount_cents'] : 0, $all));
-$link = static fn (string $target, string $type = 'all'): string => \Moves\Services\AppUrl::section('movimentacoes', null, ['mes' => $target] + ($type === 'all' ? [] : ['tipo' => $type]));
+$link = static fn (string $target, string $type = 'all'): string => \Moves\Services\AppUrl::section('movimentacoes', null, array_filter(['mes' => $target, 'tipo' => $type === 'all' ? '' : $type, 'busca' => $search, 'conta' => $accountFilter], static fn (string $v): bool => $v !== ''));
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 ?>
@@ -51,6 +58,12 @@ unset($_SESSION['finance_flash']);
       <?php endforeach; ?>
     </nav>
   </div>
+  <form class="contact-filters movement-filters" method="get" action="<?= $e(\Moves\Services\AppUrl::section('movimentacoes')) ?>" data-swap-get>
+    <input type="hidden" name="mes" value="<?= $e($month) ?>"><?php if ($kind !== 'all'): ?><input type="hidden" name="tipo" value="<?= $e($kind) ?>"><?php endif; ?>
+    <label class="contact-filter-search">Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Descrição ou categoria"></label>
+    <label>Conta<select name="conta"><option value="">Todas</option><?php foreach ($accounts as $account): ?><option value="<?= $e($account['name']) ?>"<?= $accountFilter === $account['name'] ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
+    <div class="contact-filter-actions"><button class="primary" type="submit">Filtrar</button><?php if ($search !== '' || $accountFilter !== ''): ?><a href="<?= $e(\Moves\Services\AppUrl::section('movimentacoes', null, ['mes' => $month])) ?>">Limpar</a><?php endif; ?></div>
+  </form>
   <?php if ($loadFailed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar as movimentações</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php elseif ($rows === []): ?>
