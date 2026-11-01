@@ -318,8 +318,9 @@
   };
 
   // Só as telas financeiras trocam sem recarregar; as demais recarregam normalmente.
-  const swappable = (url) => url.origin === location.origin && url.pathname === '/minha-conta' && url.searchParams.get('pagina') !== 'empresarial';
-  const currentSwappable = () => new URL(location.href).searchParams.get('pagina') !== 'empresarial';
+  const appPath = (url) => url.pathname === '/' || /^\/(minha-conta|pf\/pessoal|pj\/minha-empresa)(\/|$)/.test(url.pathname) && !url.pathname.startsWith('/minha-conta/');
+  const swappable = (url) => url.origin === location.origin && appPath(url) && url.searchParams.get('pagina') !== 'empresarial' && !url.pathname.endsWith('/empresarial');
+  const currentSwappable = () => !location.search.includes('pagina=empresarial') && !location.pathname.endsWith('/empresarial');
 
   const apply = (html, url, push) => {
     const next = new DOMParser().parseFromString(html, 'text/html');
@@ -335,6 +336,7 @@
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
     document.body.dataset.context = next.body.dataset.context || 'pf';
     document.title = next.title;
+    document.dispatchEvent(new Event('app:swapped'));
     if (push) history.pushState({}, '', url);
     animate();
     return true;
@@ -353,7 +355,7 @@
     try {
       const response = await fetch(url, { credentials: 'same-origin', ...options });
       const finalUrl = new URL(response.url);
-      if (!response.ok || finalUrl.pathname !== '/minha-conta') throw new Error('navigation');
+      if (!response.ok || !appPath(finalUrl)) throw new Error('navigation');
       if (!apply(await response.text(), finalUrl.href, push)) throw new Error('content');
       if (push && !options.method) window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
       return true;
@@ -390,6 +392,7 @@
     const close = event.target.closest?.('[data-finance-close]');
     if (close) {
       close.closest('dialog').close();
+      if (close.dataset.financeOpenAfter) document.getElementById(close.dataset.financeOpenAfter)?.showModal();
       return;
     }
     const link = event.target.closest?.('a[href]');
@@ -411,13 +414,36 @@
       event.preventDefault();
       return;
     }
-    if (!form.action.includes('/minha-conta/financeiro/') && !form.action.endsWith('/minha-conta/contexto')) return;
+    if (form.hasAttribute('data-swap-get')) {
+      event.preventDefault();
+      const url = new URL(form.action);
+      new FormData(form).forEach((value, key) => { if (value !== '') url.searchParams.set(key, value); });
+      go(url.href);
+      return;
+    }
+    if (!/\/minha-conta\/(financeiro|contatos)\//.test(form.action) && !form.action.endsWith('/minha-conta/contexto')) return;
     event.preventDefault();
     const submit = form.querySelector('[type="submit"]');
     if (submit) submit.disabled = true;
     const saved = await go(form.action, { method: 'POST', body: new FormData(form) });
     if (!saved && submit) submit.disabled = false;
   });
+
+  // Cadastro de contato: campos e rótulo acompanham pessoa física ou jurídica.
+  const syncContact = (select) => {
+    const form = select.closest('form');
+    const company = select.value === 'company';
+    form.querySelectorAll('[data-contact-company]').forEach((el) => { el.hidden = !company; });
+    form.querySelectorAll('[data-contact-individual]').forEach((el) => { el.hidden = company; });
+    const label = form.querySelector('[data-contact-name-label]');
+    if (label) label.textContent = company ? 'Razão social' : 'Nome completo';
+  };
+  document.addEventListener('change', (event) => {
+    if (event.target.matches?.('[data-contact-type]')) syncContact(event.target);
+  });
+  const syncAllContacts = () => document.querySelectorAll('[data-contact-type]').forEach(syncContact);
+  document.addEventListener('app:swapped', syncAllContacts);
+  syncAllContacts();
 
   window.addEventListener('popstate', () => {
     const url = new URL(location.href);
