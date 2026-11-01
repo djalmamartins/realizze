@@ -9,6 +9,19 @@ use PDO;
 final class PersonalAccess
 {
     public const PERMISSIONS = ['dashboard.view','income.view','expenses.view','income.create','expenses.create','entries.edit','payments.register','categories.manage','accounts.view','reports.view','goals.manage'];
+    public const PERMISSION_LABELS = [
+        'dashboard.view' => 'Ver visão geral',
+        'income.view' => 'Ver contas a receber',
+        'expenses.view' => 'Ver contas a pagar',
+        'income.create' => 'Criar contas a receber',
+        'expenses.create' => 'Criar contas a pagar',
+        'entries.edit' => 'Editar lançamentos',
+        'payments.register' => 'Registrar pagamentos',
+        'categories.manage' => 'Gerenciar categorias',
+        'accounts.view' => 'Ver contas e cartões',
+        'reports.view' => 'Ver relatórios',
+        'goals.manage' => 'Gerenciar metas',
+    ];
 
     public static function invite(int $ownerId, string $email, array $permissions): string
     {
