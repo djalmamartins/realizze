@@ -296,3 +296,7 @@ textarea{resize:vertical}
 .cms-quote-top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 @media(max-width:1100px){.cms-chart-card{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:540px){.cms-bar b{display:none}.cms-chart-axis span:nth-child(even){visibility:hidden}}
+.cms-list-head>div:first-child{flex:none}
+.cms-list-controls{flex:1 1 0;min-width:0}
+.cms-search-box{flex:1 1 200px;max-width:280px}
+@media(min-width:1101px){.cms-search:not(:has(select:nth-of-type(3))){flex-wrap:nowrap}}
