@@ -91,6 +91,7 @@ return [
             '/chamados' => ['tickets', 'tickets.view', 'Chamados', 'Atendimento', 'tickets'],
             '/chamados/fila' => ['tickets-queue', 'tickets.view', 'Fila de atendimento', 'Atendimento', 'queue'],
             '/chamados/categorias' => ['ticket-categories', 'tickets.categories', 'Categorias de chamado', 'Atendimento', 'ticket-categories'],
+            '/chamados/respostas' => ['quick-replies', 'tickets.categories', 'Respostas rápidas', 'Atendimento', 'quick-replies'],
             '/chamados/equipe' => ['ticket-team', 'tickets.view', 'Equipe de atendimento', 'Atendimento', 'ticket-team'],
             '/chamados/relatorios' => ['ticket-reports', 'tickets.reports', 'Relatórios de atendimento', 'Atendimento', 'ticket-reports'],
             '/chamados/notificacoes' => ['ticket-notifications', 'notifications.configure', 'Configurações de notificações', 'Atendimento', 'ticket-notifications'],

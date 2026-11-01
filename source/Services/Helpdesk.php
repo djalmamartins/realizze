@@ -305,9 +305,78 @@ final class Helpdesk
             : 't.last_activity_at DESC, t.id DESC';
         return CmsQuery::page(
             'FROM helpdesk_tickets t JOIN helpdesk_categories c ON c.id=t.category_id JOIN users u ON u.id=t.requester_user_id LEFT JOIN users a ON a.id=t.assignee_user_id WHERE ' . implode(' AND ', $where),
-            "t.id,t.protocol,t.subject,t.status,t.priority,t.last_activity_at,t.created_at,c.name AS category_name,u.email AS requester_email,CONCAT(a.first_name,' ',a.last_name) AS assignee_name",
+            "t.id,t.protocol,t.subject,t.status,t.priority,t.last_activity_at,t.created_at,t.first_response_at,t.first_response_due_at,t.resolution_due_at,c.name AS category_name,u.email AS requester_email,CONCAT(a.first_name,' ',a.last_name) AS assignee_name",
             $order, $args, $page, $perPage
         );
+    }
+
+    public static function statusCounts(): array
+    {
+        $counts = array_fill_keys(array_keys(CmsView::TICKET_STATUS), 0);
+        foreach (CmsQuery::all('SELECT status, COUNT(*) AS total FROM helpdesk_tickets GROUP BY status') as $row) {
+            $counts[$row['status']] = (int) $row['total'];
+        }
+        return $counts;
+    }
+
+    /** Situação do prazo para a equipe. Sem meta configurada, não há prazo a mostrar. */
+    public static function slaLabel(array $ticket): string
+    {
+        if (in_array($ticket['status'], ['resolved', 'closed'], true)) {
+            return 'Finalizado';
+        }
+        $due = $ticket['first_response_at'] === null && $ticket['first_response_due_at'] !== null
+            ? $ticket['first_response_due_at'] : $ticket['resolution_due_at'];
+        if ($due === null) {
+            return 'Sem meta';
+        }
+        return strtotime($due) < time() ? 'Vencido' : 'Até ' . CmsView::date($due);
+    }
+
+    /** Lote passa pela mesma máquina de estados; chamados com transição inválida ficam de fora. */
+    public static function bulkStatus(array $ids, string $status, array $admin): array
+    {
+        $changed = 0;
+        $skipped = 0;
+        foreach (array_unique(array_slice($ids, 0, 100)) as $id) {
+            $ticket = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false ? null : self::ticket((int) $id);
+            try {
+                if ($ticket === null) {
+                    throw new InvalidArgumentException('Chamado inválido.');
+                }
+                self::changeStatus($ticket, $status, $admin);
+                $changed++;
+            } catch (InvalidArgumentException) {
+                $skipped++;
+            }
+        }
+        return [$changed, $skipped];
+    }
+
+    public static function quickReplies(): array
+    {
+        return CmsQuery::all('SELECT id,title,body FROM helpdesk_quick_replies ORDER BY title');
+    }
+
+    public static function saveQuickReply(?int $id, array $input, int $actorId): void
+    {
+        $title = CmsContent::text($input['title'] ?? '', 100, 'Título');
+        $body = self::body($input['body'] ?? '');
+        if ($title === '' || CmsQuery::value('SELECT COUNT(*) FROM helpdesk_quick_replies WHERE title=? AND id<>?', [$title, $id ?? 0]) > 0) {
+            throw new InvalidArgumentException('Título vazio ou repetido.');
+        }
+        if ($id === null) {
+            CmsQuery::run('INSERT INTO helpdesk_quick_replies (title,body,created_by) VALUES (?,?,?)', [$title, $body, $actorId]);
+        } else {
+            CmsQuery::run('UPDATE helpdesk_quick_replies SET title=?,body=? WHERE id=?', [$title, $body, $id]);
+        }
+        CmsAudit::record($actorId, 'ticket.quick_reply_saved', 'quick_reply', $id === null ? null : (string) $id, ['title' => $title]);
+    }
+
+    public static function deleteQuickReply(int $id, int $actorId): void
+    {
+        CmsQuery::run('DELETE FROM helpdesk_quick_replies WHERE id=?', [$id]);
+        CmsAudit::record($actorId, 'ticket.quick_reply_deleted', 'quick_reply', (string) $id);
     }
 
     private const OVERDUE_SQL = "((t.first_response_at IS NULL AND t.first_response_due_at < NOW()) OR (t.resolved_at IS NULL AND t.resolution_due_at < NOW() AND t.status NOT IN ('resolved','closed')))";

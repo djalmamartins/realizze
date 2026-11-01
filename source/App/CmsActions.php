@@ -32,7 +32,8 @@ final class CmsActions
         'plan-save' => ['plans.manage', 'planSave'],
         'subscription-create' => ['subscriptions.manage', 'subscriptionCreate'], 'subscription-plan' => ['subscriptions.manage', 'subscriptionPlan'], 'subscription-cancel' => ['subscriptions.manage', 'subscriptionCancel'], 'subscription-renewal' => ['charges.manage', 'subscriptionRenewal'],
         'charge-paid' => ['charges.manage', 'chargePaid'], 'charge-failed' => ['charges.manage', 'chargeFailed'],
-        'ticket-reply' => ['tickets.reply', 'ticketReply'], 'ticket-status' => ['tickets.reply', 'ticketStatus'], 'ticket-priority' => ['tickets.assign', 'ticketPriority'], 'ticket-assign' => ['tickets.assign', 'ticketAssign'], 'ticket-attachment-delete' => ['tickets.assign', 'ticketAttachmentDelete'],
+        'ticket-reply' => ['tickets.reply', 'ticketReply'], 'ticket-status' => ['tickets.reply', 'ticketStatus'], 'ticket-priority' => ['tickets.assign', 'ticketPriority'], 'ticket-assign' => ['tickets.assign', 'ticketAssign'], 'ticket-attachment-delete' => ['tickets.assign', 'ticketAttachmentDelete'], 'ticket-bulk-status' => ['tickets.reply', 'ticketBulkStatus'],
+        'quick-reply-save' => ['tickets.categories', 'quickReplySave'], 'quick-reply-delete' => ['tickets.categories', 'quickReplyDelete'],
         'ticket-category-save' => ['tickets.categories', 'ticketCategorySave'], 'sla-save' => ['notifications.configure', 'slaSave'], 'notifications-save' => ['notifications.configure', 'notificationsSave'],
         'notifications-read' => [null, 'notificationsRead'],
         'admin-grant' => ['admins.manage', 'adminGrant'], 'admin-update' => ['admins.manage', 'adminUpdate'], 'permissions-save' => ['permissions.manage', 'permissionsSave'],
@@ -312,6 +313,24 @@ final class CmsActions
     {
         Helpdesk::deleteAttachment($this->id(), $this->actor);
         return ['Anexo removido.'];
+    }
+
+    private function ticketBulkStatus(): array
+    {
+        [$changed, $skipped] = Helpdesk::bulkStatus(is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [], $this->str('status'), $this->admin);
+        return [$changed . ' chamado(s) alterado(s).' . ($skipped > 0 ? ' ' . $skipped . ' ficaram de fora por não permitir essa situação.' : '')];
+    }
+
+    private function quickReplySave(): array
+    {
+        Helpdesk::saveQuickReply($this->optionalId(), $_POST, $this->actor);
+        return ['Resposta rápida salva.'];
+    }
+
+    private function quickReplyDelete(): array
+    {
+        Helpdesk::deleteQuickReply($this->id(), $this->actor);
+        return ['Resposta rápida excluída.'];
     }
 
     private function ticketCategorySave(): array

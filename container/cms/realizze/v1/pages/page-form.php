@@ -4,7 +4,7 @@ if ($id && $page === null) { http_response_code(404); echo V::empty('Página nã
 $p = $page ?? []; ?>
 <div class="cms-grid-2"><form class="cms-card" method="post" action="/acao/page-save"><?= V::csrf() ?><input type="hidden" name="id" value="<?= (int) ($id ?? 0) ?: '' ?>">
 <?= V::field('Título', 'title', $p['title'] ?? '', ['required' => true]) ?><?= V::field('Endereço (slug)', 'slug', $p['slug'] ?? '', ['help' => 'Vazio gera a partir do título. Use sobre, solucoes, contato, termos ou privacidade para substituir o texto dessas páginas.']) ?>
-<?= V::field('Resumo', 'excerpt', $p['excerpt'] ?? '', ['type' => 'textarea', 'rows' => 2]) ?><?= V::field('Conteúdo (HTML)', 'content', $p['content'] ?? '', ['type' => 'textarea', 'rows' => 14, 'help' => 'Scripts, estilos e atributos perigosos são removidos ao salvar.']) ?>
+<?= V::field('Resumo', 'excerpt', $p['excerpt'] ?? '', ['type' => 'textarea', 'rows' => 2]) ?><?= V::field('Conteúdo', 'content', $p['content'] ?? '', ['type' => 'textarea', 'rows' => 14, 'editor' => true, 'help' => 'Scripts, estilos e atributos perigosos são removidos ao salvar.']) ?>
 <?= V::mediaField('Imagem', 'image_path', $p['image_path'] ?? null) ?>
 <?php $this->insert('components/seo-fields', ['seo' => $p]); ?><button class="cms-btn-primary">Salvar</button></form>
 <aside><?php if ($page): ?><div class="cms-card"><h2>Publicação</h2><p><?= V::badge($page['status'], $page['status'] === 'published' ? 'Publicada' : 'Rascunho') ?></p><div class="cms-actions"><a class="cms-btn" href="/paginas/<?= (int) $id ?>/previa">Prévia</a>

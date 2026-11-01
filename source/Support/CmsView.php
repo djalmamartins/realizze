@@ -31,7 +31,7 @@ final class CmsView
         $required = !empty($options['required']) ? ' required' : '';
         $attrs = 'id="' . self::e($id) . '" name="' . self::e($name) . '"' . $required;
         if ($type === 'textarea') {
-            $control = '<textarea ' . $attrs . ' rows="' . (int) ($options['rows'] ?? 4) . '">' . self::e($value) . '</textarea>';
+            $control = '<textarea ' . $attrs . (!empty($options['editor']) ? ' data-editor' : '') . ' rows="' . (int) ($options['rows'] ?? 4) . '">' . self::e($value) . '</textarea>';
         } elseif ($type === 'select') {
             $control = '<select ' . $attrs . '>';
             foreach ($options['choices'] ?? [] as $key => $text) {

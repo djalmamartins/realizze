@@ -5,6 +5,78 @@
     const message = event.target && event.target.dataset ? event.target.dataset.confirm : null;
     if (message && !window.confirm(message)) event.preventDefault();
   });
+  // Editor simples sobre o textarea; o servidor continua sanitizando o HTML ao salvar.
+  const enhanceEditors = () => {
+    if (typeof document.querySelectorAll !== 'function') return;
+    document.querySelectorAll('[data-quick-reply]').forEach((select) => {
+      select.addEventListener('change', () => {
+        const target = document.getElementById(select.dataset.quickReply);
+        if (target && select.value) target.value = (target.value ? target.value + '\n\n' : '') + select.value;
+        select.value = '';
+        if (target) target.focus();
+      });
+    });
+    document.querySelectorAll('textarea[data-editor]').forEach((area) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'cms-editor';
+      const bar = document.createElement('div');
+      bar.className = 'cms-editor-bar';
+      bar.setAttribute('role', 'toolbar');
+      bar.setAttribute('aria-label', 'Formatação do conteúdo');
+      const body = document.createElement('div');
+      body.className = 'cms-editor-body';
+      body.contentEditable = 'true';
+      body.setAttribute('role', 'textbox');
+      body.setAttribute('aria-multiline', 'true');
+      body.setAttribute('aria-label', 'Conteúdo');
+      body.innerHTML = area.value;
+      const sync = () => { if (!area.hidden) return; area.value = body.innerHTML; };
+      const run = (command, value) => { body.focus(); document.execCommand(command, false, value); sync(); };
+      const tools = [['Título 2', () => run('formatBlock', 'h2')], ['Título 3', () => run('formatBlock', 'h3')], ['Parágrafo', () => run('formatBlock', 'p')], ['Negrito', () => run('bold')], ['Itálico', () => run('italic')], ['Lista', () => run('insertUnorderedList')], ['Numerada', () => run('insertOrderedList')], ['Citação', () => run('formatBlock', 'blockquote')], ['Link', () => { const url = window.prompt('Endereço do link (https:// ou /)'); if (url) run('createLink', url); }], ['Limpar', () => run('removeFormat')]];
+      tools.forEach(([label, action]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = label;
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', action);
+        bar.appendChild(button);
+      });
+      const library = area.form.querySelector('select[name="image_path"], select[name="cover"]');
+      if (library && library.options.length > 1) {
+        const picker = library.cloneNode(true);
+        picker.removeAttribute('name');
+        picker.removeAttribute('id');
+        picker.setAttribute('aria-label', 'Inserir imagem da biblioteca');
+        picker.options[0].textContent = 'Inserir imagem';
+        picker.value = '';
+        picker.addEventListener('change', () => { if (picker.value) run('insertImage', picker.value); picker.value = ''; });
+        bar.appendChild(picker);
+      }
+      const source = document.createElement('button');
+      source.type = 'button';
+      source.textContent = 'HTML';
+      source.setAttribute('aria-pressed', 'false');
+      source.addEventListener('click', () => {
+        const showSource = !area.hidden === false;
+        if (showSource) { area.value = body.innerHTML; } else { body.innerHTML = area.value; }
+        area.hidden = !showSource;
+        body.hidden = showSource;
+        source.setAttribute('aria-pressed', String(showSource));
+      });
+      bar.appendChild(source);
+      area.parentNode.insertBefore(wrap, area);
+      wrap.append(bar, body, area);
+      area.hidden = true;
+      area.removeAttribute('required');
+      body.addEventListener('input', sync);
+      area.form.addEventListener('submit', sync);
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', enhanceEditors, { once: true });
+  } else {
+    enhanceEditors();
+  }
   const initialize = () => {
     const sidebar = document.getElementById('cms-sidebar');
     const toggle = document.getElementById('cms-menu-toggle');

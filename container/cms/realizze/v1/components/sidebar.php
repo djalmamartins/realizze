@@ -16,7 +16,7 @@ $menu = [
     ],
     'Atendimento' => [
         ['tickets', '/chamados', 'Chamados', 'chat', 'tickets.view'], ['queue', '/chamados/fila', 'Fila de atendimento', 'clock', 'tickets.view'],
-        ['ticket-categories', '/chamados/categorias', 'Categorias', 'list', 'tickets.categories'], ['ticket-team', '/chamados/equipe', 'Equipe', 'users', 'tickets.view'],
+        ['ticket-categories', '/chamados/categorias', 'Categorias', 'list', 'tickets.categories'], ['quick-replies', '/chamados/respostas', 'Respostas rápidas', 'edit', 'tickets.categories'], ['ticket-team', '/chamados/equipe', 'Equipe', 'users', 'tickets.view'],
         ['ticket-reports', '/chamados/relatorios', 'Relatórios de atendimento', 'chart', 'tickets.reports'], ['ticket-notifications', '/chamados/notificacoes', 'Configurações de notificações', 'bell', 'notifications.configure'],
     ],
     'Administração' => [

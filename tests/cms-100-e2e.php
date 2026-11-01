@@ -129,7 +129,7 @@ try {
 
     $super = $login('cms.realizze.lab', 'super');
     $ok($super->status === 303, 'Administrador autentica');
-    foreach (['/', '/paginas', '/paginas/novo', '/conteudos', '/conteudos/novo', '/conteudos/categorias', '/conteudos/faq', '/midia', '/menus', '/seo', '/usuarios', '/empresas', '/planos', '/planos/novo', '/assinaturas', '/cobrancas', '/chamados', '/chamados/fila', '/chamados/categorias', '/chamados/equipe', '/chamados/relatorios', '/chamados/notificacoes', '/notificacoes', '/administradores', '/permissoes', '/auditoria', '/configuracoes'] as $path) {
+    foreach (['/', '/paginas', '/paginas/novo', '/conteudos', '/conteudos/novo', '/conteudos/categorias', '/conteudos/faq', '/midia', '/menus', '/seo', '/usuarios', '/empresas', '/planos', '/planos/novo', '/assinaturas', '/cobrancas', '/chamados', '/chamados/fila', '/chamados/categorias', '/chamados/respostas', '/chamados/equipe', '/chamados/relatorios', '/chamados/notificacoes', '/notificacoes', '/administradores', '/permissoes', '/auditoria', '/configuracoes'] as $path) {
         $super->get($path);
         $ok($super->status === 200 && str_contains($super->body, 'id="cms-content"') && !str_contains($super->body, 'Warning:') && !str_contains($super->body, 'Fatal'), "Tela {$path}");
     }
@@ -389,6 +389,22 @@ try {
     $customer->post('/suporte/' . $proto . '/responder', ['body' => 'Depois de fechado']);
     $ok(Q::value("SELECT COUNT(*) FROM helpdesk_messages WHERE body='Depois de fechado'") == 0, 'Chamado fechado não recebe resposta');
     $ok(Q::value("SELECT COUNT(*) FROM cms_audit_logs WHERE resource_type='ticket' AND resource_id=?", [(string) $tid]) >= 5, 'Ações do chamado auditadas');
+
+    // Fila, lote e respostas rápidas
+    $super->get('/chamados');
+    $ok(str_contains($super->body, 'cms-tabs') && str_contains($super->body, 'name="ids[]"'), 'Fila com abas e seleção em lote');
+    $supportStaff->get('/chamados');
+    $supportStaff->post('/acao/quick-reply-save', ['title' => 'Bloqueada', 'body' => 'Sem permissão']);
+    $ok($supportStaff->status === 403, 'Suporte não administra respostas rápidas');
+    $quickTitle = 'Rápida ' . bin2hex(random_bytes(3));
+    $super->get('/chamados/respostas');
+    $super->post('/acao/quick-reply-save', ['title' => $quickTitle, 'body' => 'Texto pronto de teste']);
+    $super->get('/chamados/' . $orgTicket['id']);
+    $ok(str_contains($super->body, $quickTitle), 'Resposta rápida disponível no chamado');
+    Q::run('DELETE FROM helpdesk_quick_replies WHERE title=?', [$quickTitle]);
+    $super->post('/acao/ticket-bulk-status', ['ids' => '0', 'status' => 'resolved']);
+    $bulk = \Moves\Services\Helpdesk::bulkStatus([$tid, $orgTicket['id']], 'resolved', ['id' => $users['super']['id']]);
+    $ok($bulk === [1, 1] && Q::value('SELECT status FROM helpdesk_tickets WHERE id=?', [$tid]) === 'closed', 'Lote respeita a máquina de estados');
 
     // Privacidade
     $supportStaff->get('/chamados/' . $tid);
