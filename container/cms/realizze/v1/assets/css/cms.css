@@ -306,3 +306,4 @@ textarea{resize:vertical}
 .cms-nav a{padding:8px 10px;gap:12px;color:var(--rz-ink-2);font-weight:500}
 .cms-nav a.selected{box-shadow:none}
 .cms-seo-note{margin:12px 0 0;font-size:.82rem;color:var(--rz-muted)}
+.cms-message-body{padding:4px 20px 16px;overflow-wrap:anywhere}

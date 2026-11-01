@@ -15,7 +15,7 @@ $menu = [
         ['plans', '/planos', 'Planos e preços', 'tag', 'plans.view'], ['subscriptions', '/assinaturas', 'Assinaturas', 'repeat', 'subscriptions.view'], ['charges', '/cobrancas', 'Cobranças', 'card', 'charges.view'],
     ],
     'Atendimento' => [
-        ['tickets', '/chamados', 'Chamados', 'chat', 'tickets.view'], ['queue', '/chamados/fila', 'Fila de atendimento', 'clock', 'tickets.view'],
+        ['tickets', '/chamados', 'Chamados', 'chat', 'tickets.view'], ['queue', '/chamados/fila', 'Fila de atendimento', 'clock', 'tickets.view'], ['contact-messages', '/mensagens', 'Mensagens do site', 'mail', 'tickets.view'],
         ['ticket-categories', '/chamados/categorias', 'Categorias', 'list', 'tickets.categories'], ['quick-replies', '/chamados/respostas', 'Respostas rápidas', 'edit', 'tickets.categories'], ['knowledge', '/base-de-conhecimento', 'Base de conhecimento', 'pages', 'content.manage'], ['ticket-team', '/chamados/equipe', 'Equipe', 'users', 'tickets.view'],
         ['ticket-reports', '/chamados/relatorios', 'Relatórios de atendimento', 'chart', 'tickets.reports'], ['ticket-notifications', '/chamados/notificacoes', 'Configurações de notificações', 'bell', 'notifications.configure'],
     ],

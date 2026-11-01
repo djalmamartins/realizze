@@ -31,6 +31,7 @@ final class CmsActions
         'testimonial-save' => ['content.manage', 'testimonialSave'], 'testimonial-delete' => ['content.manage', 'testimonialDelete'],
         'broadcast-send' => ['broadcasts.send', 'broadcastSend'], 'broadcast-cancel' => ['broadcasts.send', 'broadcastCancel'],
         'version-publish' => ['versions.manage', 'versionPublish'], 'system-log-resolve' => ['system_logs.view', 'systemLogResolve'],
+        'contact-status' => ['tickets.reply', 'contactStatus'],
         'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'],
         'user-suspend' => ['users.manage', 'userSuspend'], 'company-status' => ['companies.manage', 'companyStatus'], 'company-support-access' => ['companies.manage', 'companySupportAccess'],
         'plan-save' => ['plans.manage', 'planSave'],
@@ -276,6 +277,13 @@ final class CmsActions
     private function systemLogResolve(): array
     {
         return [\Moves\Services\SystemLog::resolve(is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [], $this->actor) . ' ocorrência(s) resolvida(s).'];
+    }
+
+    private function contactStatus(): array
+    {
+        $answered = $this->str('answered') === '1';
+        \Moves\Services\ContactMessages::setStatus($this->id(), $answered, $this->actor);
+        return [$answered ? 'Mensagem marcada como respondida.' : 'Mensagem reaberta.'];
     }
 
     private function menuSave(): array

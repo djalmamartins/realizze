@@ -246,6 +246,59 @@ return [
             $render('post', ['post' => $post]);
         }, 'web.post');
 
+        $router->get('/suporte', static function () use ($view, $render, $site): void {
+            \Moves\Services\CmsAnalytics::record('/suporte');
+            $view->share(['seo' => $site::routeMeta('/suporte')]);
+            $old = $_SESSION['support_contact_old'] ?? [];
+            $flash = $_SESSION['support_contact_flash'] ?? null;
+            unset($_SESSION['support_contact_old'], $_SESSION['support_contact_flash']);
+            $search = is_string($_GET['q'] ?? null) ? trim(mb_substr($_GET['q'], 0, 120)) : '';
+            $folder = filter_var($_GET['pasta'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 0;
+            $page = filter_var($_GET['pagina'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+            header('Cache-Control: no-store');
+            $render('support', ['search' => $search, 'folder' => $folder, 'result' => $site::helpArticles($search, $page, 12, false, $folder), 'folders' => $site::publicHelpFolders(), 'settings' => $site::publicSettings(), 'old' => is_array($old) ? $old : [], 'flash' => $flash]);
+        }, 'web.support');
+
+        $router->post('/suporte/mensagem', static function (): void {
+            header('Cache-Control: no-store');
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                http_response_code(403);
+                echo 'Sessão expirada. Volte e tente novamente.';
+                return;
+            }
+            // Campo oculto: robôs preenchem, pessoas não. Responde como sucesso e não grava.
+            $isBot = ($_POST['website'] ?? '') !== '';
+            try {
+                if (!$isBot) {
+                    if (!(new \Moves\Services\AuthRateLimiter())->hit('support-contact', (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli'), 5, 3600)) {
+                        throw new InvalidArgumentException('Muitas mensagens em pouco tempo. Tente novamente mais tarde.');
+                    }
+                    \Moves\Services\ContactMessages::create($_POST);
+                }
+                $_SESSION['support_contact_flash'] = ['success', 'Mensagem enviada. Vamos responder pelo contato informado.'];
+            } catch (InvalidArgumentException $error) {
+                $_SESSION['support_contact_flash'] = ['error', $error->getMessage()];
+                $_SESSION['support_contact_old'] = array_map(static fn ($v): string => is_string($v) ? mb_substr($v, 0, 4000) : '', array_intersect_key($_POST, array_flip(['name', 'phone', 'email', 'subject', 'message', 'whatsapp_ok'])));
+            } catch (\Throwable $error) {
+                error_log('Realizze site: mensagem de contato não registrada.');
+                $_SESSION['support_contact_flash'] = ['error', 'Não foi possível enviar agora. Tente novamente em instantes.'];
+            }
+            header('Location: /suporte#mensagem', true, 303);
+        }, 'web.support.message');
+
+        $router->get('/suporte/artigo/{uri}', static function (array $params) use ($view, $render, $site): void {
+            $article = $site::helpArticle('uri', (string) ($params['uri'] ?? ''));
+            if ($article === null) {
+                http_response_code(404);
+                $render('not-found');
+                return;
+            }
+            \Moves\Services\CmsAnalytics::record('/suporte/artigo/' . $article['uri']);
+            \Moves\Services\CmsQuery::run('UPDATE posts SET views=views+1 WHERE id=?', [$article['id']]);
+            $view->share(['seo' => $site::autoMeta($article, $article['title'], $article['subtitle'], $article['content'], '/suporte/artigo/' . $article['uri'], $article['cover'])]);
+            $render('support-article', ['article' => $article]);
+        }, 'web.support.article');
+
         $router->get('/sitemap.xml', static function () use ($site): void {
             header('Content-Type: application/xml; charset=utf-8');
             echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';

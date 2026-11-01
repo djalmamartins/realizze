@@ -96,6 +96,7 @@ return [
             '/assinaturas/{id}' => ['subscription-detail', 'subscriptions.view', 'Assinatura', 'Plataforma', 'subscriptions'],
             '/cobrancas' => ['charges', 'charges.view', 'Cobranças', 'Plataforma', 'charges'],
             '/cobrancas/{id}' => ['charge-detail', 'charges.view', 'Cobrança', 'Plataforma', 'charges'],
+            '/mensagens' => ['contact-messages', 'tickets.view', 'Mensagens do site', 'Atendimento', 'contact-messages'],
             '/chamados' => ['tickets', 'tickets.view', 'Chamados', 'Atendimento', 'tickets'],
             '/chamados/novo' => ['ticket-new', 'tickets.reply', 'Novo chamado', 'Atendimento', 'tickets'],
             '/chamados/fila' => ['tickets-queue', 'tickets.view', 'Fila de atendimento', 'Atendimento', 'queue'],

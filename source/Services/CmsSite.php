@@ -9,7 +9,7 @@ use Moves\Support\HtmlSanitizer;
 /** Menus e SEO administrados no CMS, e leituras públicas consumidas pelo site. */
 final class CmsSite
 {
-    public const SEO_ROUTES = ['/' => 'Início', '/sobre' => 'Sobre', '/solucoes' => 'Soluções', '/planos' => 'Planos', '/blog' => 'Conteúdos', '/contato' => 'Contato', '/termos' => 'Termos', '/privacidade' => 'Privacidade'];
+    public const SEO_ROUTES = ['/' => 'Início', '/sobre' => 'Sobre', '/solucoes' => 'Soluções', '/planos' => 'Planos', '/blog' => 'Conteúdos', '/contato' => 'Contato', '/suporte' => 'Suporte', '/termos' => 'Termos', '/privacidade' => 'Privacidade'];
 
     public static function menu(string $location, bool $onlyVisible = false): array
     {
@@ -72,22 +72,39 @@ final class CmsSite
         ), null);
     }
 
-    /** Base de conhecimento: artigos do tipo Ajuda, lidos pelo App e pelo CMS. */
-    public static function helpArticles(string $search, int $page, int $perPage = 20): array
+    /** A pasta interna guarda guias da equipe: fica fora do site e do App. */
+    private const INTERNAL_HELP_FOLDER = 'ajuda-cms';
+
+    /** Base de conhecimento: artigos do tipo Ajuda. Só a equipe recebe $internal = true. */
+    public static function helpArticles(string $search, int $page, int $perPage = 20, bool $internal = false, int $folder = 0): array
     {
-        $where = "p.status='published' AND p.deleted_at IS NULL AND p.post_type='help'";
+        $where = "p.status='published' AND p.deleted_at IS NULL AND p.post_type='help'" . ($internal ? '' : " AND (c.uri IS NULL OR c.uri<>'" . self::INTERNAL_HELP_FOLDER . "')");
         $args = [];
         if ($search !== '') {
             $where .= ' AND (p.title LIKE ? OR p.subtitle LIKE ? OR p.content LIKE ?)';
             array_push($args, '%' . $search . '%', '%' . $search . '%', '%' . $search . '%');
         }
+        if ($folder > 0) {
+            $where .= ' AND p.category=?';
+            $args[] = $folder;
+        }
         return self::safe(static fn () => CmsQuery::page('FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE ' . $where, 'p.id,p.title,p.uri,p.subtitle,c.title AS category_title', 'c.title, p.title', $args, $page, $perPage), ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1]);
     }
 
-    public static function helpArticle(string $column, int|string $value): ?array
+    public static function helpArticle(string $column, int|string $value, bool $internal = false): ?array
     {
         $column = $column === 'id' ? 'p.id' : 'p.uri';
-        return self::safe(static fn () => CmsQuery::one("SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE {$column}=? AND p.status='published' AND p.deleted_at IS NULL AND p.post_type='help'", [$value]), null);
+        $scope = $internal ? '' : " AND (c.uri IS NULL OR c.uri<>'" . self::INTERNAL_HELP_FOLDER . "')";
+        return self::safe(static fn () => CmsQuery::one("SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE {$column}=? AND p.status='published' AND p.deleted_at IS NULL AND p.post_type='help'{$scope}", [$value]), null);
+    }
+
+    public static function publicHelpFolders(): array
+    {
+        return self::safe(static fn () => CmsQuery::all(
+            "SELECT c.id,c.title,c.description,COUNT(p.id) AS total FROM categories c JOIN posts p ON p.category=c.id AND p.post_type='help' AND p.status='published' AND p.deleted_at IS NULL
+             WHERE c.type='help' AND c.uri<>? GROUP BY c.id,c.title,c.description ORDER BY c.title",
+            [self::INTERNAL_HELP_FOLDER]
+        ), []);
     }
 
     public static function publishedFaqs(): array
@@ -143,6 +160,9 @@ final class CmsSite
         }
         foreach (self::safe(static fn () => CmsQuery::all("SELECT uri, updated_at FROM posts WHERE status='published' AND deleted_at IS NULL AND robots_index=1 AND post_at<=NOW() AND post_type IN ('article','news','institutional')"), []) as $post) {
             $urls[self::absolute('/blog/' . $post['uri'])] = $post['updated_at'];
+        }
+        foreach (self::helpArticles('', 1, 200)['rows'] as $article) {
+            $urls[self::absolute('/suporte/artigo/' . $article['uri'])] = null;
         }
         return $urls;
     }
