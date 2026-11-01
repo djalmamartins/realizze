@@ -86,6 +86,9 @@ clickToggle();
 listeners['backdrop:click']();
 assert.equal(shellClasses.has('menu-open'), false, 'backdrop closes navigation');
 clickToggle();
+listeners.click({ target: { closest: (selector) => selector === '#app-sidebar a[href]' ? navigationLink : null } });
+assert.equal(shellClasses.has('menu-open'), false, 'delegated sidebar link closes navigation after AJAX replacement');
+clickToggle();
 document.activeElement = closeButton;
 const focusBeforeDesktop = toggleFocus;
 desktopMedia.matches = true;
@@ -202,3 +205,8 @@ assert.equal(noInert.classes.has('app-js'), false, 'no inert support leaves visi
 assert.equal(noInert.events['toggle:click'], undefined, 'no inert support does not install off-canvas controls');
 assert.equal(Object.hasOwn(noInert.mobile, 'inert'), false, 'unsupported inert is not assigned as an ineffective property');
 console.log('OK - APP-A11Y-073: browsers without native inert retain keyboard-reachable fallback.');
+
+// APP-NAV-074: a troca AJAX de contexto must synchronize fixed sidebar URLs.
+assert.match(script, /incomingBrand[\s\S]*brand\.setAttribute\('href'/, 'brand URL is synchronized after PF/PJ swap');
+assert.match(script, /incomingProfile[\s\S]*profile\.setAttribute\('href'/, 'profile URL is synchronized after PF/PJ swap');
+console.log('OK - APP-NAV-074: AJAX context swap synchronizes fixed sidebar links.');

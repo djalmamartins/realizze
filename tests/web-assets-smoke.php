@@ -23,6 +23,7 @@ $home = file_get_contents($root . '/container/web/realizze/v1/pages/home.php');
 $head = file_get_contents($root . '/container/web/realizze/v1/components/head.php');
 $scripts = file_get_contents($root . '/container/web/realizze/v1/components/scripts.php');
 $logo = file_get_contents($public . '/images/new-logo-realizze.svg');
+$rewrite = file_get_contents($root . '/public/.htaccess');
 
 if (!str_contains($home, 'class="rz-hero"')) {
     throw new RuntimeException('A página inicial não contém o hero aprovado.');
@@ -38,6 +39,9 @@ if (!str_contains($scripts, 'main.min.js')) {
 }
 if (!str_contains($logo, '<svg')) {
     throw new RuntimeException('A logo oficial publicada não é um SVG válido.');
+}
+if (!str_contains($rewrite, 'favicon\\.ico$ assets/realizze/v1/images/favicon.svg')) {
+    throw new RuntimeException('O fallback /favicon.ico não aponta para o ícone oficial.');
 }
 
 echo "WEB assets: layout e publicação verificados.\n";

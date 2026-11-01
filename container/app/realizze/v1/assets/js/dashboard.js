@@ -68,18 +68,19 @@
     // install controls that could hide links or move focus without a full menu.
     if (navigationReady) {
     document.addEventListener('click', (event) => {
-      if (!event.target.closest?.('#sidebar-toggle')) return;
-      toggle = $('#sidebar-toggle');
-      if (shell?.classList.contains('menu-open')) closeMenu(true);
-      else openMenu();
+      if (event.target.closest?.('#sidebar-toggle')) {
+        toggle = $('#sidebar-toggle');
+        if (shell?.classList.contains('menu-open')) closeMenu(true);
+        else openMenu();
+        return;
+      }
+      // Os links da navegação são substituídos durante a troca AJAX de
+      // página/contexto. A delegação mantém o fechamento do drawer também
+      // para os links novos, sem reinstalar listeners a cada resposta.
+      if (event.target.closest?.('#app-sidebar a[href]') && shell?.classList.contains('menu-open')) closeMenu();
     });
     closeButton?.addEventListener('click', () => closeMenu(true));
     backdrop?.addEventListener('click', () => closeMenu(true));
-    sidebar?.querySelectorAll('a[href]').forEach((link) => {
-      link.addEventListener('click', () => {
-        if (shell?.classList.contains('menu-open')) closeMenu();
-      });
-    });
 
     // Disclosure navigation is not a modal: Tab may leave the menu.
     // Closing on focus exit prevents an off-canvas panel from staying open.
@@ -335,6 +336,15 @@
     const context = document.querySelector('#app-sidebar .context-switch');
     const incomingContext = next.querySelector('#app-sidebar .context-switch');
     if (context && incomingContext) context.replaceWith(incomingContext);
+    // A marca e o perfil também carregam o contexto financeiro na URL. Sem
+    // sincronizá-los, trocar PF/PJ via AJAX deixa links antigos na sidebar e o
+    // próximo clique muda silenciosamente de contexto.
+    const brand = document.querySelector('#app-sidebar .brand');
+    const incomingBrand = next.querySelector('#app-sidebar .brand');
+    if (brand && incomingBrand) brand.setAttribute('href', incomingBrand.getAttribute('href') || '/p');
+    const profile = document.querySelector('#app-sidebar .profile-link');
+    const incomingProfile = next.querySelector('#app-sidebar .profile-link');
+    if (profile && incomingProfile) profile.setAttribute('href', incomingProfile.getAttribute('href') || '/p/perfil');
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
     document.body.dataset.context = next.body.dataset.context || 'pf';
     document.title = next.title;
