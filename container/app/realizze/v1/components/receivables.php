@@ -29,6 +29,7 @@ $result = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1, 'per_page' => 
 $summary = ['to_receive' => 0, 'received' => 0, 'overdue' => 0, 'forecast' => 0];
 $loadFailed = false;
 $receivables = null;
+$tabCounts = [];
 try {
     $contextId = FinanceContext::currentId();
     if ($contextId === null) {
@@ -44,6 +45,10 @@ try {
         'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'page' => $page,
     ]);
     $summary = $receivables->summary($start, $end);
+    $base = ['start' => $start, 'end' => $end, 'search' => $search, 'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'per_page' => 5];
+    foreach (['pending', 'overdue', 'partially_received', 'received', 'cancelled'] as $tabStatus) {
+        $tabCounts[$tabStatus] = $receivables->listing($base + ['status' => $tabStatus])['total'];
+    }
 } catch (Throwable $exception) {
     error_log('Realizze receivables view: ' . $exception->getMessage());
     $loadFailed = true;
@@ -90,12 +95,18 @@ $renderState = static function () use ($state, $e): void {
     <div class="finance-goal-stat"><span>Previsto no período</span><strong><?= $e(Finance::money($summary['forecast'])) ?></strong><small>Valor original não cancelado</small></div>
   </div>
 
-  <form class="receivables-filters" method="get" action="/minha-conta">
-    <input type="hidden" name="pagina" value="receber">
+  <nav class="finance-status receivables-tabs" aria-label="Situação">
+    <a href="<?= $e($query(['situacao' => '', 'page' => ''])) ?>"<?= $status === '' ? ' aria-current="true"' : '' ?>>Todos (<?= array_sum($tabCounts) ?>)</a>
+    <?php foreach (['pending' => 'Pendentes', 'overdue' => 'Vencidos', 'partially_received' => 'Parciais', 'received' => 'Recebidos', 'cancelled' => 'Cancelados'] as $value => $label): ?>
+    <a href="<?= $e($query(['situacao' => $value, 'page' => ''])) ?>"<?= $status === $value ? ' aria-current="true"' : '' ?>><?= $e($label) ?> (<?= (int) ($tabCounts[$value] ?? 0) ?>)</a>
+    <?php endforeach; ?>
+  </nav>
+
+  <form class="receivables-filters" method="get" action="<?= $e(\Moves\Services\AppUrl::section('receber')) ?>" data-swap-get>
     <label>Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Descrição ou documento"></label>
     <label>Início<input type="date" name="inicio" value="<?= $e($start) ?>"></label>
     <label>Fim<input type="date" name="fim" value="<?= $e($end) ?>"></label>
-    <label>Situação<select name="situacao"><option value="">Todas</option><?php foreach ($statuses as $value => $label): ?><option value="<?= $e($value) ?>"<?= $status === $value ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
+    <?php if ($status !== ''): ?><input type="hidden" name="situacao" value="<?= $e($status) ?>"><?php endif; ?>
     <label>Categoria<select name="categoria"><option value="">Todas</option><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $category !== false && (int) $category === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
     <label>Cliente ou origem<input name="cliente" value="<?= $e($counterparty) ?>" maxlength="160"></label>
     <label>Cliente cadastrado<select name="contato"><option value="">Todos</option><?php foreach ($customers as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= $contactFilter !== false && (int) $contactFilter === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
@@ -110,7 +121,7 @@ $renderState = static function () use ($state, $e): void {
   <div class="finance-table-wrap" role="region" tabindex="0" aria-label="Contas a receber">
     <table class="finance-table finance-entries receivables-table">
       <caption class="finance-table-caption"><?= (int) $result['total'] ?> recebimento<?= $result['total'] === 1 ? '' : 's' ?> encontrado<?= $result['total'] === 1 ? '' : 's' ?></caption>
-      <thead><tr><th scope="col">Descrição / origem</th><th scope="col">Vencimento</th><th scope="col">Categoria</th><th scope="col" class="num">Original</th><th scope="col" class="num">Recebido</th><th scope="col" class="num">Saldo</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+      <thead><tr><th scope="col">Descrição / origem</th><th scope="col">Vencimento</th><th scope="col">Categoria</th><th scope="col" class="num">Original</th><th scope="col" class="num">Saldo</th><th scope="col">Forma</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
       <tbody>
       <?php foreach ($result['rows'] as $entry):
           $history = $receivables?->history((int) $entry['id']) ?? ['settlements' => [], 'audit' => []];
@@ -119,17 +130,17 @@ $renderState = static function () use ($state, $e): void {
       ?>
       <tr>
         <td><strong><?= $e($entry['description']) ?></strong><small class="receivables-origin"><?= $e($entry['counterparty_name'] ?: 'Origem não informada') ?><?= $entry['document_number'] ? ' · Doc. ' . $e($entry['document_number']) : '' ?></small></td>
-        <td><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?></td>
+        <td class="nowrap<?= $entry['display_status'] === 'overdue' ? ' red' : '' ?>"><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?><?php if ($entry['display_status'] === 'overdue'): $late = (int) (new DateTimeImmutable($entry['due_date']))->diff(new DateTimeImmutable('today'))->days; ?><small class="receivables-origin">há <?= $late ?> dia<?= $late === 1 ? '' : 's' ?></small><?php endif; ?></td>
         <td><span class="finance-dot" style="background:<?= $e($entry['category_color']) ?>"></span><?= $e($entry['category']) ?></td>
         <td class="num"><?= $e(Finance::money($entry['amount_cents'])) ?></td>
-        <td class="num green"><?= $e(Finance::money($entry['received_cents'])) ?></td>
         <td class="num"><strong><?= $e(Finance::money($entry['balance_cents'])) ?></strong></td>
+        <td><?= $e($methods[$entry['payment_method']] ?? '—') ?></td>
         <td><span class="finance-badge is-<?= $e($entry['display_status']) ?>"><?= $e($statuses[$entry['display_status']]) ?></span></td>
         <td class="finance-actions">
           <?php if ($canSettle): ?><button type="button" data-finance-open="receivable-settle-<?= (int) $entry['id'] ?>">Baixar</button><?php endif; ?>
           <?php if ($editable): ?><button type="button" data-finance-open="receivable-edit-<?= (int) $entry['id'] ?>">Editar</button><?php endif; ?>
           <?php if ($editable && $entry['received_cents'] === 0): ?><button type="button" class="is-danger" data-finance-open="receivable-cancel-<?= (int) $entry['id'] ?>">Cancelar</button><?php endif; ?>
-          <button type="button" data-finance-open="receivable-history-<?= (int) $entry['id'] ?>">Histórico</button>
+          <button type="button" data-finance-open="receivable-history-<?= (int) $entry['id'] ?>">Detalhes</button>
         </td>
       </tr>
       <tr class="receivables-dialog-row"><td colspan="8">
@@ -161,9 +172,23 @@ $renderState = static function () use ($state, $e): void {
       </form></dialog>
       <?php endif; ?>
       <dialog class="finance-dialog" id="receivable-history-<?= (int) $entry['id'] ?>" aria-labelledby="receivable-history-title-<?= (int) $entry['id'] ?>"><div class="receivables-history">
-        <header><h2 id="receivable-history-title-<?= (int) $entry['id'] ?>">Histórico do recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+        <header><h2 id="receivable-history-title-<?= (int) $entry['id'] ?>"><?= $e($entry['description']) ?></h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+        <p class="contact-tags"><span class="finance-badge is-<?= $e($entry['display_status']) ?>"><?= $e($statuses[$entry['display_status']]) ?></span></p>
+        <dl class="contact-details">
+          <div><dt>Cliente ou origem</dt><dd><?php if ($entry['contact_id'] !== null && \Moves\Services\OrganizationContext::current() !== null): ?><a href="<?= $e(\Moves\Services\AppUrl::section('clientes') . '/' . (int) $entry['contact_id']) ?>"><?= $e($entry['counterparty_name']) ?></a><?php else: ?><?= $e($entry['counterparty_name'] ?: 'Não informado') ?><?php endif; ?></dd></div>
+          <div><dt>Documento</dt><dd><?= $e($entry['document_number'] ?: 'Não informado') ?></dd></div>
+          <div><dt>Vencimento</dt><dd><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?></dd></div>
+          <div><dt>Conta</dt><dd><?= $e($entry['account']) ?></dd></div>
+          <div><dt>Recebido</dt><dd><?= $e(Finance::money($entry['received_cents'])) ?></dd></div>
+          <div><dt>Valor</dt><dd><?= $e(Finance::money($entry['amount_cents'])) ?></dd></div>
+          <div><dt>Saldo pendente</dt><dd><?= $e(Finance::money($entry['balance_cents'])) ?></dd></div>
+          <?php if ($entry['notes']): ?><div class="is-wide"><dt>Observações</dt><dd><?= $e($entry['notes']) ?></dd></div><?php endif; ?>
+          <?php if ($entry['cancellation_reason']): ?><div class="is-wide"><dt>Motivo do cancelamento</dt><dd><?= $e($entry['cancellation_reason']) ?></dd></div><?php endif; ?>
+        </dl>
+        <h3>Pagamentos recebidos</h3>
         <?php if ($history['settlements'] === []): ?><p class="muted">Nenhuma baixa registrada.</p><?php else: ?><ol><?php foreach ($history['settlements'] as $item): ?><li><strong><?= $e(Finance::money((int) $item['amount_cents'])) ?></strong> em <?= $e((new DateTimeImmutable($item['received_at']))->format('d/m/Y')) ?> · <?= $e($item['account']) ?> · <?= $e($methods[$item['payment_method']] ?? $item['payment_method']) ?></li><?php endforeach; ?></ol><?php endif; ?>
-        <p class="muted"><?= count($history['audit']) ?> evento<?= count($history['audit']) === 1 ? '' : 's' ?> de auditoria registrado<?= count($history['audit']) === 1 ? '' : 's' ?>.</p>
+        <h3>Histórico</h3>
+        <ol><?php foreach ($history['audit'] as $event): ?><li><?= $e(['created' => 'Criado', 'updated' => 'Editado', 'settled' => 'Baixa registrada', 'cancelled' => 'Cancelado'][$event['action']] ?? $event['action']) ?> em <?= $e((new DateTimeImmutable($event['created_at']))->format('d/m/Y H:i')) ?></li><?php endforeach; ?></ol>
         <footer><button type="button" data-finance-close>Fechar</button></footer>
       </div></dialog>
       </td></tr>
