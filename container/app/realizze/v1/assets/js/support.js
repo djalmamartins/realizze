@@ -31,10 +31,12 @@
   const press = (selector, active) => panel.querySelectorAll(selector).forEach((button) => button.setAttribute('aria-pressed', String(button === active)));
   const typeField = panel.querySelector('[data-support-type]');
   const moduleField = panel.querySelector('[data-support-module]');
+  const categoryField = panel.querySelector('[data-support-category]');
   if (moduleField) moduleField.value = 'Geral';
   panel.addEventListener('click', (event) => {
     const button = event.target.closest('button');
     if (!button) return;
+    if (button.dataset.spCategory && categoryField) categoryField.value = button.dataset.spCategory;
     if (button.dataset.spGo) show(button.dataset.spGo);
     if (button.dataset.spType) { press('[data-sp-type]', button); if (typeField) typeField.value = button.dataset.spType; }
     if (button.dataset.spModule) { press('[data-sp-module]', button); if (moduleField) moduleField.value = button.dataset.spModule; }
