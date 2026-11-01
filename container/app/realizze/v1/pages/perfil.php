@@ -1,79 +1,38 @@
 <?php
-/** Perfil do usuário: dados reais; alterações, foto e dois fatores aguardam o backend e ficam indisponíveis. */
-use Moves\Services\OrganizationContext;
-use Moves\Services\OrganizationDirectory;
-use Moves\Services\SessionAuth;
-
-$e = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-$session = SessionAuth::current() ?? [];
-$data = null;
-try {
-    $data = OrganizationDirectory::user((int) ($session['id'] ?? 0));
-    $organization = OrganizationContext::current();
-} catch (Throwable $exception) {
-    error_log('Realizze perfil: ' . $exception->getMessage());
-    $organization = null;
-}
-$first = (string) ($data['first_name'] ?? $session['first_name'] ?? '');
-$last = (string) ($data['last_name'] ?? '');
-$email = (string) ($data['email'] ?? $session['email'] ?? '');
-$since = !empty($data['created_at']) ? (new DateTimeImmutable($data['created_at']))->format('d/m/Y') : 'Não informado';
-$active = ($data['status'] ?? 'active') === 'active';
-$roles = ['owner' => 'Proprietário'];
-$role = $organization ? ($roles[$organization['role'] ?? ''] ?? (string) ($organization['role'] ?? 'Membro')) : 'Conta pessoal';
+use Moves\Services\{Csrf,PersonalAccess,SessionAuth,TwoFactorAuth,UserActivity,UserProfile,UserSessions};
+$e=static fn(mixed $v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+$user=SessionAuth::current()??[];$uid=(int)($user['id']??0);$data=UserProfile::get($uid)??[];$csrf=Csrf::token();
+$flash=$_SESSION['profile_flash']??null;unset($_SESSION['profile_flash']);$setup=$_SESSION['profile_2fa_setup']??null;
+$codes=$_SESSION['profile_recovery_codes']??null;unset($_SESSION['profile_recovery_codes']);$inviteLink=$_SESSION['profile_invite_link']??null;unset($_SESSION['profile_invite_link']);
+$factor=TwoFactorAuth::status($uid);$sessions=UserSessions::listing($uid);$invites=PersonalAccess::listing($uid);$prefs=UserProfile::notificationPreferences($uid);
+$logs=UserActivity::listing($uid,$_GET,(int)($_GET['pagina_log']??1));$tabs=['dados'=>'Dados gerais','seguranca'=>'Segurança','sessoes'=>'Dispositivos e sessões','permissoes'=>'Permissões e acessos','notificacoes'=>'Notificações','atividade'=>'Logs de atividade'];
+$active=array_key_exists((string)($_GET['aba']??''),$tabs)?(string)$_GET['aba']:'dados';$name=trim(($data['first_name']??'').' '.($data['last_name']??''));$initial=mb_strtoupper(mb_substr($data['first_name']??'R',0,1).mb_substr($data['last_name']??'',0,1));
+$hidden=static fn(string $tab):string=>'<input type="hidden" name="csrf_token" value="'.$e($csrf).'"><input type="hidden" name="profile_tab" value="'.$e($tab).'">';
 ?>
-<section class="card user-hero">
-  <div class="user-photo"><span aria-hidden="true"><?= $e(mb_strtoupper(mb_substr($first, 0, 1) . mb_substr($last, 0, 1))) ?></span><button type="button" disabled title="Envio de foto ainda não disponível" aria-label="Alterar foto, indisponível"><?= $icon('settings') ?></button></div>
-  <div class="user-identity">
-    <h2><?= $e(trim($first . ' ' . $last)) ?> <span class="finance-badge is-<?= $active ? 'paid' : 'overdue' ?>"><?= $active ? 'Ativo' : 'Inativo' ?></span></h2>
-    <p class="muted"><?= $e($email) ?></p>
-    <p class="user-meta"><span class="finance-badge is-open"><?= $e($role) ?></span> <span class="muted">Membro desde <?= $e($since) ?></span></p>
-  </div>
-  <a class="finance-button" href="https://www.realizze.lab/recuperar-senha">Alterar senha</a>
-</section>
-<div class="user-tabs" data-tabs>
-  <div class="user-tablist" role="tablist" aria-label="Seções do perfil">
-    <?php foreach (['dados' => 'Dados gerais', 'seguranca' => 'Segurança', 'permissoes' => 'Permissões', 'notificacoes' => 'Notificações', 'atividade' => 'Logs de atividade'] as $key => $label): ?>
-    <button type="button" role="tab" data-tab="<?= $key ?>" aria-selected="<?= $key === 'dados' ? 'true' : 'false' ?>"><?= $e($label) ?></button>
-    <?php endforeach; ?>
-  </div>
-  <div data-tab-panel="dados" class="user-grid">
-    <section class="card" aria-labelledby="user-info">
-      <h2 id="user-info" class="section-title">Informações pessoais</h2>
-      <form class="user-form" aria-describedby="user-pending">
-        <label>Nome<input value="<?= $e($first) ?>" disabled></label>
-        <label>Sobrenome<input value="<?= $e($last) ?>" disabled></label>
-        <label>E-mail de acesso<input type="email" value="<?= $e($email) ?>" disabled></label>
-        <label>Telefone<input placeholder="Não informado" disabled></label>
-        <label>Idioma<select disabled><option>Português (Brasil)</option></select></label>
-        <label>Fuso horário<select disabled><option>America/Sao_Paulo</option></select></label>
-        <label class="is-wide">Biografia<textarea rows="3" placeholder="Não informada" disabled></textarea></label>
-      </form>
-      <p class="profile-pending" id="user-pending">A edição dos dados ainda não está disponível.</p>
-    </section>
-    <div class="user-side">
-      <section class="card" aria-labelledby="user-photo-title">
-        <h2 id="user-photo-title" class="section-title">Foto do usuário</h2>
-        <div class="user-drop" aria-disabled="true"><strong>Envio de foto em breve</strong><small>PNG ou JPG, até 2 MB</small></div>
-      </section>
-      <section class="card" aria-labelledby="user-cred">
-        <h2 id="user-cred" class="section-title">Credenciais</h2>
-        <ul class="profile-rows">
-          <li><span><strong>Senha</strong><small>Troque pelo link enviado ao seu e-mail.</small></span><a class="finance-button" href="https://www.realizze.lab/recuperar-senha">Alterar</a></li>
-          <li><span><strong>Autenticação em dois fatores</strong><small>Ainda não disponível.</small></span><span class="finance-badge is-open">Em breve</span></li>
-        </ul>
-      </section>
-    </div>
-  </div>
-  <section class="card" data-tab-panel="seguranca" hidden aria-label="Segurança">
-    <h2 class="section-title">Sessões e dispositivos</h2>
-    <ul class="profile-rows"><li><span><strong>Esta sessão</strong><small>Conectado agora neste navegador.</small></span><span class="finance-badge is-paid">Atual</span></li></ul>
-    <p class="profile-pending">A lista de outros dispositivos e o encerramento de sessões ainda não estão disponíveis.</p>
-  </section>
-  <section class="card" data-tab-panel="permissoes" hidden aria-label="Permissões">
-    <h2 class="section-title">Permissões</h2>
-    <ul class="profile-rows"><li><span><strong><?= $e($organization['name'] ?? 'Minhas finanças') ?></strong><small>Perfil neste contexto</small></span><span class="finance-badge is-open"><?= $e($role) ?></span></li></ul>
-  </section>
-  <section class="card" data-tab-panel="notificacoes" hidden aria-label="Notificações"><h2 class="section-title">Notificações</h2><p class="profile-pending">As preferências de notificação ainda não estão disponíveis.</p></section>
-  <section class="card" data-tab-panel="atividade" hidden aria-label="Logs de atividade"><h2 class="section-title">Logs de atividade</h2><p class="profile-pending">O histórico de atividade ainda não está disponível.</p></section>
+<?php if(is_array($flash)):?><div class="profile-alert is-<?=$flash[0]==='success'?'success':'error'?>" role="<?=$flash[0]==='success'?'status':'alert'?>"><?=$e($flash[1])?></div><?php endif;?>
+<section class="card user-hero"><div class="user-photo"><?php if(!empty($data['photo'])):?><img src="<?=$e($data['photo'])?>" alt="Foto de <?=$e($name)?>" width="88" height="88"><?php else:?><span aria-hidden="true"><?=$e($initial)?></span><?php endif;?></div><div class="user-identity"><h2><?=$e($name)?> <span class="finance-badge is-paid">Ativo</span></h2><p class="muted"><?=$e($data['email']??'')?></p><p class="user-meta"><span class="finance-badge is-open">Conta pessoal</span><span class="muted">Membro desde <?=$e(!empty($data['created_at'])?(new DateTimeImmutable($data['created_at']))->format('d/m/Y'):'—')?></span></p></div></section>
+<div class="user-tabs" data-tabs data-active-tab="<?=$e($active)?>"><div class="user-tablist" role="tablist" aria-label="Seções do perfil"><?php foreach($tabs as $key=>$label):?><button type="button" role="tab" data-tab="<?=$key?>" aria-selected="<?=$key===$active?'true':'false'?>"><?=$e($label)?></button><?php endforeach;?></div>
+
+<section class="card" data-tab-panel="dados" <?=$active==='dados'?'':'hidden'?>><h2 class="section-title">Informações pessoais</h2><form class="user-form" method="post" action="/minha-conta/perfil/dados" enctype="multipart/form-data"><?=$hidden('dados')?>
+<label>Nome<input name="first_name" maxlength="100" required value="<?=$e($data['first_name']??'')?>"></label><label>Sobrenome<input name="last_name" maxlength="100" required value="<?=$e($data['last_name']??'')?>"></label>
+<label>E-mail de acesso<input type="email" value="<?=$e($data['email']??'')?>" disabled><small>Alterações exigem verificação do novo endereço.</small></label><label>Celular<input name="phone" inputmode="tel" autocomplete="tel" required placeholder="(31) 99999-9999" value="<?=$e($data['phone']??'')?>"><small><?=$data['phone_verified_at']?'Número verificado':'Aguardando canal de verificação configurado'?></small></label>
+<label>CPF<input value="<?=$e($data['document']??'')?>" disabled><small>Identificador sensível protegido.</small></label><label>Data de nascimento<input type="date" name="datebirth" value="<?=$e($data['datebirth']??'')?>"></label>
+<label class="is-wide">Foto de perfil<input type="file" name="photo" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG ou WebP, até 2 MB.</small></label>
+<label>Idioma<select name="locale"><option value="pt_BR">Português (Brasil)</option></select></label><label>Fuso horário<select name="timezone"><?php foreach(['America/Sao_Paulo','America/Manaus','America/Belem'] as $zone):?><option value="<?=$zone?>" <?=($data['timezone']??'')===$zone?'selected':''?>><?=$e($zone)?></option><?php endforeach;?></select></label>
+<label class="is-wide">Biografia<textarea name="biography" rows="3" maxlength="500"><?=$e($data['biography']??'')?></textarea></label><div class="is-wide profile-actions"><button class="finance-button is-primary" type="submit">Salvar dados</button></div></form></section>
+
+<section class="profile-stack" data-tab-panel="seguranca" <?=$active==='seguranca'?'':'hidden'?>><section class="card"><h2 class="section-title">Alterar senha</h2><form class="user-form" method="post" action="/minha-conta/perfil/senha"><?=$hidden('seguranca')?><label>Senha atual<input type="password" name="current_password" autocomplete="current-password" required></label><label>Nova senha<input type="password" name="new_password" minlength="12" maxlength="128" autocomplete="new-password" required></label><label>Confirmar nova senha<input type="password" name="confirm_password" minlength="12" maxlength="128" autocomplete="new-password" required></label><button class="finance-button is-primary" type="submit">Alterar senha</button></form></section>
+<section class="card"><h2 class="section-title">Autenticação em dois fatores</h2><p><span class="finance-badge is-<?=$factor['enabled']?'paid':'open'?>"><?=$factor['enabled']?'Ativada':'Desativada'?></span></p>
+<?php if(!$factor['enabled']&&!is_array($setup)):?><form class="profile-inline" method="post" action="/minha-conta/perfil/2fa/iniciar"><?=$hidden('seguranca')?><label>Confirme sua senha<input type="password" name="current_password" required></label><button class="finance-button is-primary" type="submit">Ativar 2FA</button></form><?php endif;?>
+<?php if(is_array($setup)):?><?php try{$qr=(new \chillerlan\QRCode\QRCode())->render((string)$setup['uri']);}catch(Throwable){$qr='';}?><div class="profile-2fa-setup"><?php if(is_string($qr)&&$qr!==''):?><img src="<?=$e($qr)?>" alt="QR Code para configurar o autenticador" width="220" height="220"><?php endif;?><p>Chave manual: <code><?=$e($setup['secret'])?></code></p><form class="profile-inline" method="post" action="/minha-conta/perfil/2fa/confirmar"><?=$hidden('seguranca')?><label>Código do autenticador<input name="code" inputmode="numeric" maxlength="6" required></label><button class="finance-button is-primary" type="submit">Confirmar ativação</button></form></div><?php endif;?>
+<?php if(is_array($codes)):?><div class="profile-recovery" role="status"><strong>Guarde estes códigos agora. Eles não serão exibidos novamente.</strong><ul><?php foreach($codes as $code):?><li><code><?=$e($code)?></code></li><?php endforeach;?></ul></div><?php endif;?>
+<?php if($factor['enabled']):?><form class="profile-inline" method="post" action="/minha-conta/perfil/2fa/desativar"><?=$hidden('seguranca')?><label>Senha atual<input type="password" name="current_password" required></label><label>Código 2FA ou recuperação<input name="code" required></label><button class="finance-button is-danger" type="submit">Desativar 2FA</button></form><?php endif;?></section></section>
+
+<section class="card" data-tab-panel="sessoes" <?=$active==='sessoes'?'':'hidden'?>><div class="profile-heading"><div><h2 class="section-title">Dispositivos e sessões</h2><p class="muted">Encerrar invalida a sessão no servidor; não promete bloquear permanentemente o navegador.</p></div><form method="post" action="/minha-conta/perfil/sessoes/encerrar-outras"><?=$hidden('sessoes')?><button class="finance-button" type="submit">Encerrar todas as outras</button></form></div><div class="profile-device-grid"><?php foreach($sessions as $item):?><article class="profile-device"><strong><?=$e($item['device_name'])?></strong><span class="finance-badge is-<?=$item['current']?'paid':($item['revoked_at']?'overdue':'open')?>"><?=$item['current']?'Sessão atual':($item['revoked_at']?'Encerrada':'Ativa')?></span><small>IP aproximado: <?=$e($item['ip_masked'])?></small><small>Atividade: <?=$e((new DateTimeImmutable($item['last_activity_at']))->format('d/m/Y H:i'))?></small><?php if(!$item['current']&&!$item['revoked_at']):?><form method="post" action="/minha-conta/perfil/sessao/encerrar"><?=$hidden('sessoes')?><input type="hidden" name="session_id" value="<?=(int)$item['id']?>"><button class="finance-button" type="submit">Encerrar sessão</button></form><?php endif;?></article><?php endforeach;?></div></section>
+
+<section class="profile-stack" data-tab-panel="permissoes" <?=$active==='permissoes'?'':'hidden'?>><?php if(isset($_SESSION['profile_pending_invite_token'])):?><section class="card profile-invite-accept"><h2 class="section-title">Convite de acesso PF</h2><p>Aceite apenas se reconhecer o titular. O acesso ficará limitado às permissões concedidas.</p><div class="profile-actions"><form method="post" action="/minha-conta/perfil/convite/aceitar"><?=$hidden('permissoes')?><button class="finance-button is-primary" type="submit">Aceitar convite</button></form><form method="post" action="/minha-conta/perfil/convite/recusar"><?=$hidden('permissoes')?><button class="finance-button" type="submit">Recusar</button></form></div></section><?php endif;?><section class="card"><h2 class="section-title">Compartilhar acesso à conta PF</h2><p class="muted">O convidado usa a própria conta. Senha, 2FA, sessões, identidade e convites permanecem exclusivos do titular.</p><form class="user-form" method="post" action="/minha-conta/perfil/convite"><?=$hidden('permissoes')?><label class="is-wide">E-mail do convidado<input type="email" name="email" maxlength="254" required></label><fieldset class="is-wide profile-permissions"><legend>Permissões</legend><?php foreach(PersonalAccess::PERMISSIONS as $permission):?><label><input type="checkbox" name="permissions[]" value="<?=$e($permission)?>"> <?=$e($permission)?></label><?php endforeach;?></fieldset><button class="finance-button is-primary" type="submit">Criar convite</button></form><?php if(is_string($inviteLink)):?><p class="profile-invite-link" role="status">Link seguro criado: <code><?=$e('https://app.realizze.lab'.$inviteLink)?></code></p><?php endif;?></section><section class="card"><h2 class="section-title">Convites e acessos</h2><?php if($invites===[]):?><p class="muted">Nenhum acesso compartilhado.</p><?php else:?><ul class="profile-rows"><?php foreach($invites as $invite):?><li><span><strong><?=$e($invite['invited_email'])?></strong><small><?=$e($invite['status'])?> · <?=$e($invite['permissions'])?></small></span><?php if(in_array($invite['status'],['pending','accepted'],true)):?><form method="post" action="/minha-conta/perfil/convite/revogar"><?=$hidden('permissoes')?><input type="hidden" name="invite_id" value="<?=(int)$invite['id']?>"><button class="finance-button" type="submit">Revogar</button></form><?php endif;?></li><?php endforeach;?></ul><?php endif;?></section></section>
+
+<section class="card" data-tab-panel="notificacoes" <?=$active==='notificacoes'?'':'hidden'?>><h2 class="section-title">Preferências por canal</h2><p class="muted">Avisos críticos de segurança permanecem ativos no aplicativo.</p><form method="post" action="/minha-conta/perfil/notificacoes"><?=$hidden('notificacoes')?><div class="profile-pref-grid"><strong>Categoria</strong><strong>No aplicativo</strong><strong>E-mail</strong><?php foreach($prefs as $category=>$pref):?><span><?=$e($category)?></span><label><input type="checkbox" name="in_app[<?=$e($category)?>]" <?=$pref['in_app']?'checked':''?> <?=in_array($category,['security','access'],true)?'disabled':''?>> Ativo</label><label><input type="checkbox" name="email[<?=$e($category)?>]" <?=$pref['email']?'checked':''?>> Ativo</label><?php endforeach;?></div><button class="finance-button is-primary" type="submit">Salvar preferências</button></form></section>
+
+<section class="card" data-tab-panel="atividade" <?=$active==='atividade'?'':'hidden'?>><h2 class="section-title">Logs de atividade</h2><form class="profile-filters" method="get" action="/p/perfil"><input type="hidden" name="aba" value="atividade"><label>Pesquisar<input name="q" maxlength="80" value="<?=$e($_GET['q']??'')?>"></label><label>Tipo<input name="type" maxlength="60" value="<?=$e($_GET['type']??'')?>"></label><label>De<input type="date" name="from" value="<?=$e($_GET['from']??'')?>"></label><label>Até<input type="date" name="to" value="<?=$e($_GET['to']??'')?>"></label><button class="finance-button" type="submit">Filtrar</button></form><div class="profile-log-list"><?php foreach($logs['rows'] as $log):?><article><strong><?=$e($log['event_type'])?></strong><span class="finance-badge is-<?=$log['result']==='success'?'paid':'overdue'?>"><?=$e($log['result'])?></span><small><?=$e($log['actor_name']?:'Sistema')?> · <?=$e((new DateTimeImmutable($log['created_at']))->format('d/m/Y H:i:s'))?></small></article><?php endforeach;?><?php if($logs['rows']===[]):?><p class="muted">Nenhuma atividade encontrada.</p><?php endif;?></div></section>
 </div>

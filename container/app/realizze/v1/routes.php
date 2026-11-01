@@ -69,6 +69,7 @@ return [
             }
             if ($context === 'personal') {
                 \Moves\Services\OrganizationContext::clear();
+                if ($section === 'perfil') \Moves\Services\PersonalAccessContext::clear();
                 $organization = null;
             } else {
                 $organization = is_string($organizationSlug) ? \Moves\Services\OrganizationAccess::authorizedBySlug($organizationSlug) : null;
@@ -80,6 +81,10 @@ return [
             if ((in_array($section, $organizationSections, true) || $section === 'contato-detalhe') && $organization === null) {
                 $renderError(404);
                 return;
+            }
+            if ($organization === null && \Moves\Services\PersonalAccessContext::ownerId() !== null) {
+                $permission = ['overview'=>'dashboard.view','receber'=>'income.view','pagar'=>'expenses.view','contas'=>'accounts.view','relatorios'=>'reports.view','metas'=>'goals.manage','categorias'=>'categories.manage'][$section] ?? null;
+                if ($permission === null || !\Moves\Services\PersonalAccessContext::can($permission)) { $renderError(403); return; }
             }
             $_GET['pagina'] = $section;
             if ($section === 'clientes') $_GET['papel'] = 'customer';
@@ -143,17 +148,43 @@ return [
             $renderLogin();
         }, 'app.login');
 
+        $router->get('/cadastrar', static function () use ($requirePreview,$webView): void {
+            if(!$requirePreview())return;
+            if(\Moves\Services\SessionAuth::current()!==null){header('Location: /p',true,302);return;}
+            echo $webView->render('pages/app-register',['registerError'=>null,'registerSuccess'=>false]);
+        },'app.register');
+
+        $router->post('/cadastrar', static function () use ($requirePreview,$webView): void {
+            if(!$requirePreview())return;
+            try{(new \Moves\App\Register())->submit();echo $webView->render('pages/app-register',['registerError'=>null,'registerSuccess'=>true]);}
+            catch(\InvalidArgumentException $e){http_response_code(422);echo $webView->render('pages/app-register',['registerError'=>$e->getMessage(),'registerSuccess'=>false]);}
+            catch(\Throwable $e){error_log('Realizze cadastro: '.$e->getMessage());http_response_code(500);echo $webView->render('pages/app-register',['registerError'=>'Não foi possível concluir o cadastro.','registerSuccess'=>false]);}
+        },'app.register.submit');
+
         $router->post('/entrar', static function () use ($requirePreview, $renderLogin): void {
             if (!$requirePreview()) {
                 return;
             }
             if ((new \Moves\App\Login())->submit()) {
-                header('Location: /p', true, 302);
+                header('Location: ' . (\Moves\App\Login::pendingSecondFactor() ? '/entrar/2fa' : '/p'), true, 302);
                 return;
             }
             http_response_code(401);
             $renderLogin(true);
         }, 'app.login.submit');
+
+        $router->get('/entrar/2fa', static function () use ($requirePreview, $webView): void {
+            if (!$requirePreview()) return;
+            if (!\Moves\App\Login::pendingSecondFactor()) { header('Location: /entrar', true, 302); return; }
+            echo $webView->render('pages/login-2fa', ['twoFactorError' => false]);
+        }, 'app.login.2fa');
+
+        $router->post('/entrar/2fa', static function () use ($requirePreview, $webView): void {
+            if (!$requirePreview()) return;
+            if ((new \Moves\App\Login())->submitSecondFactor()) { header('Location: /p', true, 302); return; }
+            http_response_code(401);
+            echo $webView->render('pages/login-2fa', ['twoFactorError' => true]);
+        }, 'app.login.2fa.submit');
 
         $router->post('/minha-conta/contexto', static function () use ($requirePreview, $renderError): void {
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
@@ -166,6 +197,11 @@ return [
             $type = $_POST['context_type'] ?? null;
             if ($type === 'personal') {
                 $changed = \Moves\Services\OrganizationContext::selectPersonal($_POST['csrf_token']);
+                \Moves\Services\PersonalAccessContext::clear();
+            } elseif ($type === 'shared') {
+                $rawId = $_POST['owner_user_id'] ?? null;
+                $id = is_string($rawId) ? filter_var($rawId, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]) : false;
+                $changed = $id !== false && \Moves\Services\PersonalAccessContext::select((int)$id, $_POST['csrf_token']);
             } elseif ($type === 'organization') {
                 $rawId = $_POST['organization_id'] ?? null;
                 $id = is_string($rawId) ? filter_var($rawId, FILTER_VALIDATE_INT, [
@@ -199,6 +235,7 @@ return [
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
             }
+            if (!\Moves\Services\PersonalAccessContext::can('reports.view')) { \Moves\Services\AppError::render(403); return; }
             (new \Moves\App\FinanceActions())->export();
         }, 'app.finance.export');
 
@@ -206,6 +243,16 @@ return [
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
+                }
+                if (\Moves\Services\PersonalAccessContext::ownerId() !== null) {
+                    $permission = match ($action) {
+                        'create' => ($_POST['kind'] ?? '') === 'income' ? 'income.create' : 'expenses.create',
+                        'settle' => 'payments.register', 'delete' => 'entries.edit',
+                        'category','category_delete' => 'categories.manage',
+                        'goal','goal_update','goal_add','goal_contribution_delete','goal_delete' => 'goals.manage',
+                        default => '',
+                    };
+                    if ($permission === '' || !\Moves\Services\PersonalAccessContext::can($permission)) { \Moves\Services\AppError::render(403); return; }
                 }
                 (new \Moves\App\FinanceActions())->handle($action);
             }, 'app.finance.' . $action);
@@ -215,6 +262,10 @@ return [
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
+                }
+                if (\Moves\Services\PersonalAccessContext::ownerId() !== null) {
+                    $permission = match($action) {'create'=>'income.create','settle'=>'payments.register',default=>'entries.edit'};
+                    if (!\Moves\Services\PersonalAccessContext::can($permission)) { \Moves\Services\AppError::render(403); return; }
                 }
                 (new \Moves\App\ReceivableActions())->handle($action);
             }, 'app.receivables.' . $action);
@@ -227,6 +278,21 @@ return [
             }, 'app.contacts.' . $action);
         }
 
+
+        foreach (['update' => 'dados', 'password' => 'senha', '2fa_begin' => '2fa/iniciar', '2fa_confirm' => '2fa/confirmar', '2fa_disable' => '2fa/desativar', 'session_revoke' => 'sessao/encerrar', 'sessions_revoke' => 'sessoes/encerrar-outras', 'invite' => 'convite', 'invite_revoke' => 'convite/revogar', 'invite_accept' => 'convite/aceitar', 'invite_decline' => 'convite/recusar', 'notifications' => 'notificacoes'] as $action => $slug) {
+            $router->post('/minha-conta/perfil/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\ProfileActions())->handle($action);
+            }, 'app.profile.' . $action);
+        }
+
+        $router->get('/p/perfil/convite', static function () use ($renderContextDashboard): void {
+            $user = \Moves\Services\SessionAuth::current();
+            if ($user === null) { header('Location: /entrar', true, 302); return; }
+            $token = is_string($_GET['token'] ?? null) ? $_GET['token'] : '';
+            $_SESSION['profile_pending_invite_token'] = $token;
+            header('Location: /p/perfil?aba=permissoes&convite=1', true, 302);
+        }, 'app.profile.invite.accept');
 
         (require __DIR__ . '/components/support-routes.php')($router, $requirePreview);
 

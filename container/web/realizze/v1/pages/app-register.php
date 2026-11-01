@@ -1,0 +1,12 @@
+<?php $this->layout('default',['title'=>'Criar conta | Realizze','description'=>'Crie sua conta pessoal no Realizze.']);$this->start('optout');$this->stop(); ?>
+<section class="auth-section"><div class="auth-card"><span class="eyebrow">COMECE POR AQUI</span><h1>Crie sua conta</h1><p>Informe seus dados reais. O e-mail precisa ser confirmado antes do primeiro acesso.</p>
+<?php if(!empty($registerSuccess)):?><p class="form-feedback is-success" role="status">Cadastro recebido. Confira seu e-mail para confirmar a conta.</p><?php else:?>
+<?php if(!empty($registerError)):?><p class="form-feedback" role="alert"><?=htmlspecialchars((string)$registerError,ENT_QUOTES,'UTF-8')?></p><?php endif;?>
+<form class="demo-form" method="post" action="/cadastrar"><input type="hidden" name="csrf_token" value="<?=htmlspecialchars(\Moves\Services\Csrf::token(),ENT_QUOTES,'UTF-8')?>">
+<label for="register-name">Nome completo</label><input id="register-name" name="name" autocomplete="name" maxlength="160" required value="<?=htmlspecialchars((string)($_POST['name']??''),ENT_QUOTES,'UTF-8')?>">
+<label for="register-email">E-mail</label><input id="register-email" name="email" type="email" autocomplete="email" maxlength="254" required value="<?=htmlspecialchars((string)($_POST['email']??''),ENT_QUOTES,'UTF-8')?>">
+<label for="register-phone">Celular com DDD</label><input id="register-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(31) 99999-9999" required value="<?=htmlspecialchars((string)($_POST['phone']??''),ENT_QUOTES,'UTF-8')?>">
+<label for="register-password">Senha</label><input id="register-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required><small>Use ao menos 12 caracteres.</small>
+<label for="register-confirm">Confirmar senha</label><input id="register-confirm" name="password_confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+<label class="form-check"><input type="checkbox" name="terms" value="1" required> Li e aceito os <a href="https://www.realizze.lab/termos">Termos de uso</a>.</label><label class="form-check"><input type="checkbox" name="privacy" value="1" required> Li e aceito a <a href="https://www.realizze.lab/privacidade">Política de privacidade</a>.</label>
+<button class="btn btn-primary btn-full" type="submit">Criar conta</button></form><?php endif;?><p class="auth-bottom">Já tem cadastro? <a href="/entrar">Entrar</a></p></div></section>

@@ -20,7 +20,7 @@ final class FinanceContext
         $organization = OrganizationContext::current();
         return $organization !== null
             ? self::forOrganization((int) $organization['id'])
-            : self::forUser((int) $user['id']);
+            : self::forUser(PersonalAccessContext::ownerId() ?? (int) $user['id']);
     }
 
     public static function forUser(int $userId): int

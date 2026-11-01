@@ -19,6 +19,7 @@ final class SessionAuth
             'auth_version' => $authVersion,
             'auth_at' => time(),
         ];
+        UserSessions::create($id);
     }
 
     public static function current(): ?array
@@ -33,7 +34,7 @@ final class SessionAuth
         );
         $stmt->execute([$_SESSION['auth_user_id'], 'active']);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$user || (int) $user['auth_version'] !== $_SESSION['auth_version']) {
+        if (!$user || (int) $user['auth_version'] !== $_SESSION['auth_version'] || !UserSessions::validate((int) $user['id'])) {
             return null;
         }
         return $user;
@@ -43,6 +44,10 @@ final class SessionAuth
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             return;
+        }
+        $userId = is_int($_SESSION['auth_user_id'] ?? null) ? $_SESSION['auth_user_id'] : 0;
+        if ($userId > 0) {
+            try { UserSessions::revokeCurrent($userId); } catch (\Throwable) {}
         }
         $_SESSION = [];
         $params = session_get_cookie_params();

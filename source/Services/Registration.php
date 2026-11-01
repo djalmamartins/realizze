@@ -21,11 +21,13 @@ final class Registration
         string $termsVersion,
         string $privacyVersion,
         ?string $ipAddress = null,
-        ?string $userAgent = null
+        ?string $userAgent = null,
+        ?string $phone = null
     ): int {
         $firstName = trim($firstName);
         $lastName = trim($lastName);
         $email = trim($email);
+        $normalizedPhone = $phone === null ? null : UserProfile::phone($phone);
 
         if ($firstName === '' || $lastName === '') {
             throw new InvalidArgumentException('Nome e sobrenome são obrigatórios.');
@@ -68,14 +70,15 @@ final class Registration
         try {
             $statement = $pdo->prepare(
                 'INSERT INTO users
-                 (first_name, last_name, email, password, status)
-                 VALUES (?, ?, ?, ?, ?)'
+                 (first_name, last_name, email, phone, password, status)
+                 VALUES (?, ?, ?, ?, ?, ?)'
             );
 
             $statement->execute([
                 $firstName,
                 $lastName,
                 $email,
+                $normalizedPhone,
                 password_hash($password, PASSWORD_DEFAULT),
                 'registered',
             ]);
