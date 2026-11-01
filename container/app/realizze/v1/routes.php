@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use MovesCode\Router\Router;
 use MovesCode\View\Engine;
+use Moves\Services\AppUrl;
 
 return [
     'type' => 'app',
@@ -31,6 +32,9 @@ return [
         $renderLogin = static function (bool $loginError = false) use ($webView): void {
             echo $webView->render('pages/login', ['loginError' => $loginError]);
         };
+        $renderError = static function (int $status): void {
+            \Moves\Services\AppError::render($status);
+        };
         $renderDashboard = static function () use ($requirePreview): void {
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
@@ -38,16 +42,23 @@ return [
             require __DIR__ . '/pages/dashboard.php';
         };
 
-        $renderContextDashboard = static function (string $context, string $section = 'overview') use ($renderDashboard): void {
-            $organization = \Moves\Services\OrganizationContext::current();
-            $isOrganization = $organization !== null;
-            if (($context === 'pj') !== $isOrganization) {
-                header('Cache-Control: no-store');
-                header('Location: ' . ($isOrganization ? '/pj/minha-empresa' : '/pf/pessoal'), true, 302);
+        $renderContextDashboard = static function (string $context, string $section = 'overview', ?string $organizationSlug = null) use ($renderDashboard, $renderError): void {
+            if (\Moves\Services\SessionAuth::current() === null) {
+                header('Location: /entrar', true, 302);
                 return;
             }
-            if (in_array($section, ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'], true) && !$isOrganization) {
-                http_response_code(404);
+            if ($context === 'personal') {
+                \Moves\Services\OrganizationContext::clear();
+                $organization = null;
+            } else {
+                $organization = is_string($organizationSlug) ? \Moves\Services\OrganizationAccess::authorizedBySlug($organizationSlug) : null;
+                if ($organization === null || !\Moves\Services\OrganizationContext::selectFromRoute((int) $organization['id'])) {
+                    $renderError(404);
+                    return;
+                }
+            }
+            if (in_array($section, ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'], true) && $organization === null) {
+                $renderError(404);
                 return;
             }
             $_GET['pagina'] = $section;
@@ -56,28 +67,37 @@ return [
             $renderDashboard();
         };
 
-        $router->get('/', $renderDashboard, 'app.index');
+        $router->get('/', static function (): void {
+            header('Location: ' . (\Moves\Services\SessionAuth::current() === null ? '/entrar' : AppUrl::base()), true, 302);
+        }, 'app.index');
         $router->get('/minha-conta', static function () use ($requirePreview): void {
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
-            $organization = \Moves\Services\OrganizationContext::current();
-            $base = $organization === null ? '/pf/pessoal' : '/pj/minha-empresa';
             $page = is_string($_GET['pagina'] ?? null) ? $_GET['pagina'] : 'overview';
-            $slugs = ['overview' => '', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'contas' => 'cartoes', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'contatos' => 'contatos', 'assistente' => 'assistente', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
-            $slug = $slugs[$page] ?? '';
             $query = $_GET;
             unset($query['pagina']);
             header('Cache-Control: no-store');
-            header('Location: ' . $base . ($slug === '' ? '' : '/' . $slug) . ($query === [] ? '' : '?' . http_build_query($query)), true, 302);
+            header('Location: ' . AppUrl::section($page, null, $query), true, 302);
         }, 'app.account');
 
         $semantic = ['' => 'overview', 'notificacoes' => 'notificacoes', 'integracoes' => 'integracoes', 'perfil' => 'perfil', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'cartoes' => 'contas', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'assistente' => 'assistente', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
-        foreach (['pf' => '/pf/pessoal', 'pj' => '/pj/minha-empresa'] as $context => $base) {
-            foreach ($semantic as $slug => $section) {
-                $router->get($base . ($slug === '' ? '' : '/' . $slug), static fn () => $renderContextDashboard($context, $section), 'app.' . $context . '.' . $section);
+        foreach ($semantic as $slug => $section) {
+            $router->get('/p' . ($slug === '' ? '' : '/' . $slug), static fn () => $renderContextDashboard('personal', $section), 'app.personal.' . $section);
+            $router->get('/e/{organization}' . ($slug === '' ? '' : '/' . $slug), static fn (array $params) => $renderContextDashboard('organization', $section, (string) ($params['organization'] ?? '')), 'app.organization.' . $section);
+        }
+        foreach (['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'] as $section) {
+            $router->get('/e/{organization}/' . $section, static fn (array $params) => $renderContextDashboard('organization', $section, (string) ($params['organization'] ?? '')), 'app.organization.' . $section);
+        }
+        foreach ($semantic as $slug => $section) {
+            foreach (['/pf/pessoal', '/pj/minha-empresa'] as $oldBase) {
+                $router->get($oldBase . ($slug === '' ? '' : '/' . $slug), static function () use ($section): void {
+                    header('Location: ' . AppUrl::section($section, null, $_GET), true, 302);
+                });
             }
         }
         foreach (['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa'] as $section) {
-            $router->get('/pj/minha-empresa/' . $section, static fn () => $renderContextDashboard('pj', $section), 'app.pj.' . $section);
+            $router->get('/pj/minha-empresa/' . $section, static function () use ($section): void {
+                header('Location: ' . AppUrl::section($section, null, $_GET), true, 302);
+            });
         }
 
         $router->get('/entrar', static function () use ($requirePreview, $renderLogin): void {
@@ -85,7 +105,7 @@ return [
                 return;
             }
             if (\Moves\Services\SessionAuth::current() !== null) {
-                header('Location: /', true, 302);
+                header('Location: /p', true, 302);
                 return;
             }
             $renderLogin();
@@ -96,19 +116,19 @@ return [
                 return;
             }
             if ((new \Moves\App\Login())->submit()) {
-                header('Location: /', true, 302);
+                header('Location: /p', true, 302);
                 return;
             }
             http_response_code(401);
             $renderLogin(true);
         }, 'app.login.submit');
 
-        $router->post('/minha-conta/contexto', static function () use ($requirePreview): void {
+        $router->post('/minha-conta/contexto', static function () use ($requirePreview, $renderError): void {
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
             }
             if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
-                http_response_code(403);
+                $renderError(403);
                 return;
             }
             $type = $_POST['context_type'] ?? null;
@@ -129,12 +149,19 @@ return [
                 return;
             }
             if (!$changed) {
-                http_response_code(403);
+                $renderError(403);
                 return;
             }
             header('Cache-Control: no-store');
-            header('Location: ' . ($type === 'personal' ? '/pf/pessoal' : '/pj/minha-empresa'), true, 303);
+            header('Location: ' . AppUrl::base(), true, 303);
         }, 'app.context.switch');
+
+        if (getenv('APP_ENV') === 'local') {
+            $router->get('/__teste/erro-500', static function () use ($requirePreview): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                throw new \RuntimeException('Falha controlada para validar a resposta 500 do App.');
+            }, 'app.error.test');
+        }
 
         $router->get('/minha-conta/financeiro/exportar', static function () use ($requirePreview): void {
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {

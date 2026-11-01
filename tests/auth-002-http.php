@@ -50,7 +50,7 @@ $id = null;
 try {
     $result = (new RegistrationFlow())->register('Teste', 'Login', $email, $password, true, true);
     $id = (int) $result['user_id'];
-    $base = 'https://www.realizze.lab';
+    $base = 'https://app.realizze.lab';
 
     [$status] = authRequest($base . '/minha-conta');
     authCheck($status === 302, 'Área privada exige autenticação');
@@ -74,8 +74,10 @@ try {
     [$status] = authRequest($base . '/entrar', ['email' => $email, 'password' => $password, 'csrf_token' => $csrf]);
     authCheck($status === 302, 'Login válido redireciona');
 
-    [$status, $body] = authRequest($base . '/minha-conta');
-    authCheck($status === 200 && str_contains($body, 'Bem-vindo, Teste'), 'Área privada acessível');
+    [$legacyStatus] = authRequest($base . '/minha-conta');
+    authCheck($legacyStatus === 302, 'URL antiga redireciona para a rota semântica');
+    [$status, $body] = authRequest($base . '/p');
+    authCheck($status === 200 && str_contains($body, 'Olá, Teste!'), 'Área privada acessível');
 
     preg_match('/name="csrf_token"\s+value="([^"]+)"/', $body, $matches);
     $logoutCsrf = $matches[1] ?? '';

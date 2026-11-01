@@ -32,7 +32,7 @@ final class ContactActions
         $_SESSION['contacts_flash']=$message;
         header('Cache-Control: no-store');
         $back = in_array($_POST['back'] ?? null, ['clientes', 'fornecedores'], true) ? $_POST['back'] : 'contatos';
-        header('Location: /pj/minha-empresa/' . $back, true, 303);
+        header('Location: ' . \Moves\Services\AppUrl::section($back), true, 303);
     }
     private function update(Contacts $c, int|false $id, int $user): array { if($id===false)throw new InvalidArgumentException('Contato inválido.'); $c->update($id,$_POST,$user); return ['success','Contato atualizado.']; }
     private function status(Contacts $c, int|false $id, int $user): array { if($id===false)throw new InvalidArgumentException('Contato inválido.'); $active=($_POST['active']??'0')==='1'; $c->setActive($id,$active,$user); return ['success',$active?'Contato reativado.':'Contato inativado.']; }

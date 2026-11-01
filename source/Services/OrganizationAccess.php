@@ -54,7 +54,7 @@ final class OrganizationAccess
         }
 
         $statement = Connection::get()->prepare(
-            "SELECT o.id, o.name, r.role_key AS role
+            "SELECT o.id, o.name, o.slug, r.role_key AS role
              FROM organizations AS o
              INNER JOIN organization_members AS m ON m.organization_id = o.id
              INNER JOIN organization_roles AS r ON r.id = m.role_id
@@ -67,6 +67,20 @@ final class OrganizationAccess
             'user_id' => $userId,
         ]);
         $organization = $statement->fetch(PDO::FETCH_ASSOC);
+        if ($organization && ($organization['slug'] ?? '') === '') {
+            $organization['slug'] = Organizations::slugFor((int) $organization['id'], (string) $organization['name']);
+        }
         return $organization ?: null;
+    }
+
+    public static function authorizedBySlug(string $slug): ?array
+    {
+        if (preg_match('/^[a-z0-9][a-z0-9-]{0,189}$/D', $slug) !== 1) return null;
+        $user = SessionAuth::current();
+        if ($user === null) return null;
+        $statement = Connection::get()->prepare('SELECT id FROM organizations WHERE slug = ? AND status = \'active\' LIMIT 1');
+        $statement->execute([$slug]);
+        $id = $statement->fetchColumn();
+        return $id === false ? null : self::authorizedForUser((int) $user['id'], (int) $id);
     }
 }

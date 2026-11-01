@@ -83,6 +83,21 @@ final class OrganizationContext
         return true;
     }
 
+    /** Seleção por URL: permitida somente após revalidar vínculo e organization.view. */
+    public static function selectFromRoute(int $organizationId): bool
+    {
+        if (!self::enabled() || session_status() !== PHP_SESSION_ACTIVE || $organizationId <= 0) return false;
+        $user = SessionAuth::current();
+        $organization = $user === null ? null : OrganizationAccess::authorizedOrganization($organizationId);
+        if ($organization === null) return false;
+        $_SESSION[self::SESSION_KEY] = [
+            'organization_id' => (int) $organization['id'],
+            'user_id' => (int) $user['id'],
+            'auth_version' => (int) $user['auth_version'],
+        ];
+        return true;
+    }
+
     public static function selectPersonal(mixed $csrfToken): bool
     {
         if (!Csrf::validate($csrfToken) ||

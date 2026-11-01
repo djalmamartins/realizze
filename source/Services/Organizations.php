@@ -5,6 +5,7 @@ namespace Moves\Services;
 
 use InvalidArgumentException;
 use MovesCode\Model\Connection;
+use PDOException;
 use Throwable;
 
 /** Cadastro de empresas: quem cadastra vira dono, com papel e permissões próprios. */
@@ -24,9 +25,10 @@ final class Organizations
         $pdo->beginTransaction();
         try {
             $pdo->prepare(
-                "INSERT INTO organizations (owner_user_id, name, document_type, document_value, status) VALUES (?, ?, ?, ?, 'active')"
-            )->execute([$ownerId, $name, $digits === '' ? null : 'cnpj', $digits === '' ? null : $digits]);
+                "INSERT INTO organizations (owner_user_id, name, slug, document_type, document_value, status) VALUES (?, ?, ?, ?, ?, 'active')"
+            )->execute([$ownerId, $name, null, $digits === '' ? null : 'cnpj', $digits === '' ? null : $digits]);
             $organizationId = (int) $pdo->lastInsertId();
+            self::slugFor($organizationId, $name, $pdo);
             $pdo->prepare(
                 "INSERT INTO organization_roles (organization_id, role_key, name, is_system) VALUES (?, 'owner', 'Proprietário', 1)"
             )->execute([$organizationId]);
@@ -44,6 +46,33 @@ final class Organizations
             throw $exception;
         }
         return $organizationId;
+    }
+
+    public static function slugFor(int $organizationId, string $name, ?\PDO $pdo = null): string
+    {
+        $pdo ??= Connection::get();
+        $find = $pdo->prepare('SELECT slug FROM organizations WHERE id = ?');
+        $find->execute([$organizationId]);
+        $slug = $find->fetchColumn();
+        if (is_string($slug) && $slug !== '') return $slug;
+
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+        $base = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $ascii ?: $name), '-'));
+        $base = $base === '' ? 'empresa' : mb_substr($base, 0, 170);
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $candidate = $attempt === 0 ? $base : $base . '-' . $organizationId;
+            try {
+                $update = $pdo->prepare("UPDATE organizations SET slug = ? WHERE id = ? AND (slug IS NULL OR slug = '')");
+                $update->execute([$candidate, $organizationId]);
+                if ($update->rowCount() === 1) return $candidate;
+            } catch (PDOException $exception) {
+                if ($exception->getCode() !== '23000') throw $exception;
+            }
+            $find->execute([$organizationId]);
+            $stored = $find->fetchColumn();
+            if (is_string($stored) && $stored !== '') return $stored;
+        }
+        throw new \RuntimeException('Não foi possível definir o endereço da empresa.');
     }
 
     public static function validCnpj(string $value): bool

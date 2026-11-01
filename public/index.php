@@ -56,6 +56,11 @@ try {
 // Executar o roteador
 if (!$router->dispatch()) {
     \Moves\Services\SystemLog::exception($router->exception());
-    http_response_code($router->error() ?? 500);
-    echo 'Erro: ' . ($router->error() ?? 500);
+    $status = $router->error() ?? 500;
+    http_response_code($status);
+    if (($selected['type'] ?? null) === 'app' && in_array($status, [403, 404, 500], true)) {
+        \Moves\Services\AppError::render($status);
+    } else {
+        echo 'Erro: ' . $status;
+    }
 }

@@ -22,12 +22,12 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 Connection::configure($pdo);
 $pdo->exec(<<<'SQL'
 CREATE TABLE users (id INTEGER PRIMARY KEY, first_name TEXT, email TEXT, auth_version INTEGER, status TEXT);
-CREATE TABLE organizations (id INTEGER PRIMARY KEY, name TEXT, status TEXT);
+CREATE TABLE organizations (id INTEGER PRIMARY KEY, name TEXT, slug TEXT UNIQUE, status TEXT);
 CREATE TABLE organization_members (id INTEGER PRIMARY KEY, organization_id INTEGER, user_id INTEGER, role_id INTEGER, status TEXT);
 CREATE TABLE organization_roles (id INTEGER PRIMARY KEY, organization_id INTEGER, role_key TEXT, name TEXT);
 CREATE TABLE organization_role_permissions (role_id INTEGER, permission_key TEXT);
 INSERT INTO users VALUES (1, 'Usuário A', 'a@example.invalid', 1, 'active'), (2, 'Usuário B', 'b@example.invalid', 1, 'active');
-INSERT INTO organizations VALUES (10, 'Empresa A', 'active'), (20, 'Empresa B', 'active'), (30, 'Revogada', 'active'), (40, 'Sem permissão', 'active');
+INSERT INTO organizations VALUES (10, 'Empresa A', 'empresa-a', 'active'), (20, 'Empresa B', 'empresa-b', 'active'), (30, 'Revogada', 'revogada', 'active'), (40, 'Sem permissão', 'sem-permissao', 'active');
 INSERT INTO organization_roles VALUES (100, 10, 'admin', 'Administrador'), (200, 20, 'admin', 'Administrador'), (300, 30, 'admin', 'Administrador'), (400, 40, 'viewer', 'Consulta');
 INSERT INTO organization_members VALUES (1, 10, 1, 100, 'active'), (2, 20, 2, 200, 'active'), (3, 30, 1, 300, 'inactive'), (4, 40, 1, 400, 'active');
 INSERT INTO organization_role_permissions VALUES (100, 'organization.view'), (200, 'organization.view'), (300, 'organization.view'), (400, 'other.permission');
@@ -47,6 +47,8 @@ $check(OrganizationAccess::authorizedOrganization(20) === null, 'Bloqueio entre 
 $check(OrganizationAccess::authorizedOrganization(30) === null, 'Vínculo inativo bloqueado');
 $check(OrganizationAccess::authorizedOrganization(40) === null, 'Sem permissão organization.view');
 $check(count(OrganizationAccess::accessibleForCurrentUser()) === 1, 'Lista limitada à empresa autorizada');
+$check(OrganizationAccess::authorizedBySlug('empresa-a')['id'] === 10, 'Slug resolve somente empresa autorizada');
+$check(OrganizationAccess::authorizedBySlug('empresa-b') === null, 'Slug não contorna isolamento entre empresas');
 
 putenv('REALIZZE_ENTERPRISE_CONTEXT_ENABLED=0');
 $check(!OrganizationContext::select(10, $token), 'Feature flag desativada bloqueia seleção');

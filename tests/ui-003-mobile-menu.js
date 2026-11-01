@@ -58,9 +58,10 @@ const desktopMedia = {
 };
 const window = { matchMedia: () => desktopMedia };
 vm.runInNewContext(script, { document, window });
+const clickToggle = () => listeners.click({ target: { closest: (selector) => selector === '#sidebar-toggle' ? toggle : null } });
 assert.equal(shellClasses.has('app-js'), true, 'mobile disclosure activates only after the script initializes');
 assert.equal(sidebar.inert, true, 'mobile navigation is inert while closed');
-listeners['toggle:click']();
+clickToggle();
 assert.equal(shellClasses.has('menu-open'), true, 'menu opens');
 assert.equal(sidebar.inert, false, 'open navigation is keyboard reachable');
 assert.equal(attrs['aria-expanded'], 'true', 'expanded state is announced');
@@ -75,16 +76,16 @@ assert.equal(shellClasses.has('menu-open'), false, 'focus leaving sidebar closes
 assert.equal(sidebar.inert, true, 'closed menu cannot retain keyboard focus');
 assert.equal(attrs['aria-expanded'], 'false', 'collapsed state is announced');
 assert.equal(bodyClasses.has('app-menu-locked'), false, 'page scrolling is restored');
-listeners['toggle:click']();
+clickToggle();
 prevented = false;
 listeners.keydown({ key: 'Escape', preventDefault: () => { prevented = true; } });
 assert.equal(prevented, true, 'Escape is handled');
 assert.equal(toggleFocus, 1, 'Escape restores focus to menu toggle');
 assert.equal(sidebar.inert, true, 'Escape restores inert state');
-listeners['toggle:click']();
+clickToggle();
 listeners['backdrop:click']();
 assert.equal(shellClasses.has('menu-open'), false, 'backdrop closes navigation');
-listeners['toggle:click']();
+clickToggle();
 document.activeElement = closeButton;
 const focusBeforeDesktop = toggleFocus;
 desktopMedia.matches = true;
@@ -159,7 +160,7 @@ const runViewportScenario = (mediaFactory, supportsInert = true) => {
   const doc = { readyState: 'complete', activeElement: null,
     body: { classList: classList(new Set()) },
     querySelector: (selector) => nodes[selector] || null, querySelectorAll: () => [],
-    addEventListener: () => {} };
+    addEventListener: (name, handler) => { events[name] = handler; } };
   const win = { matchMedia: mediaFactory };
   vm.runInNewContext(script, { document: doc, window: win });
   return { classes, events, mobile, link, button, doc };
@@ -180,7 +181,7 @@ const legacy = { matches: false, addListener: (handler) => { legacyChange = hand
 const legacyState = runViewportScenario(() => legacy);
 assert.equal(legacyState.classes.has('app-js'), true, 'legacy viewport supports enhancement');
 assert.equal(legacyState.mobile.inert, true, 'collapsed mobile navigation is inert');
-legacyState.events['toggle:click']();
+legacyState.events.click({ target: { closest: (selector) => selector === '#sidebar-toggle' ? legacyState.button : null } });
 assert.equal(legacyState.mobile.inert, false, 'legacy mobile menu opens');
 legacyState.doc.activeElement = legacyState.button;
 legacy.matches = true;

@@ -318,7 +318,9 @@
   };
 
   // Só as telas financeiras trocam sem recarregar; as demais recarregam normalmente.
-  const appPath = (url) => url.pathname === '/' || /^\/(minha-conta|pf\/pessoal|pj\/minha-empresa)(\/|$)/.test(url.pathname) && !url.pathname.startsWith('/minha-conta/');
+  const appPath = (url) => url.pathname === '/'
+    || /^\/(p|e\/[a-z0-9][a-z0-9-]{0,189}|pf\/pessoal|pj\/minha-empresa)(\/|$)/.test(url.pathname)
+      && !url.pathname.startsWith('/minha-conta/');
   const swappable = (url) => url.origin === location.origin && appPath(url) && url.searchParams.get('pagina') !== 'empresarial' && !url.pathname.endsWith('/empresarial');
   const currentSwappable = () => !location.search.includes('pagina=empresarial') && !location.pathname.endsWith('/empresarial');
 

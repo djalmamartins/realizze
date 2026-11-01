@@ -45,7 +45,7 @@ $requestedSection = $_GET['pagina'] ?? 'overview';
 $section = is_string($requestedSection) && isset($sections[$requestedSection]) ? $requestedSection : 'overview';
 $appView = new \MovesCode\View\Engine(dirname(__DIR__));
 $appView->addFolder('components', dirname(__DIR__) . '/components');
-$baseUrl = $activeOrganization === null ? '/pf/pessoal' : '/pj/minha-empresa';
+$baseUrl = \Moves\Services\AppUrl::base($activeOrganization);
 $items = [
     'overview' => ['house','Visão Geral',$baseUrl], 'receber' => ['arrow-down-left','Receber',$baseUrl . '/receber'],
     'pagar' => ['arrow-up-right','Pagar',$baseUrl . '/pagar'], 'movimentacoes' => ['arrows-left-right','Movimentações',$baseUrl . '/movimentacoes'],
