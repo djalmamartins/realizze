@@ -85,7 +85,9 @@ final class Client
 }
 
 // O limite de login por IP vale para o loopback do teste: reexecuções seguidas não devem esgotá-lo.
-@unlink(sys_get_temp_dir() . '/realizze-auth-limits/' . hash('sha256', 'cms-login-ip' . "\0" . '127.0.0.1') . '.json');
+foreach (['cms-login-ip', 'login-ip'] as $scope) {
+    @unlink(sys_get_temp_dir() . '/realizze-auth-limits/' . hash('sha256', $scope . "\0" . '127.0.0.1') . '.json');
+}
 
 $pdo = Connection::get();
 $password = 'Teste-' . bin2hex(random_bytes(8));
