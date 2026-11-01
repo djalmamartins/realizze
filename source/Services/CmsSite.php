@@ -40,29 +40,6 @@ final class CmsSite
         CmsAudit::record($actorId, 'menu.deleted', 'menu', (string) $id);
     }
 
-    public static function seoRoutes(): array
-    {
-        $saved = [];
-        foreach (CmsQuery::all('SELECT * FROM cms_seo_routes') as $row) {
-            $saved[$row['route_path']] = $row;
-        }
-        return $saved;
-    }
-
-    public static function saveSeoRoute(array $input, int $actorId): void
-    {
-        $path = is_string($input['route_path'] ?? null) ? $input['route_path'] : '';
-        if (!isset(self::SEO_ROUTES[$path])) {
-            throw new InvalidArgumentException('Rota inválida.');
-        }
-        CmsQuery::run(
-            'INSERT INTO cms_seo_routes (seo_title,seo_description,canonical_url,og_image,robots_index,updated_by,route_path) VALUES (?,?,?,?,?,?,?)
-             ON DUPLICATE KEY UPDATE seo_title=VALUES(seo_title),seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url),og_image=VALUES(og_image),robots_index=VALUES(robots_index),updated_by=VALUES(updated_by)',
-            [...CmsContent::seoValues($input), $actorId, $path]
-        );
-        CmsAudit::record($actorId, 'seo.updated', 'seo', $path);
-    }
-
     // ---- Leituras públicas. Falhas nunca derrubam o site: retornam vazio. ----
     private static function safe(callable $read, mixed $fallback): mixed
     {

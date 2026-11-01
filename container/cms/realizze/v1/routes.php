@@ -85,7 +85,6 @@ return [
             '/conteudos/{id}' => ['content-form', 'content.manage', 'Editar conteúdo', 'Site', 'contents'],
             '/midia' => ['media', 'media.manage', 'Mídia', 'Site', 'media'],
             '/menus' => ['menus', 'menus.manage', 'Menus', 'Site', 'menus'],
-            '/seo' => ['seo', 'seo.manage', 'SEO', 'Site', 'seo'],
             '/usuarios' => ['users', 'users.view', 'Usuários', 'Plataforma', 'users'],
             '/usuarios/{id}' => ['user-detail', 'users.view', 'Usuário', 'Plataforma', 'users'],
             '/empresas' => ['companies', 'companies.view', 'Empresas', 'Plataforma', 'companies'],

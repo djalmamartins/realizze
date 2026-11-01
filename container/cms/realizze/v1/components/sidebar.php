@@ -8,7 +8,7 @@ $menu = [
     'Visão geral' => [['dashboard', '/', 'Dashboard', 'overview', 'dashboard.view'], ['reports', '/relatorios', 'Relatórios', 'chart', 'reports.view'], ['broadcasts', '/comunicacoes', 'Notificações', 'bell', 'broadcasts.send']],
     'Site' => [
         ['pages', '/paginas', 'Páginas', 'pages', 'pages.manage'], ['contents', '/conteudos', 'Conteúdos', 'edit', 'content.manage'],
-        ['media', '/midia', 'Mídia', 'media', 'media.manage'], ['slides', '/destaques', 'Destaques', 'layers', 'content.manage'], ['testimonials', '/depoimentos', 'Depoimentos', 'quote', 'content.manage'], ['menus', '/menus', 'Menus', 'menu', 'menus.manage'], ['seo', '/seo', 'SEO', 'search', 'seo.manage'],
+        ['media', '/midia', 'Mídia', 'media', 'media.manage'], ['slides', '/destaques', 'Destaques', 'layers', 'content.manage'], ['testimonials', '/depoimentos', 'Depoimentos', 'quote', 'content.manage'], ['menus', '/menus', 'Menus', 'menu', 'menus.manage'],
     ],
     'Plataforma' => [
         ['users', '/usuarios', 'Usuários', 'users', 'users.view'], ['companies', '/empresas', 'Empresas', 'building', 'companies.view'],

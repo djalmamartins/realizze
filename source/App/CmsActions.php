@@ -31,7 +31,7 @@ final class CmsActions
         'testimonial-save' => ['content.manage', 'testimonialSave'], 'testimonial-delete' => ['content.manage', 'testimonialDelete'],
         'broadcast-send' => ['broadcasts.send', 'broadcastSend'], 'broadcast-cancel' => ['broadcasts.send', 'broadcastCancel'],
         'version-publish' => ['versions.manage', 'versionPublish'], 'system-log-resolve' => ['system_logs.view', 'systemLogResolve'],
-        'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'], 'seo-save' => ['seo.manage', 'seoSave'],
+        'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'],
         'user-suspend' => ['users.manage', 'userSuspend'], 'company-status' => ['companies.manage', 'companyStatus'], 'company-support-access' => ['companies.manage', 'companySupportAccess'],
         'plan-save' => ['plans.manage', 'planSave'],
         'subscription-create' => ['subscriptions.manage', 'subscriptionCreate'], 'subscription-plan' => ['subscriptions.manage', 'subscriptionPlan'], 'subscription-cancel' => ['subscriptions.manage', 'subscriptionCancel'], 'subscription-renewal' => ['charges.manage', 'subscriptionRenewal'],
@@ -288,12 +288,6 @@ final class CmsActions
     {
         CmsSite::deleteMenuItem($this->id(), $this->actor);
         return ['Item de menu excluído.'];
-    }
-
-    private function seoSave(): array
-    {
-        CmsSite::saveSeoRoute($_POST, $this->actor);
-        return ['SEO salvo.'];
     }
 
     private function userSuspend(): array

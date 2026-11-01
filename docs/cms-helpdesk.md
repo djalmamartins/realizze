@@ -81,7 +81,7 @@ Artigos do tipo Ajuda em Conteúdos aparecem em `/suporte/ajuda` no App e em `/a
 
 ## SEO automático
 
-Páginas e artigos geram título, descrição, URL canônica e imagem social a partir do conteúdo, em `CmsSite::autoMeta`. Campos preenchidos em "Personalizar SEO" têm prioridade. `/sitemap.xml` lista só o que está publicado e indexável; `/robots.txt` aponta o sitemap.
+Páginas e artigos geram título, descrição, URL canônica e imagem social a partir do conteúdo, em `CmsSite::autoMeta`. Não há tela de SEO. `/sitemap.xml` lista só o que está publicado e indexável; `/robots.txt` aponta o sitemap.
 
 ## Módulos do site e comunicação
 

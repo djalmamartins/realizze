@@ -131,7 +131,7 @@ try {
 
     $super = $login('cms.realizze.lab', 'super');
     $ok($super->status === 303, 'Administrador autentica');
-    foreach (['/', '/paginas', '/paginas/novo', '/conteudos', '/conteudos/novo', '/conteudos/categorias', '/conteudos/faq', '/midia', '/menus', '/seo', '/usuarios', '/empresas', '/planos', '/planos/novo', '/assinaturas', '/cobrancas', '/chamados', '/chamados/fila', '/chamados/categorias', '/chamados/respostas', '/chamados/equipe', '/chamados/relatorios', '/chamados/notificacoes', '/notificacoes', '/relatorios', '/comunicacoes', '/destaques', '/destaques/novo', '/depoimentos', '/base-de-conhecimento', '/versoes', '/log', '/administradores', '/permissoes', '/auditoria', '/configuracoes'] as $path) {
+    foreach (['/', '/paginas', '/paginas/novo', '/conteudos', '/conteudos/novo', '/conteudos/categorias', '/conteudos/faq', '/midia', '/menus', '/usuarios', '/empresas', '/planos', '/planos/novo', '/assinaturas', '/cobrancas', '/chamados', '/chamados/fila', '/chamados/categorias', '/chamados/respostas', '/chamados/equipe', '/chamados/relatorios', '/chamados/notificacoes', '/notificacoes', '/relatorios', '/comunicacoes', '/destaques', '/destaques/novo', '/depoimentos', '/base-de-conhecimento', '/versoes', '/log', '/administradores', '/permissoes', '/auditoria', '/configuracoes'] as $path) {
         $super->get($path);
         $ok($super->status === 200 && str_contains($super->body, 'id="cms-content"') && !str_contains($super->body, 'Warning:') && !str_contains($super->body, 'Fatal'), "Tela {$path}");
     }
@@ -599,6 +599,115 @@ try {
     $other->post('/suporte/ajuda/' . $helpUri . '/votar', ['helpful' => '0']);
     $ok(Q::value('SELECT COUNT(*) FROM help_article_votes WHERE post_id=?', [$helpId]) == 1 && Q::value('SELECT helpful FROM help_article_votes WHERE post_id=?', [$helpId]) == 0, 'Voto único por pessoa');
     $ok((int) Q::value('SELECT views FROM posts WHERE id=?', [$helpId]) >= 1, 'Visualizações da ajuda contadas');
+
+    // Operações restantes de cada módulo no banco
+    $backup = Q::all('SELECT setting_key,setting_value FROM cms_settings');
+    $super->get('/configuracoes');
+    $super->post('/acao/settings-save', ['company_name' => 'Nome E2E', 'contact_email' => 'contato@example.invalid']);
+    $ok(Q::value("SELECT setting_value FROM cms_settings WHERE setting_key='company_name'") === 'Nome E2E', 'Configurações salvas no banco');
+    $super->post('/acao/settings-save', ['contact_email' => 'invalido']);
+    $ok(Q::value("SELECT setting_value FROM cms_settings WHERE setting_key='contact_email'") === 'contato@example.invalid', 'E-mail inválido nas configurações recusado');
+    Q::run('DELETE FROM cms_settings');
+    foreach ($backup as $row) { Q::run('INSERT INTO cms_settings (setting_key,setting_value) VALUES (?,?)', [$row['setting_key'], $row['setting_value']]); }
+    CmsSettings::forget();
+    $mark = bin2hex(random_bytes(3));
+    $super->get('/conteudos/faq');
+    $super->post('/acao/faq-save', ['question' => 'Pergunta ' . $mark, 'answer' => 'Resposta', 'status' => 'published']);
+    $faqId = (int) Q::value('SELECT id FROM faqs WHERE question=?', ['Pergunta ' . $mark]);
+    $web->get('/');
+    $ok($faqId > 0 && str_contains($web->body, 'Pergunta ' . $mark), 'FAQ criada aparece no site');
+    $super->post('/acao/faq-save', ['id' => $faqId, 'question' => 'Editada ' . $mark, 'answer' => 'Resposta', 'status' => 'draft']);
+    $ok(Q::value('SELECT question FROM faqs WHERE id=?', [$faqId]) === 'Editada ' . $mark, 'FAQ editada');
+    $super->post('/acao/faq-delete', ['id' => $faqId]);
+    $ok(Q::value('SELECT COUNT(*) FROM faqs WHERE id=?', [$faqId]) == 0, 'FAQ excluída');
+    $super->post('/acao/category-save', ['title' => 'Categoria ' . $mark]);
+    $catId = (int) Q::value('SELECT id FROM categories WHERE title=?', ['Categoria ' . $mark]);
+    $super->post('/acao/category-save', ['id' => $catId, 'title' => 'Categoria Nova ' . $mark]);
+    $ok(Q::value('SELECT title FROM categories WHERE id=?', [$catId]) === 'Categoria Nova ' . $mark, 'Categoria criada e editada');
+    $super->post('/acao/category-delete', ['id' => $catId]);
+    $ok(Q::value('SELECT COUNT(*) FROM categories WHERE id=?', [$catId]) == 0, 'Categoria excluída');
+    $super->post('/acao/menu-save', ['location' => 'header', 'label' => 'Menu ' . $mark, 'url' => '/sobre', 'is_visible' => '1']);
+    $menuId = (int) Q::value('SELECT id FROM cms_menu_items WHERE label=?', ['Menu ' . $mark]);
+    $super->post('/acao/menu-save', ['id' => $menuId, 'location' => 'header', 'label' => 'Menu ' . $mark, 'url' => '/contato', 'is_visible' => '0']);
+    $ok(Q::value('SELECT url FROM cms_menu_items WHERE id=?', [$menuId]) === '/contato', 'Item de menu editado');
+    $super->post('/acao/menu-delete', ['id' => $menuId]);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_menu_items WHERE id=?', [$menuId]) == 0, 'Item de menu excluído');
+    $mediaPng = tempnam(sys_get_temp_dir(), 'rzt') . '.png';
+    $mediaImage = imagecreatetruecolor(30, 30);
+    imagepng($mediaImage, $mediaPng);
+    $tmpFiles[] = $mediaPng;
+    $super->get('/midia');
+    $super->post('/acao/media-upload', ['title' => 'Mídia ' . $mark, 'file' => new CURLFile($mediaPng, 'image/png', 'midia-' . $mark . '.png')]);
+    $mediaId = (int) Q::value('SELECT id FROM cms_media WHERE title=?', ['Mídia ' . $mark]);
+    $ok($mediaId > 0, 'Mídia enviada');
+    $super->post('/acao/media-update', ['id' => $mediaId, 'title' => 'Mídia ' . $mark, 'alt_text' => 'Descrição']);
+    $ok(Q::value('SELECT alt_text FROM cms_media WHERE id=?', [$mediaId]) === 'Descrição', 'Metadados da mídia salvos');
+    $super->post('/acao/media-delete-bulk', ['ids[0]' => $mediaId]);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_media WHERE id=?', [$mediaId]) == 0, 'Mídia excluída em lote');
+    $evilMedia = tempnam(sys_get_temp_dir(), 'rzt') . '.php';
+    file_put_contents($evilMedia, '<?php echo 1;');
+    $tmpFiles[] = $evilMedia;
+    $super->post('/acao/media-upload', ['title' => 'Ruim ' . $mark, 'file' => new CURLFile($evilMedia, 'image/png', 'ruim.png')]);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_media WHERE title=?', ['Ruim ' . $mark]) == 0, 'Upload de arquivo disfarçado recusado');
+    $super->get('/administradores');
+    $supportRole = (int) Q::value("SELECT id FROM cms_roles WHERE role_key='support'");
+    $super->post('/acao/admin-grant', ['email' => $users['member']['email'], 'role_id' => $supportRole]);
+    $adminId = (int) Q::value('SELECT id FROM cms_admins WHERE user_id=?', [$users['member']['id']]);
+    $ok($adminId > 0, 'Administrador concedido');
+    $super->post('/acao/admin-update', ['id' => $adminId, 'role_id' => $supportRole, 'status' => 'inactive']);
+    $ok(Q::value('SELECT status FROM cms_admins WHERE id=?', [$adminId]) === 'inactive', 'Administrador inativado');
+    Q::run('DELETE FROM cms_admins WHERE id=?', [$adminId]);
+    $matrix = Q::all('SELECT role_id,permission_key FROM cms_role_permissions');
+    $super->get('/permissoes');
+    $super->post('/acao/permissions-save', ['matrix[' . $supportRole . '][tickets.view]' => '1']);
+    $ok((int) Q::value('SELECT COUNT(*) FROM cms_role_permissions WHERE role_id=?', [$supportRole]) === 1, 'Matriz de permissões salva');
+    Q::run('DELETE FROM cms_role_permissions');
+    foreach ($matrix as $row) { Q::run('INSERT INTO cms_role_permissions (role_id,permission_key) VALUES (?,?)', [$row['role_id'], $row['permission_key']]); }
+    $super->get('/empresas/' . $org);
+    $super->post('/acao/company-status', ['id' => $org, 'active' => '0', 'reason' => 'Teste']);
+    $ok(Q::value('SELECT status FROM organizations WHERE id=?', [$org]) === 'inactive', 'Empresa inativada');
+    $super->post('/acao/company-status', ['id' => $org, 'active' => '1']);
+    $super->get('/chamados/categorias');
+    $super->post('/acao/ticket-category-save', ['name' => 'Tipo ' . $mark, 'is_active' => '1']);
+    $typeId = (int) Q::value('SELECT id FROM helpdesk_categories WHERE name=?', ['Tipo ' . $mark]);
+    $super->post('/acao/ticket-category-save', ['id' => $typeId, 'name' => 'Tipo ' . $mark, 'is_active' => '0']);
+    $ok($typeId > 0 && Q::value('SELECT is_active FROM helpdesk_categories WHERE id=?', [$typeId]) == 0, 'Categoria de chamado criada e desativada');
+    Q::run('DELETE FROM helpdesk_categories WHERE id=?', [$typeId]);
+    $slaBackup = Q::all('SELECT * FROM helpdesk_sla_targets');
+    $super->get('/chamados/notificacoes');
+    $super->post('/acao/sla-save', ['first[urgent]' => '30', 'resolution[urgent]' => '240']);
+    $ok((int) Q::value("SELECT first_response_minutes FROM helpdesk_sla_targets WHERE priority='urgent'") === 30, 'Metas de atendimento salvas');
+    foreach ($slaBackup as $row) { Q::run('UPDATE helpdesk_sla_targets SET first_response_minutes=?,resolution_minutes=? WHERE priority=?', [$row['first_response_minutes'], $row['resolution_minutes'], $row['priority']]); }
+    $super->post('/acao/slide-save', ['title' => 'Slide ' . $mark, 'status' => 'draft']);
+    $slideId = (int) Q::value('SELECT id FROM cms_slides WHERE title=?', ['Slide ' . $mark]);
+    $super->post('/acao/slide-save', ['id' => $slideId, 'title' => 'Slide Novo ' . $mark, 'status' => 'draft']);
+    $ok(Q::value('SELECT title FROM cms_slides WHERE id=?', [$slideId]) === 'Slide Novo ' . $mark, 'Destaque editado');
+    $super->post('/acao/slide-delete', ['id' => $slideId]);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_slides WHERE id=?', [$slideId]) == 0, 'Destaque excluído');
+    $super->post('/acao/testimonial-save', ['person_name' => 'Pessoa ' . $mark, 'body' => 'Texto', 'rating' => '5']);
+    $quoteId = (int) Q::value('SELECT id FROM cms_testimonials WHERE person_name=?', ['Pessoa ' . $mark]);
+    $super->post('/acao/testimonial-save', ['id' => $quoteId, 'person_name' => 'Pessoa ' . $mark, 'body' => 'Novo', 'rating' => '3']);
+    $ok(Q::value('SELECT rating FROM cms_testimonials WHERE id=?', [$quoteId]) == 3, 'Depoimento editado');
+    $super->post('/acao/testimonial-delete', ['id' => $quoteId]);
+    $ok(Q::value('SELECT COUNT(*) FROM cms_testimonials WHERE id=?', [$quoteId]) == 0, 'Depoimento excluído');
+    $super->post('/acao/post-delete', ['id' => $postId]);
+    $ok(Q::value('SELECT deleted_at FROM posts WHERE id=?', [$postId]) !== null, 'Conteúdo excluído sem apagar o histórico');
+    $billing->get('/assinaturas');
+    $billing->post('/acao/subscription-create', ['owner_email' => $users['owner']['email'], 'plan_id' => $planId, 'billing_cycle' => 'monthly']);
+    $flowSub = Q::one('SELECT * FROM subscriptions WHERE user_id=?', [$users['owner']['id']]);
+    $flowCharge = Q::one('SELECT * FROM platform_charges WHERE subscription_id=?', [$flowSub['id']]);
+    $billing->post('/acao/charge-paid', ['id' => $flowCharge['id'], 'reference' => 'FLUXO-' . $mark]);
+    $billing->post('/acao/subscription-renewal', ['id' => $flowSub['id']]);
+    $billing->post('/acao/subscription-renewal', ['id' => $flowSub['id']]);
+    $ok((int) Q::value('SELECT COUNT(*) FROM platform_charges WHERE subscription_id=?', [$flowSub['id']]) === 2, 'Renovação emite uma única cobrança');
+    $renewal = Q::one("SELECT * FROM platform_charges WHERE subscription_id=? AND status='pending'", [$flowSub['id']]);
+    $billing->post('/acao/charge-failed', ['id' => $renewal['id'], 'note' => 'Cartão recusado']);
+    $ok(Q::value('SELECT status FROM subscriptions WHERE id=?', [$flowSub['id']]) === 'past_due', 'Falha de pagamento marca assinatura em atraso');
+    $billing->post('/acao/subscription-plan', ['id' => $flowSub['id'], 'plan_id' => $planId, 'billing_cycle' => 'annual']);
+    $ok(Q::value('SELECT billing_cycle FROM subscriptions WHERE id=?', [$flowSub['id']]) === 'annual', 'Alteração de plano da assinatura');
+    $super->get('/usuarios/' . $users['target']['id']);
+    $super->post('/acao/user-suspend', ['id' => $users['target']['id'], 'suspend' => '0']);
+    $ok(Q::value('SELECT status FROM users WHERE id=?', [$users['target']['id']]) === 'active', 'Usuário reativado');
 
     // Privacidade
     $supportStaff->get('/chamados/' . $tid);

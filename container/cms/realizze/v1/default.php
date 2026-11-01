@@ -7,7 +7,7 @@ $css = BASE_PATH . '/public/assets/realizze-cms/v1/css/cms.min.css';
 $js = BASE_PATH . '/public/assets/realizze-cms/v1/js/cms.min.js';
 $subtitles = [
     'pages' => 'Crie, publique e acompanhe as páginas do site.', 'contents' => 'Artigos, notícias, ajuda e conteúdos institucionais.',
-    'media' => 'Imagens e documentos usados no site.', 'menus' => 'Navegação do cabeçalho e do rodapé.', 'seo' => 'Títulos, descrições e indexação de cada rota.',
+    'media' => 'Imagens e documentos usados no site.', 'menus' => 'Navegação do cabeçalho e do rodapé.',
     'users' => 'Contas da plataforma, sem dados financeiros privados.', 'companies' => 'Empresas cadastradas, responsáveis e membros.', 'plans' => 'Ofertas, preços e histórico de alterações.',
     'subscriptions' => 'Contratos, renovações e histórico.', 'charges' => 'Cobranças da assinatura Realizze.', 'tickets' => 'Todos os atendimentos em um só lugar.', 'queue' => 'O que precisa de atenção, por prioridade.',
     'ticket-categories' => 'Como os chamados são classificados.', 'quick-replies' => 'Textos prontos para responder mais rápido.', 'ticket-team' => 'Quem atende e quanto há em aberto.', 'ticket-reports' => 'Tempos, volumes e avaliações.',

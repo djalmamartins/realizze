@@ -15,7 +15,7 @@ $base = rtrim((string) (getenv('APP_URL') ?: ''), '/') . '/blog/'; ?>
  <div class="cms-field"><label for="post-uri">Endereço amigável</label><input id="post-uri" name="uri" value="<?= V::e($p['uri'] ?? '') ?>" placeholder="Gerado a partir do título"><small data-slug-preview="<?= V::e($base) ?>"></small></div>
  <div class="cms-field"><label for="post-subtitle">Resumo *</label><textarea id="post-subtitle" name="subtitle" rows="3" required maxlength="300" data-counter="post-subtitle-count"><?= V::e($p['subtitle'] ?? '') ?></textarea><small id="post-subtitle-count" aria-live="polite"></small></div>
  <?= V::field('Conteúdo *', 'content', $p['content'] ?? '', ['type' => 'textarea', 'rows' => 16, 'editor' => true, 'help' => 'Scripts, estilos e atributos perigosos são removidos ao salvar.']) ?>
- <?php $this->insert('components/seo-fields', ['seo' => $p]); ?>
+ <p class="cms-seo-note">SEO automático: título, descrição, URL e imagem social são gerados deste conteúdo ao publicar.</p>
 </div>
 <aside class="cms-editor-side">
  <section class="cms-card"><div class="cms-section-head"><h2>Status e data</h2><?= $scheduled ? V::badge('pending', 'Agendado') : V::badge($status, $status === 'published' ? 'Publicado' : 'Rascunho') ?></div>
