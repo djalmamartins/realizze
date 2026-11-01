@@ -125,7 +125,21 @@ return [
             ]);
         }, 'web.password.reset.submit');
 
-        $router->get('/entrar', static function () use ($render): void {
+        // O App tem host próprio: acesso e sessão ficam nele, para os links do menu funcionarem.
+        $redirectToApp = static function (string $path, int $status = 302): bool {
+            $host = (string) (getenv('ROUTE_APP_HOST') ?: '');
+            if ($host === '') {
+                return false;
+            }
+            header('Cache-Control: no-store');
+            header('Location: https://' . $host . $path, true, $status);
+            return true;
+        };
+
+        $router->get('/entrar', static function () use ($render, $redirectToApp): void {
+            if ($redirectToApp('/entrar')) {
+                return;
+            }
             if (\Moves\Services\SessionAuth::current() !== null) {
                 header('Location: /minha-conta', true, 302);
                 return;
@@ -133,7 +147,10 @@ return [
             $render('login', ['loginError' => false]);
         }, 'web.login');
 
-        $router->post('/entrar', static function () use ($render): void {
+        $router->post('/entrar', static function () use ($render, $redirectToApp): void {
+            if ($redirectToApp('/entrar', 303)) {
+                return;
+            }
             if ((new \Moves\App\Login())->submit()) {
                 header('Location: /minha-conta', true, 302);
                 return;
@@ -151,7 +168,10 @@ return [
             $render('onboarding');
         }, 'app.onboarding.preview');
 
-        $router->get('/minha-conta', static function (): void {
+        $router->get('/minha-conta', static function () use ($redirectToApp): void {
+            if ($redirectToApp('/')) {
+                return;
+            }
             if (!\Moves\Services\AccessPolicy::requireAccess('app')) {
                 return;
             }
