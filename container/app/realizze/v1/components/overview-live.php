@@ -89,14 +89,14 @@ $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05'
   <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
 </section>
 <aside class="card overview-chart-side" aria-labelledby="overview-due-side-title">
-  <div class="section-head"><h2 id="overview-due-side-title">Atenção aos vencimentos</h2><a href="<?= $e(\\Moves\\Services\\AppUrl::section('pagar', \\Moves\\Services\\OrganizationContext::current())) ?>">Ver contas</a></div>
+  <div class="section-head"><h2 id="overview-due-side-title">Atenção aos vencimentos</h2><a href="<?= $e(\Moves\Services\AppUrl::section('pagar', \Moves\Services\OrganizationContext::current())) ?>">Ver contas</a></div>
   <p class="muted">Resumo dos compromissos financeiros no período.</p>
   <div class="overview-side-due">
     <?php foreach ([['Hoje e atrasados', 'today'], ['Amanhã', 'tomorrow'], ['Próximos 7 dias', 'week']] as [$label, $key]): ?>
     <div class="overview-side-due-row"><span><strong><?= $e($label) ?></strong><small><?= (int) $data['due'][$key . '_count'] ?> título(s)</small></span><strong class="<?= $key === 'today' && $data['due'][$key . '_count'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money((int) $data['due'][$key . '_total'])) ?></strong></div>
     <?php endforeach; ?>
   </div>
-  <a class="overview-side-action" href="<?= $e(\\Moves\\Services\\AppUrl::section('pagar', \\Moves\\Services\\OrganizationContext::current())) ?>">Consultar contas a pagar</a>
+  <a class="overview-side-action" href="<?= $e(\Moves\Services\AppUrl::section('pagar', \Moves\Services\OrganizationContext::current())) ?>">Consultar contas a pagar</a>
 </aside>
 </div>
 <section class="content-grid" aria-label="Painéis financeiros">
