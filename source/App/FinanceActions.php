@@ -22,7 +22,7 @@ final class FinanceActions
     {
         $user = SessionAuth::current();
         if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) {
-            http_response_code(403);
+            \Moves\Services\AppError::render(403);
             return;
         }
         $kind = in_array($_POST['kind'] ?? null, ['income', 'expense'], true) ? $_POST['kind'] : 'income';
@@ -30,7 +30,7 @@ final class FinanceActions
             $organization = OrganizationContext::current();
             if ($organization !== null && $action !== 'company'
                 && !(new Authorization())->can((int) $user['id'], (int) $organization['id'], 'finance.manage')) {
-                http_response_code(403);
+                \Moves\Services\AppError::render(403);
                 return;
             }
             $finance = new Finance((int) FinanceContext::currentId());
@@ -74,7 +74,7 @@ final class FinanceActions
     public function export(): void
     {
         if (SessionAuth::current() === null) {
-            http_response_code(403);
+            \Moves\Services\AppError::render(403);
             return;
         }
         $period = Finance::period($_GET);

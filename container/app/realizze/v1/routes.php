@@ -198,12 +198,12 @@ return [
 
         (require __DIR__ . '/components/support-routes.php')($router, $requirePreview);
 
-        $router->post('/sair', static function () use ($requirePreview): void {
+        $router->post('/sair', static function () use ($requirePreview, $renderError): void {
             if (!$requirePreview()) {
                 return;
             }
             if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
-                http_response_code(403);
+                $renderError(403);
                 return;
             }
             \Moves\Services\SessionAuth::signOut();

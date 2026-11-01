@@ -15,9 +15,9 @@ final class ContactActions
     public function handle(string $action): void
     {
         $user = SessionAuth::current();
-        if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) { http_response_code(403); return; }
+        if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) { \Moves\Services\AppError::render(403); return; }
         $context = FinanceContext::currentId();
-        if (!$context) { http_response_code(403); return; }
+        if (!$context) { \Moves\Services\AppError::render(403); return; }
         try {
             $contacts = new Contacts($context);
             $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);

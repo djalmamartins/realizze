@@ -323,7 +323,7 @@
     || /^\/(p|e\/[a-z0-9][a-z0-9-]{0,189}|pf\/pessoal|pj\/minha-empresa)(\/|$)/.test(url.pathname)
       && !url.pathname.startsWith('/minha-conta/');
   const swappable = (url) => url.origin === location.origin && appPath(url) && url.searchParams.get('pagina') !== 'empresarial' && !url.pathname.endsWith('/empresarial');
-  const currentSwappable = () => !location.search.includes('pagina=empresarial') && !location.pathname.endsWith('/empresarial');
+  const currentSwappable = () => !document.body.dataset.appErrorStatus && !location.search.includes('pagina=empresarial') && !location.pathname.endsWith('/empresarial');
 
   const apply = (html, url, push) => {
     const next = new DOMParser().parseFromString(html, 'text/html');
@@ -347,6 +347,9 @@
     if (profile && incomingProfile) profile.setAttribute('href', incomingProfile.getAttribute('href') || '/p/perfil');
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
     document.body.dataset.context = next.body.dataset.context || 'pf';
+    const errorStatus = next.body.dataset.appErrorStatus;
+    if (errorStatus) document.body.dataset.appErrorStatus = errorStatus;
+    else delete document.body.dataset.appErrorStatus;
     document.title = next.title;
     document.dispatchEvent(new Event('app:swapped'));
     if (push) history.pushState({}, '', url);
@@ -367,8 +370,23 @@
     try {
       const response = await fetch(url, { credentials: 'same-origin', ...options });
       const finalUrl = new URL(response.url);
-      if (!response.ok || !appPath(finalUrl)) throw new Error('navigation');
-      if (!apply(await response.text(), finalUrl.href, push)) throw new Error('content');
+      const html = await response.text();
+      if (!response.ok) {
+        const isAppError = [403, 404, 500].includes(response.status)
+          && new DOMParser().parseFromString(html, 'text/html').body.dataset.appErrorStatus === String(response.status);
+        if (!isAppError) throw new Error('navigation');
+        // Página de erro ocupa a tela inteira: troca o corpo e o histórico, preservando o status recebido.
+        const errorPage = new DOMParser().parseFromString(html, 'text/html');
+        document.body.className = errorPage.body.className;
+        document.body.dataset.appErrorStatus = String(response.status);
+        document.body.replaceChildren(...errorPage.body.childNodes);
+        document.title = errorPage.title;
+        if (push && !options.method) history.pushState({}, '', finalUrl.href);
+        window.scrollTo(0, 0);
+        return true;
+      }
+      if (!appPath(finalUrl)) throw new Error('navigation');
+      if (!apply(html, finalUrl.href, push)) throw new Error('content');
       if (push && !options.method) window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
       return true;
     } catch (_error) {
@@ -459,7 +477,8 @@
 
   window.addEventListener('popstate', () => {
     const url = new URL(location.href);
-    if (swappable(url)) go(url.href, {}, false);
+    if (document.body.dataset.appErrorStatus) location.reload();
+    else if (swappable(url)) go(url.href, {}, false);
     else location.reload();
   });
   window.addEventListener('pageshow', hideLoader);

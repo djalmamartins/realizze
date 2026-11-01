@@ -17,12 +17,12 @@ final class ReceivableActions
     {
         $user = SessionAuth::current();
         if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) {
-            http_response_code(403);
+            \Moves\Services\AppError::render(403);
             return;
         }
         $contextId = FinanceContext::currentId();
         if ($contextId === null || $contextId <= 0) {
-            http_response_code(403);
+            \Moves\Services\AppError::render(403);
             return;
         }
 

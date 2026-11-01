@@ -38,6 +38,7 @@ $userId = $organizationId = null;
 $failed = 0;
 $check = static function (bool $ok, string $label) use (&$failed): void { echo ($ok ? 'OK' : 'FALHOU') . ' - ' . $label . PHP_EOL; if (!$ok) $failed++; };
 try {
+    $check(trait_exists(\MovesCode\Router\RouterTrait::class), 'Instalação do Router contém RouterTrait');
     $pdo->prepare("INSERT INTO users (first_name,last_name,email,password,status) VALUES ('Rotas','App',?,?, 'active')")
         ->execute([$email, password_hash($password, PASSWORD_DEFAULT)]);
     $userId = (int) $pdo->lastInsertId();
@@ -56,13 +57,13 @@ try {
     foreach ($company as $path) { $response = $client->request('/e/' . $slug . $path); $check($response['status'] === 200, 'Rota PJ /e/' . $slug . $path); }
 
     $forbidden = $client->request('/minha-conta/contexto', ['csrf_token' => 'invalido', 'context_type' => 'personal']);
-    $check($forbidden['status'] === 403 && str_contains($forbidden['body'], 'Acesso não autorizado'), '403 personalizado preserva status');
+    $check($forbidden['status'] === 403 && str_contains($forbidden['body'], 'Acesso não autorizado') && str_contains($forbidden['body'], 'data-app-error-status="403"'), '403 personalizado preserva status');
     $missing = $client->request('/rota-inexistente');
-    $check($missing['status'] === 404 && str_contains($missing['body'], 'Página não encontrada'), '404 personalizado preserva status');
+    $check($missing['status'] === 404 && str_contains($missing['body'], 'Página não encontrada') && str_contains($missing['body'], 'A página que você está procurando não existe ou foi movida.') && str_contains($missing['body'], 'data-app-error-status="404"'), '404 personalizado preserva status');
     $other = $client->request('/e/empresa-sem-acesso/clientes');
     $check($other['status'] === 404, 'Slug empresarial não contorna autorização');
     $failure = $client->request('/__teste/erro-500');
-    $check($failure['status'] === 500 && str_contains($failure['body'], 'Não foi possível concluir') && !str_contains($failure['body'], 'RuntimeException'), '500 controlado não expõe detalhes');
+    $check($failure['status'] === 500 && str_contains($failure['body'], 'Não conseguimos carregar esta página') && str_contains($failure['body'], 'data-app-error-status="500"') && !str_contains($failure['body'], 'RuntimeException'), '500 controlado não expõe detalhes');
 } finally {
     if ($organizationId !== null) $pdo->prepare('DELETE FROM organizations WHERE id = ?')->execute([$organizationId]);
     if ($userId !== null) {

@@ -2,12 +2,34 @@
 declare(strict_types=1);
 $status = in_array((int) ($status ?? 500), [403, 404, 500], true) ? (int) $status : 500;
 $messages = [
-    403 => ['Acesso não autorizado', 'Você não possui permissão para acessar esta área.'],
-    404 => ['Página não encontrada', 'O endereço pode ter mudado ou não existe no aplicativo.'],
-    500 => ['Não foi possível concluir', 'Ocorreu um erro interno. Tente novamente em alguns instantes.'],
+    403 => ['Acesso não autorizado', 'Você não tem permissão para acessar esta área. Volte para uma área autorizada ou fale com o suporte.'],
+    404 => ['Página não encontrada', 'A página que você está procurando não existe ou foi movida.'],
+    500 => ['Não conseguimos carregar esta página', 'Ocorreu um problema inesperado. Tente novamente em alguns instantes.'],
 ];
 [$title, $description] = $messages[$status];
+$publishedCss = BASE_PATH . '/public/assets/realizze-app/v1/css/dashboard.min.css';
 ?>
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg"><title><?= $status ?> · <?= htmlspecialchars($title) ?> | Realizze</title><style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f7f5;color:#1f2937;font:16px/1.5 system-ui,-apple-system,sans-serif}.error-card{width:min(560px,100%);padding:44px;border:1px solid #dfe7e2;border-radius:22px;background:#fff;box-shadow:0 18px 55px #1232;text-align:center}.error-card img{width:154px;height:auto}.error-code{display:block;margin:28px 0 4px;color:#078b4c;font-size:14px;font-weight:800;letter-spacing:.12em}.error-card h1{margin:0;font-size:clamp(26px,5vw,38px)}.error-card p{color:#6b7280}.error-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:28px}.error-actions a,.error-actions button{border:1px solid #cad7cf;border-radius:10px;padding:11px 17px;background:#fff;color:#145c3a;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}.error-actions .primary{border-color:#078b4c;background:#078b4c;color:#fff}
-</style></head><body><main class="error-card"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze"><span class="error-code">ERRO <?= $status ?></span><h1><?= htmlspecialchars($title) ?></h1><p><?= htmlspecialchars($description) ?></p><div class="error-actions"><a class="primary" href="/p">Ir ao início do App</a><button type="button" onclick="history.length>1?history.back():location.assign('/p')">Voltar</button><a href="/suporte">Falar com o suporte</a></div></main></body></html>
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#16A34A"><link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg"><link rel="stylesheet" href="/assets/realizze-app/v1/css/dashboard.min.css?v=<?= (int) @filemtime($publishedCss) ?>"><title><?= $status ?> · <?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> | Realizze</title></head>
+<body class="app-error-body" data-app-error-status="<?= $status ?>">
+<main class="app-error-page" id="overview" tabindex="-1" aria-labelledby="app-error-title">
+  <section class="app-error-card">
+    <a class="app-error-logo" href="/p" aria-label="Realizze, voltar ao início"><img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze" width="166" height="42"></a>
+    <p class="app-error-code" aria-hidden="true"><?= $status ?></p>
+    <h1 id="app-error-title"><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h1>
+    <p class="app-error-description"><?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?></p>
+    <div class="app-error-actions">
+      <?php if ($status === 500): ?>
+      <button class="app-error-primary" type="button" onclick="location.reload()">Tentar novamente</button>
+      <a href="/p">Voltar ao início</a>
+      <?php elseif ($status === 403): ?>
+      <a class="app-error-primary" href="/p">Voltar à área autorizada</a>
+      <?php else: ?>
+      <a class="app-error-primary" href="/p">Voltar ao início</a>
+      <button type="button" onclick="history.length&gt;1?history.back():location.assign('/p')">Voltar</button>
+      <?php endif; ?>
+      <a class="app-error-support" href="/suporte">Falar com o suporte</a>
+    </div>
+  </section>
+</main>
+</body></html>

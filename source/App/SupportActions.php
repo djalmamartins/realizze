@@ -19,7 +19,7 @@ final class SupportActions
         header('Cache-Control: no-store');
         $user = SessionAuth::current();
         if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) {
-            http_response_code(403);
+            \Moves\Services\AppError::render(403);
             return;
         }
         $userId = (int) $user['id'];
@@ -41,7 +41,7 @@ final class SupportActions
             } else {
                 $ticket = Helpdesk::customerTicket($userId, (string) $protocol);
                 if ($ticket === null) {
-                    http_response_code(404);
+                    \Moves\Services\AppError::render(404);
                     return;
                 }
                 $back = '/suporte/' . $ticket['protocol'];
@@ -81,12 +81,12 @@ final class SupportActions
         header('Cache-Control: no-store');
         $user = SessionAuth::current();
         if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) {
-            http_response_code(403);
+            \Moves\Services\AppError::render(403);
             return;
         }
         $article = \Moves\Services\CmsSite::helpArticle('uri', $uri);
         if ($article === null) {
-            http_response_code(404);
+            \Moves\Services\AppError::render(404);
             return;
         }
         \Moves\Services\CmsContent::voteHelp((int) $article['id'], (int) $user['id'], ($_POST['helpful'] ?? '') === '1');
@@ -100,7 +100,7 @@ final class SupportActions
         $attachment = $user === null ? null : Helpdesk::attachment($attachmentId);
         // Mesmo 404 para inexistente e não autorizado.
         if ($attachment === null || !Helpdesk::customerCanDownload((int) $user['id'], $attachment)) {
-            http_response_code(404);
+            \Moves\Services\AppError::render(404);
             return;
         }
         Helpdesk::streamAttachment($attachment);

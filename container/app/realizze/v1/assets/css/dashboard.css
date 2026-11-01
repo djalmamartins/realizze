@@ -690,6 +690,22 @@ body[data-context=pj] .sidebar-close{background:#ffffff1a;color:#fff}
 body[data-context=pj] .connect{background:#ffffff12}
 body[data-context=pj] .connect p{color:#d5e4dc}
 
+/* APP errors — shared by direct responses and AJAX navigation. */
+.app-error-body{min-height:100vh;background:#f3f4f6;color:#1f2937}
+.app-error-page{min-height:100vh;display:grid;place-items:center;padding:32px 20px;background:radial-gradient(circle at 50% 0,#e8f8ef 0,transparent 38%),#f3f4f6}
+.app-error-card{width:min(620px,100%);padding:48px 44px;border:1px solid #dfe7e2;border-radius:24px;background:#fff;box-shadow:0 22px 60px rgba(31,41,55,.12);text-align:center}
+.app-error-logo{display:inline-flex}.app-error-logo img{display:block;width:166px;height:auto;max-width:100%}
+.app-error-code{margin:28px 0 2px;color:#16a34a;font-size:clamp(64px,14vw,112px);font-weight:850;line-height:.95;letter-spacing:-.06em}
+.app-error-card h1{margin:18px 0 10px;color:#1f2937;font-size:clamp(27px,5vw,40px);letter-spacing:-.035em}
+.app-error-description{max-width:500px;margin:0 auto;color:#64748b;font-size:16px;line-height:1.7}
+.app-error-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:30px}
+.app-error-actions a,.app-error-actions button{min-height:46px;padding:12px 18px;border:1px solid #cbd5d1;border-radius:11px;background:#fff;color:#176442;font:inherit;font-weight:700;cursor:pointer}
+.app-error-actions .app-error-primary{border-color:#16a34a;background:linear-gradient(135deg,#16a34a,#059669);color:#fff}
+.app-error-actions .app-error-support{border-color:transparent;background:transparent;color:#059669}
+body[data-app-error-status] .sidebar,body[data-app-error-status] .sidebar-backdrop,body[data-app-error-status] #sp-tab{display:none!important}
+body[data-app-error-status] .shell{display:block}body[data-app-error-status] .main{padding:0}
+@media(max-width:560px){.app-error-page{padding:20px 14px}.app-error-card{padding:34px 20px;border-radius:18px}.app-error-actions{display:grid}.app-error-actions a,.app-error-actions button{width:100%}}
+
 @media(max-width:650px){
 .top .toolbar{grid-template-columns:1fr auto auto}
 .top .toolbar .months-live{grid-column:1/-1;grid-row:1}

@@ -3,8 +3,8 @@ declare(strict_types=1);
 // UI-001: demonstração visual. Nenhum valor financeiro representa dados do usuário.
 $user = \Moves\Services\SessionAuth::current();
 if ($user === null) {
-    http_response_code(403);
-    exit('Acesso negado.');
+    \Moves\Services\AppError::render(403);
+    return;
 }
 $name = (string) ($user['first_name'] ?? 'Cliente');
 $csrf = \Moves\Services\Csrf::token();
