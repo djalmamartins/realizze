@@ -117,6 +117,22 @@ final class CmsMedia
         return $total;
     }
 
+    /** Lote: arquivos em uso ficam de fora. */
+    public static function deleteMany(array $ids, int $actorId): array
+    {
+        $deleted = 0;
+        $kept = 0;
+        foreach (array_slice(array_unique(array_map('intval', $ids)), 0, 100) as $id) {
+            try {
+                self::delete($id, $actorId);
+                $deleted++;
+            } catch (InvalidArgumentException) {
+                $kept++;
+            }
+        }
+        return [$deleted, $kept];
+    }
+
     public static function delete(int $id, int $actorId): void
     {
         $media = CmsQuery::one('SELECT * FROM cms_media WHERE id=?', [$id]);

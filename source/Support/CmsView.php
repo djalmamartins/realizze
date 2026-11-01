@@ -18,6 +18,67 @@ final class CmsView
         return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
+    public static function icon(string $name): string
+    {
+        static $icon = null;
+        $icon ??= require BASE_PATH . '/container/cms/realizze/v1/components/icons.php';
+        return $icon($name);
+    }
+
+    /** Linha de indicadores: [ícone, rótulo, valor, legenda]. */
+    public static function kpis(array $items): string
+    {
+        $html = '<div class="cms-kpis">';
+        foreach ($items as [$icon, $label, $value, $caption]) {
+            $html .= '<div class="cms-kpi"><i>' . self::icon($icon) . '</i><div><span>' . self::e($label) . '</span><strong>' . self::e($value) . '</strong><small>' . self::e($caption) . '</small></div></div>';
+        }
+        return $html . '</div>';
+    }
+
+    /** Cabeçalho de lista: título e legenda à esquerda, busca e filtros à direita. */
+    public static function listHead(string $title, string $caption, string $controls = ''): string
+    {
+        return '<header class="cms-list-head"><div><h2>' . self::e($title) . '</h2><small>' . self::e($caption) . '</small></div>' . ($controls !== '' ? '<div class="cms-list-controls">' . $controls . '</div>' : '') . '</header>';
+    }
+
+    /** Busca compacta. $selects: nome => [valor atual, opções]. */
+    public static function searchForm(string $placeholder, array $selects = []): string
+    {
+        $html = '<form class="cms-search" method="get"><label class="cms-search-box"><span class="cms-sr">' . self::e($placeholder) . '</span>' . self::icon('search') . '<input type="search" name="q" placeholder="' . self::e($placeholder) . '" value="' . self::e(self::queryString('q')) . '"></label>';
+        foreach ($selects as $name => [$current, $choices, $label]) {
+            $html .= '<select name="' . self::e($name) . '" aria-label="' . self::e($label) . '">';
+            foreach ($choices as $key => $text) {
+                $html .= '<option value="' . self::e($key) . '"' . ((string) $key === (string) $current ? ' selected' : '') . '>' . self::e($text) . '</option>';
+            }
+            $html .= '</select>';
+        }
+        return $html . '<button class="cms-btn">Buscar</button></form>';
+    }
+
+    public static function iconLink(string $href, string $label, string $icon = 'pencil'): string
+    {
+        return '<a class="cms-icon-btn" href="' . self::e($href) . '" title="' . self::e($label) . '" aria-label="' . self::e($label) . '">' . self::icon($icon) . '</a>';
+    }
+
+    public static function iconAction(string $action, string $label, array $fields, ?string $confirm = null, string $icon = 'trash'): string
+    {
+        $html = '<form method="post" action="/acao/' . self::e($action) . '" class="cms-inline"' . ($confirm !== null ? ' data-confirm="' . self::e($confirm) . '"' : '') . '>' . self::csrf();
+        foreach ($fields as $key => $value) {
+            $html .= '<input type="hidden" name="' . self::e($key) . '" value="' . self::e($value) . '">';
+        }
+        return $html . '<button class="cms-icon-btn" title="' . self::e($label) . '" aria-label="' . self::e($label) . '">' . self::icon($icon) . '</button></form>';
+    }
+
+    /** Abas segmentadas: [link, rótulo, contagem ou null, ativa]. */
+    public static function tabs(array $items, string $label): string
+    {
+        $html = '<nav class="cms-tabs" aria-label="' . self::e($label) . '">';
+        foreach ($items as [$href, $text, $count, $active]) {
+            $html .= '<a class="cms-tab' . ($active ? ' selected' : '') . '" href="' . self::e($href) . '"' . ($active ? ' aria-current="true"' : '') . '><span>' . self::e($text) . '</span>' . ($count !== null ? '<b>' . (int) $count . '</b>' : '') . '</a>';
+        }
+        return $html . '</nav>';
+    }
+
     public static function csrf(): string
     {
         return '<input type="hidden" name="csrf_token" value="' . self::e(\Moves\Services\Csrf::token()) . '">';
@@ -123,12 +184,17 @@ final class CmsView
             $query['pagina'] = $page;
             return '<a href="?' . self::e(http_build_query($query)) . '"' . ($current ? ' aria-current="page" class="selected"' : '') . '>' . self::e($label) . '</a>';
         };
-        $html = '<nav class="cms-pager" aria-label="Paginação"><span>Página ' . (int) $result['page'] . ' de ' . (int) $result['pages'] . ' · ' . (int) $result['total'] . ' itens</span><div>';
-        if ($result['page'] > 1) {
-            $html .= $link($result['page'] - 1, 'Anterior');
+        $current = (int) $result['page'];
+        $last = (int) $result['pages'];
+        $html = '<nav class="cms-pager" aria-label="Paginação"><span>Página ' . $current . ' de ' . $last . ' · ' . (int) $result['total'] . ' registro(s)</span><div>';
+        if ($current > 1) {
+            $html .= $link($current - 1, 'Anterior');
         }
-        if ($result['page'] < $result['pages']) {
-            $html .= $link($result['page'] + 1, 'Próxima');
+        for ($page = max(1, $current - 2); $page <= min($last, $current + 2); $page++) {
+            $html .= $link($page, (string) $page, $page === $current);
+        }
+        if ($current < $last) {
+            $html .= $link($current + 1, 'Próxima') . $link($last, 'Última');
         }
         return $html . '</div></nav>';
     }

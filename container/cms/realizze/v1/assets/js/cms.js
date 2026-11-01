@@ -8,6 +8,15 @@
   // Editor simples sobre o textarea; o servidor continua sanitizando o HTML ao salvar.
   const enhanceEditors = () => {
     if (typeof document.querySelectorAll !== 'function') return;
+    document.querySelectorAll('[data-settings]').forEach((form) => {
+      const tabs = form.querySelectorAll('[data-settings-tab]');
+      const show = (index) => {
+        form.querySelectorAll('[data-settings-panel]').forEach((panel) => { panel.hidden = panel.dataset.settingsPanel !== index; });
+        tabs.forEach((tab) => { if (tab.dataset.settingsTab === index) { tab.setAttribute('aria-current', 'true'); } else { tab.removeAttribute('aria-current'); } });
+      };
+      tabs.forEach((tab) => tab.addEventListener('click', () => show(tab.dataset.settingsTab)));
+      show('0');
+    });
     document.querySelectorAll('[data-counter]').forEach((field) => {
       const output = document.getElementById(field.dataset.counter);
       const update = () => { output.textContent = field.value.length + '/' + field.maxLength + ' caracteres'; };

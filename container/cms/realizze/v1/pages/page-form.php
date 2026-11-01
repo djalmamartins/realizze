@@ -3,7 +3,7 @@ $page = $id ? CmsContent::page($id) : null;
 if ($id && $page === null) { http_response_code(404); echo V::empty('Página não encontrada.'); return; }
 $p = $page ?? []; $status = $p['status'] ?? 'draft'; $canPublish = CmsAuth::can($admin, 'content.publish');
 $base = rtrim((string) (getenv('APP_URL') ?: ''), '/') . '/'; ?>
-<div class="cms-page-tools"><a class="cms-btn" href="/paginas">Voltar</a></div>
+<?php $this->start('actions'); ?><a class="cms-btn" href="/paginas">Voltar</a><?php $this->stop(); ?>
 <form class="cms-editor-layout" method="post" action="/acao/page-save"><?= V::csrf() ?><input type="hidden" name="id" value="<?= (int) ($id ?? 0) ?: '' ?>">
 <div class="cms-card">
  <div class="cms-field"><label for="page-title">Título *</label><input id="page-title" name="title" required maxlength="190" value="<?= V::e($p['title'] ?? '') ?>" data-counter="page-title-count"><small id="page-title-count" aria-live="polite"></small></div>

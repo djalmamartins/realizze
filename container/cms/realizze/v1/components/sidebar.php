@@ -3,7 +3,7 @@
 use Moves\Services\CmsAuth;
 use Moves\Support\CmsView as V;
 
-require __DIR__ . '/icons.php';
+$cmsIcon = require __DIR__ . '/icons.php';
 $menu = [
     'Visão geral' => [['dashboard', '/', 'Dashboard', 'overview', 'dashboard.view']],
     'Site' => [
@@ -42,5 +42,5 @@ $menu = [
   </details>
  <?php endforeach; ?>
  </nav>
- <div class="cms-sidebar-foot"><a href="<?= V::e(getenv('APP_URL') ?: '/') ?>" target="_blank" rel="noopener"><?= $cmsIcon('overview') ?><span>Visualizar site</span></a></div>
+ <div class="cms-sidebar-foot"><a href="<?= V::e(getenv('APP_URL') ?: '/') ?>" target="_blank" rel="noopener"><?= $cmsIcon('globe') ?><span>Visualizar site</span></a><form method="post" action="/sair"><?= V::csrf() ?><button type="submit"><?= $cmsIcon('logout') ?><span>Sair</span></button></form></div>
 </aside>

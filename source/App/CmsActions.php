@@ -26,7 +26,7 @@ final class CmsActions
         'post-save' => ['content.manage', 'postSave'], 'post-publish' => ['content.publish', 'postPublish'], 'post-delete' => ['content.manage', 'postDelete'],
         'category-save' => ['content.manage', 'categorySave'], 'category-delete' => ['content.manage', 'categoryDelete'],
         'faq-save' => ['content.manage', 'faqSave'], 'faq-delete' => ['content.manage', 'faqDelete'],
-        'media-upload' => ['media.manage', 'mediaUpload'], 'media-update' => ['media.manage', 'mediaUpdate'], 'media-delete' => ['media.manage', 'mediaDelete'],
+        'media-upload' => ['media.manage', 'mediaUpload'], 'media-update' => ['media.manage', 'mediaUpdate'], 'media-delete' => ['media.manage', 'mediaDelete'], 'media-delete-bulk' => ['media.manage', 'mediaDeleteBulk'],
         'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'], 'seo-save' => ['seo.manage', 'seoSave'],
         'user-suspend' => ['users.manage', 'userSuspend'], 'company-status' => ['companies.manage', 'companyStatus'], 'company-support-access' => ['companies.manage', 'companySupportAccess'],
         'plan-save' => ['plans.manage', 'planSave'],
@@ -214,6 +214,12 @@ final class CmsActions
     {
         CmsMedia::delete($this->id(), $this->actor);
         return ['Arquivo excluído.'];
+    }
+
+    private function mediaDeleteBulk(): array
+    {
+        [$deleted, $kept] = CmsMedia::deleteMany(is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [], $this->actor);
+        return [$deleted . ' arquivo(s) excluído(s).' . ($kept > 0 ? ' ' . $kept . ' em uso ficaram de fora.' : '')];
     }
 
     private function menuSave(): array
