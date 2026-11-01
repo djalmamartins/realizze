@@ -17,15 +17,30 @@ $status = in_array($_GET['situacao'] ?? '', ['open', 'paid', 'overdue'], true) ?
 $monthNames = [1 => 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 $monthLabel = $monthNames[(int) $start->format('n')] . ' de ' . $start->format('Y');
 $csrf = (string) ($csrf ?? '');
+$search = is_string($_GET['busca'] ?? null) ? mb_substr(trim($_GET['busca']), 0, 120) : '';
+$categoryFilter = (int) filter_var($_GET['categoria'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 0]]);
+$accountFilter = (int) filter_var($_GET['conta'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 0]]);
+$tagFilter = is_string($_GET['tag'] ?? null) ? mb_substr(trim($_GET['tag']), 0, 40) : '';
+$validDate = static fn (mixed $value): bool => is_string($value) && ($parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $value)) !== false && $parsed->format('Y-m-d') === $value;
+$customPeriod = $validDate($_GET['inicio'] ?? null) && $validDate($_GET['fim'] ?? null) && $_GET['inicio'] <= $_GET['fim'];
+$rangeStart = $customPeriod ? $_GET['inicio'] : $start->format('Y-m-d');
+$rangeEnd = $customPeriod ? $_GET['fim'] : $end->format('Y-m-d');
+if ($customPeriod) {
+    $monthLabel = (new DateTimeImmutable($rangeStart))->format('d/m/Y') . ' a ' . (new DateTimeImmutable($rangeEnd))->format('d/m/Y');
+}
 $loadFailed = false;
-$accounts = $categories = $entries = [];
+$accounts = $categories = $entries = $tags = $details = [];
+$extras = false;
 $summary = ['expected' => 0, 'paid' => 0, 'overdue' => 0, 'count' => 0];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $accounts = $finance->accounts();
     $categories = $finance->categories($kind);
-    $entries = $finance->entries($kind, $start->format('Y-m-d'), $end->format('Y-m-d'), $status);
-    $summary = $finance->summary($kind, $start->format('Y-m-d'), $end->format('Y-m-d'));
+    $entries = $finance->entries($kind, $rangeStart, $rangeEnd, $status, ['search' => $search, 'category_id' => $categoryFilter, 'account_id' => $accountFilter, 'tag' => $tagFilter]);
+    $summary = $finance->summary($kind, $rangeStart, $rangeEnd);
+    $extras = $finance->supportsEntryExtras();
+    $tags = $finance->tags();
+    $details = $finance->entryDetails(array_map(static fn (array $entry): int => (int) $entry['id'], $entries));
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -33,7 +48,22 @@ try {
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 $today = date('Y-m-d');
-$link = static fn (string $target, string $situation = 'all'): string => \Moves\Services\AppUrl::section($page, null, ['mes' => $target] + ($situation === 'all' ? [] : ['situacao' => $situation]));
+$activeFilters = array_filter(['inicio' => $customPeriod ? $rangeStart : '', 'fim' => $customPeriod ? $rangeEnd : '', 'busca' => $search, 'categoria' => $categoryFilter, 'conta' => $accountFilter, 'tag' => $tagFilter]);
+$link = static fn (string $target, string $situation = 'all', array $filters = []): string => \Moves\Services\AppUrl::section($page, null, ['mes' => $target] + ($situation === 'all' ? [] : ['situacao' => $situation]) + $filters);
+$nameOf = static function (array $items, int $id): string {
+    foreach ($items as $item) {
+        if ((int) $item['id'] === $id) return (string) $item['name'];
+    }
+    return '';
+};
+$chipLabels = ['busca' => 'Busca: ' . $search, 'categoria' => 'Categoria: ' . $nameOf($categories, $categoryFilter), 'conta' => 'Conta: ' . $nameOf($accounts, $accountFilter), 'tag' => 'Tag: ' . $tagFilter];
+$filterChips = [];
+if ($customPeriod) {
+    $filterChips['Vencimento: ' . $monthLabel] = $link($month, $status, array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]));
+}
+foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterKey => $unused) {
+    $filterChips[$chipLabels[$filterKey]] = $link($month, $status, array_diff_key($activeFilters, [$filterKey => 1]));
+}
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
 <section class="card finance-workspace" aria-labelledby="entries-title">
@@ -48,16 +78,30 @@ $link = static fn (string $target, string $situation = 'all'): string => \Moves\
   </div>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Mês">
-      <a href="<?= $e($link($start->modify('-1 month')->format('Y-m'), $status)) ?>" aria-label="Mês anterior">‹</a>
+      <a href="<?= $e($link($start->modify('-1 month')->format('Y-m'), $status, $activeFilters)) ?>" aria-label="Mês anterior">‹</a>
       <strong><?= $e($monthLabel) ?></strong>
-      <a href="<?= $e($link($start->modify('+1 month')->format('Y-m'), $status)) ?>" aria-label="Próximo mês">›</a>
+      <a href="<?= $e($link($start->modify('+1 month')->format('Y-m'), $status, $activeFilters)) ?>" aria-label="Próximo mês">›</a>
     </nav>
     <nav class="finance-status" aria-label="Situação">
       <?php foreach (['all' => 'Todos', 'open' => 'Em aberto', 'paid' => $labels['status'], 'overdue' => 'Em atraso'] as $value => $label): ?>
-      <a href="<?= $e($link($month, $value)) ?>"<?= $status === $value ? ' aria-current="true"' : '' ?>><?= $e($label) ?></a>
+      <a href="<?= $e($link($month, $value, $activeFilters)) ?>"<?= $status === $value ? ' aria-current="true"' : '' ?>><?= $e($label) ?></a>
       <?php endforeach; ?>
     </nav>
+    <?php $filterPanelId = 'entry-filters'; require __DIR__ . '/filter-button.php'; ?>
   </div>
+  <?php $filterClearUrl = $link($month, $status); require __DIR__ . '/filter-bar.php'; ?>
+<dialog class="finance-dialog filter-dialog" id="entry-filters" aria-labelledby="entry-filters-title">
+  <form method="get" action="<?= $e(\Moves\Services\AppUrl::section($page)) ?>" data-swap-get>
+    <header><h2 id="entry-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <?php $periodStart = $rangeStart; $periodEnd = $rangeEnd; require __DIR__ . '/filter-period.php'; ?>
+    <input type="hidden" name="mes" value="<?= $e($month) ?>"><?php if ($status !== 'all'): ?><input type="hidden" name="situacao" value="<?= $e($status) ?>"><?php endif; ?>
+    <label>Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Descrição"></label>
+    <label>Categoria<select name="categoria"><option value="">Todas</option><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $categoryFilter === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
+    <label>Conta ou cartão<select name="conta"><option value="">Todas</option><?php foreach ($accounts as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $accountFilter === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
+    <?php if ($tags !== []): ?><label>Tag<select name="tag"><option value="">Todas</option><?php foreach ($tags as $item): ?><option value="<?= $e($item) ?>"<?= $tagFilter === $item ? ' selected' : '' ?>><?= $e($item) ?></option><?php endforeach; ?></select></label><?php endif; ?>
+    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Aplicar</button></footer>
+  </form>
+</dialog>
   <?php if ($loadFailed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar os lançamentos</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php elseif ($entries === []): ?>
@@ -67,9 +111,11 @@ $link = static fn (string $target, string $situation = 'all'): string => \Moves\
     <table class="finance-table finance-entries">
       <thead><tr><th scope="col">Descrição</th><th scope="col">Vencimento</th><th scope="col">Categoria</th><th scope="col">Conta</th><th scope="col">Situação</th><th scope="col" class="num">Valor</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
       <tbody>
-      <?php foreach ($entries as $entry): $overdue = $entry['paid_at'] === null && $entry['due_date'] < $today; ?>
-      <tr>
-        <td><strong><?= $e($entry['description']) ?></strong></td>
+      <?php foreach ($entries as $entry): $overdue = $entry['paid_at'] === null && $entry['due_date'] < $today; $detail = $details[(int) $entry['id']] ?? null; ?>
+      <tr id="lancamento-<?= (int) $entry['id'] ?>">
+        <td><strong><?= $e($entry['description']) ?></strong>
+          <?php require __DIR__ . '/entry-meta.php'; ?>
+        </td>
         <td><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?></td>
         <td><?php if ($entry['category']): ?><span class="finance-dot" style="background:<?= $e($entry['category_color']) ?>"></span><?= $e($entry['category']) ?><?php else: ?>—<?php endif; ?></td>
         <td><?= $e($entry['account']) ?></td>
@@ -88,20 +134,4 @@ $link = static fn (string $target, string $situation = 'all'): string => \Moves\
   </div>
   <?php endif; ?>
 </section>
-<dialog class="finance-dialog" id="entry-dialog" aria-labelledby="entry-dialog-title">
-  <form method="post" action="/minha-conta/financeiro/lancamento" data-finance-form>
-    <header><h2 id="entry-dialog-title"><?= $e($labels['new']) ?></h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="kind" value="<?= $e($kind) ?>"><input type="hidden" name="mes" value="<?= $e($month) ?>">
-    <label>Descrição<input name="description" maxlength="160" required autofocus></label>
-    <div class="finance-dialog-row">
-      <label>Valor (R$)<input name="amount" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?" required></label>
-      <label>Vencimento<input name="due_date" type="date" value="<?= $e(substr($today, 0, 7) === $month ? $today : $month . '-01') ?>" required></label>
-    </div>
-    <div class="finance-dialog-row">
-      <label>Conta<select name="account_id" required><?php foreach ($accounts as $account): ?><option value="<?= (int) $account['id'] ?>"><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
-      <label>Categoria<select name="category_id"><option value="">Sem categoria</option><?php foreach ($categories as $category): ?><option value="<?= (int) $category['id'] ?>"><?= $e($category['name']) ?></option><?php endforeach; ?></select></label>
-    </div>
-    <label class="finance-check"><input type="checkbox" name="paid" value="1"> Já foi <?= $isIncome ? 'recebido' : 'pago' ?> hoje</label>
-    <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
-  </form>
-</dialog>
+<?php $form = ['id' => 'entry-dialog', 'kind' => $kind, 'title' => $labels['new'], 'accounts' => $accounts, 'categories' => $categories, 'csrf' => $csrf, 'month' => $month, 'date' => substr($today, 0, 7) === $month ? $today : $month . '-01', 'back' => '', 'extras' => $extras, 'tags' => $tags]; require __DIR__ . '/entry-form.php'; ?>

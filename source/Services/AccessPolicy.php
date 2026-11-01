@@ -42,6 +42,8 @@ final class AccessPolicy
         }
         if ($environment === 'app' && SessionAuth::current() === null) {
             header('Location: /entrar', true, 302);
+        } elseif ($environment === 'app') {
+            AppError::render(403);
         } else {
             http_response_code(403);
             echo 'Acesso negado.';

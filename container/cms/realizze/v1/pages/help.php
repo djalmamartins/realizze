@@ -1,3 +1,3 @@
-<?php $this->layout('default'); use Moves\Services\CmsSite; use Moves\Support\CmsView as V; $q = V::queryString('q'); $result = CmsSite::helpArticles($q, V::queryPage());
-if ($q !== '' && $result['rows'] === []) { $result = CmsSite::helpArticles('', V::queryPage()); } ?>
+<?php $this->layout('default'); use Moves\Services\CmsSite; use Moves\Support\CmsView as V; $q = V::queryString('q'); $result = CmsSite::helpArticles($q, V::queryPage(), 20, true);
+if ($q !== '' && $result['rows'] === []) { $result = CmsSite::helpArticles('', V::queryPage(), 20, true); } ?>
 <div class="cms-card"><form class="cms-filters" method="get"><?= V::field('Pesquisar na ajuda', 'q', $q, ['type' => 'search']) ?><button class="cms-btn">Pesquisar</button></form><?php if ($result['rows'] === []): ?><?= V::empty('Nenhum artigo de ajuda publicado.', 'Publique artigos do tipo Ajuda em Conteúdos.') ?><?php endif; foreach ($result['rows'] as $a): ?><p><a href="/ajuda/<?= (int) $a['id'] ?>"><strong><?= V::e($a['title']) ?></strong></a><br><small><?= V::e($a['category_title'] ?? 'Geral') ?> · <?= V::e($a['subtitle']) ?></small></p><?php endforeach; ?><?= V::pager($result) ?></div>

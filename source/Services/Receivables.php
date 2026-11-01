@@ -24,6 +24,57 @@ final class Receivables
         $this->pdo = Connection::get();
     }
 
+    /**
+     * Cadastro com as opções do formulário: repetição, tags, anexos e baixa imediata.
+     * Cada ocorrência tem chave própria, derivada da chave do envio, então reenviar não duplica.
+     *
+     * @param list<array<string,mixed>> $files
+     * @return array{id:int,duplicate:bool,count:int}
+     */
+    public function createWithOptions(array $data, int $userId, array $files = []): array
+    {
+        $fields = $this->validatedFields($data, null);
+        $key = $this->idempotencyKey($data['idempotency_key'] ?? null);
+        $tags = Finance::parseTags($data['tags'] ?? '');
+        FinanceAttachments::validate($files);
+        $occurrences = Finance::occurrences($fields['description'], $fields['amount_cents'], $fields['due_date'], $data);
+        $total = count($occurrences);
+        $finance = new Finance($this->contextId);
+        $extras = $finance->supportsEntryExtras();
+        if (!$extras && ($tags !== [] || $files !== [] || $total > 1)) {
+            throw new InvalidArgumentException('Tags, anexos e repetição ainda não estão disponíveis.');
+        }
+        $seriesId = $total > 1 ? bin2hex(random_bytes(16)) : null;
+        $money = static fn (int $cents): string => number_format($cents / 100, 2, ',', '');
+        $firstId = 0;
+        foreach ($occurrences as $index => $occurrence) {
+            $result = $this->create([
+                'description' => $occurrence['description'], 'amount' => $money($occurrence['amount']), 'due_date' => $occurrence['due'],
+                'competence' => $index === 0 ? $data['competence'] : substr($occurrence['due'], 0, 7),
+                'idempotency_key' => $index === 0 ? $key : hash('sha256', $key . '-' . $index),
+            ] + $data, $userId);
+            if ($result['duplicate']) {
+                if ($index === 0) {
+                    return ['id' => $result['id'], 'duplicate' => true, 'count' => $total];
+                }
+                continue;
+            }
+            $firstId = $firstId ?: $result['id'];
+            if ($extras) {
+                $finance->saveEntryExtras($result['id'], $seriesId, $seriesId === null ? null : (string) $data['repeat'], $index + 1, $total, $tags);
+            }
+        }
+        $finance->addAttachments($firstId, $files, $userId);
+        if (!empty($data['paid'])) {
+            $this->settle($firstId, [
+                'amount' => $money($occurrences[0]['amount']), 'received_at' => min($fields['due_date'], date('Y-m-d')),
+                'account_id' => $fields['account_id'], 'payment_method' => $fields['payment_method'],
+                'idempotency_key' => hash('sha256', $key . '-baixa'),
+            ], $userId);
+        }
+        return ['id' => $firstId, 'duplicate' => false, 'count' => $total];
+    }
+
     /** @return array{id:int,duplicate:bool} */
     public function create(array $data, int $userId): array
     {

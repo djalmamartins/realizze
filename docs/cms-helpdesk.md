@@ -12,7 +12,7 @@ Fora do ambiente local, o CMS só abre com `REALIZZE_CMS_ENABLED=1`.
 
 ## Migrations
 
-`100` administração, `101` conteúdo, `102` planos e cobranças, `103` atendimento, `104` respostas rápidas, `105` equipe, tags e tempo dedicado, `106` destaques, depoimentos, acessos, comunicações, versões e log, `107` conteúdo inicial da base de conhecimento. São aditivas e usam numeração própria para não colidir com as do App.
+`100` administração, `101` conteúdo, `102` planos e cobranças, `103` atendimento, `104` respostas rápidas, `105` equipe, tags e tempo dedicado, `106` destaques, depoimentos, acessos, comunicações, versões e log, `107` conteúdo inicial da base de conhecimento, `108` mensagens do formulário público. São aditivas e usam numeração própria para não colidir com as do App.
 
 ## Papéis
 
@@ -81,11 +81,15 @@ Artigos do tipo Ajuda em Conteúdos aparecem em `/suporte/ajuda` no App e em `/a
 
 ## SEO automático
 
-Páginas e artigos geram título, descrição, URL canônica e imagem social a partir do conteúdo, em `CmsSite::autoMeta`. Campos preenchidos em "Personalizar SEO" têm prioridade. `/sitemap.xml` lista só o que está publicado e indexável; `/robots.txt` aponta o sitemap.
+Páginas e artigos geram título, descrição, URL canônica e imagem social a partir do conteúdo, em `CmsSite::autoMeta`. Não há tela de SEO. `/sitemap.xml` lista só o que está publicado e indexável; `/robots.txt` aponta o sitemap.
 
 ## Módulos do site e comunicação
 
 Destaques e depoimentos publicados aparecem na página inicial. Relatórios contam acessos do site com hash diário, sem guardar IP e sem robôs. Comunicações são entregues a todos, clientes ou equipe, na hora ou agendadas; agendadas saem ao abrir a Central de notificações ou por `php scripts/process-notifications.php`. O log técnico agrupa erros por ocorrência e remove e-mails, documentos e segredos.
+
+## Central de Suporte pública
+
+`/suporte` no site reúne busca e pastas da base de conhecimento, atalhos e formulário. A pasta `ajuda-cms` é interna: não aparece no site nem no App. Mensagens ficam em Atendimento > Mensagens do site. WhatsApp, e-mail, telefone e horário só aparecem quando preenchidos em Configurações.
 
 ## Testes
 

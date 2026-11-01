@@ -61,7 +61,7 @@ return [
             require __DIR__ . '/pages/dashboard.php';
         };
 
-        $organizationSections = ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
+        $organizationSections = ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
         $renderContextDashboard = static function (string $context, string $section = 'overview', ?string $organizationSlug = null) use ($renderDashboard, $renderError, $organizationSections): void {
             if (\Moves\Services\SessionAuth::current() === null) {
                 header('Location: /entrar', true, 302);
@@ -79,6 +79,11 @@ return [
                 }
             }
             if ((in_array($section, $organizationSections, true) || $section === 'contato-detalhe') && $organization === null) {
+                $renderError(404);
+                return;
+            }
+            // Sair das Dívidas é um módulo PF: não existe dentro de uma empresa.
+            if ($section === 'sair-das-dividas' && $organization !== null) {
                 $renderError(404);
                 return;
             }
@@ -104,7 +109,7 @@ return [
             header('Location: ' . AppUrl::section($page, null, $query), true, 302);
         }, 'app.account');
 
-        $semantic = ['' => 'overview', 'notificacoes' => 'notificacoes', 'integracoes' => 'integracoes', 'perfil' => 'perfil', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'cartoes' => 'contas', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'assistente' => 'assistente', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
+        $semantic = ['' => 'overview', 'notificacoes' => 'notificacoes', 'integracoes' => 'integracoes', 'perfil' => 'perfil', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'cartoes' => 'contas', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'recorrencias' => 'recorrencias', 'assistente' => 'assistente', 'sair-das-dividas' => 'sair-das-dividas', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
         foreach ($semantic as $slug => $section) {
             $router->get('/p' . ($slug === '' ? '' : '/' . $slug), static fn () => $renderContextDashboard('personal', $section), 'app.personal.' . $section);
             $router->get('/e/{organization}' . ($slug === '' ? '' : '/' . $slug), static fn (array $params) => $renderContextDashboard('organization', $section, (string) ($params['organization'] ?? '')), 'app.organization.' . $section);
@@ -239,7 +244,21 @@ return [
             (new \Moves\App\FinanceActions())->export();
         }, 'app.finance.export');
 
-        foreach (['create' => 'lancamento', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'budget' => 'orcamento', 'goal' => 'meta', 'goal_add' => 'meta-valor', 'goal_delete' => 'meta-excluir'] as $action => $slug) {
+        $router->get('/minha-conta/financeiro/anexo', static function () use ($requirePreview): void {
+            if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
+                return;
+            }
+            (new \Moves\App\FinanceActions())->attachment();
+        }, 'app.finance.attachment');
+
+        $router->get('/minha-conta/financeiro/meta-foto', static function () use ($requirePreview): void {
+            if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
+                return;
+            }
+            (new \Moves\App\FinanceActions())->goalPhoto();
+        }, 'app.finance.goal_photo');
+
+        foreach (['create' => 'lancamento', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'budget' => 'orcamento', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
@@ -256,6 +275,14 @@ return [
                 }
                 (new \Moves\App\FinanceActions())->handle($action);
             }, 'app.finance.' . $action);
+        }
+
+        foreach (['create'=>'criar','pause'=>'pausar','activate'=>'reativar','cancel'=>'cancelar'] as $action=>$slug) {
+            $router->post('/minha-conta/financeiro/recorrencia/'.$slug, static function () use ($requirePreview,$action): void {
+                if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;
+                if(\Moves\Services\PersonalAccessContext::ownerId()!==null){\Moves\Services\AppError::render(403);return;}
+                (new \Moves\App\RecurringActions())->handle($action);
+            },'app.recurring.'.$action);
         }
 
         foreach (['create' => 'recebimento', 'update' => 'recebimento-editar', 'settle' => 'recebimento-baixa', 'cancel' => 'recebimento-cancelar'] as $action => $slug) {
@@ -278,6 +305,29 @@ return [
             }, 'app.contacts.' . $action);
         }
 
+
+        // Logos de instituições: só autenticado, só arquivos aprovados e com REALIZZE_BANK_LOGOS_ENABLED=1.
+        $router->get('/minha-conta/bancos/logo/{logo}', static function (array $params) use ($requirePreview): void {
+            if (!$requirePreview() || \Moves\Services\SessionAuth::current() === null) {
+                http_response_code(404);
+                return;
+            }
+            \Moves\Services\FinancialInstitutions::serveLogo((string) ($params['logo'] ?? ''));
+        }, 'app.institutions.logo');
+
+        foreach (['profile' => 'diagnostico', 'create' => 'salvar', 'update' => 'atualizar', 'archive' => 'remover', 'payment' => 'pagamento', 'negotiation' => 'negociacao', 'negotiation_status' => 'negociacao-situacao'] as $action => $slug) {
+            $router->post('/minha-conta/dividas/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\DebtActions())->handle($action);
+            }, 'app.debts.' . $action);
+        }
+
+        foreach (['open' => 'abrir', 'read_all' => 'lidas', 'preferences' => 'preferencias'] as $action => $slug) {
+            $router->post('/minha-conta/notificacoes/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\NotificationActions())->handle($action);
+            }, 'app.notifications.' . $action);
+        }
 
         foreach (['update' => 'dados', 'password' => 'senha', '2fa_begin' => '2fa/iniciar', '2fa_confirm' => '2fa/confirmar', '2fa_disable' => '2fa/desativar', 'session_revoke' => 'sessao/encerrar', 'sessions_revoke' => 'sessoes/encerrar-outras', 'invite' => 'convite', 'invite_revoke' => 'convite/revogar', 'invite_accept' => 'convite/aceitar', 'invite_decline' => 'convite/recusar', 'notifications' => 'notificacoes'] as $action => $slug) {
             $router->post('/minha-conta/perfil/' . $slug, static function () use ($requirePreview, $action): void {

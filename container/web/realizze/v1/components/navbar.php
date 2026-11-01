@@ -6,7 +6,7 @@
   <a href="/#empresas">Para empresas</a>
   <a href="/#funcionalidades">Funcionalidades</a>
   <a href="/#como-funciona">Como funciona</a>
-  <a href="/#perguntas">Dúvidas</a>
   <a href="/blog">Conteúdos</a>
+  <a href="/suporte">Suporte</a>
 <?php endif; ?>
 </nav>

@@ -50,9 +50,8 @@
 
     <section class="finance-settings-panel" aria-labelledby="settings-notifications-title">
       <h3 id="settings-notifications-title">Notificações</h3>
-      <p class="muted">Alertas de vencimento, movimentações e avisos da conta serão configurados aqui após autorização.</p>
-      <p class="finance-settings-help">Nenhuma preferência de comunicação foi carregada ou alterada.</p>
-      <button type="button" disabled>Configurar alertas</button>
+      <p class="muted">Escolha a antecedência dos vencimentos e quais avisos automáticos deseja receber.</p>
+      <a class="finance-settings-link" href="<?= htmlspecialchars(\Moves\Services\AppUrl::section('notificacoes', null, ['preferencias' => 1]), ENT_QUOTES, 'UTF-8') ?>#preferencias">Configurar alertas</a>
     </section>
 
     <section class="finance-settings-panel" aria-labelledby="settings-privacy-title">

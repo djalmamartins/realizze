@@ -6,7 +6,7 @@ namespace Moves\Services;
 use MovesCode\Model\Connection;
 use PDO;
 
-/** Avisos calculados dos lançamentos em aberto do contexto: nada é enviado nem gravado. */
+/** Vencimentos em aberto do contexto, pelo saldo que ainda falta. É a origem dos avisos de Notifications. */
 final class FinanceAlerts
 {
     public function __construct(private readonly int $contextId)
@@ -17,19 +17,21 @@ final class FinanceAlerts
     public function upcoming(int $days = 7): array
     {
         $statement = Connection::get()->prepare(
-            "SELECT id, kind, description, amount_cents, due_date,
-                    CASE WHEN due_date < CURDATE() THEN 'overdue' WHEN due_date = CURDATE() THEN 'today' ELSE 'next' END AS grp
-             FROM finance_entries
-             WHERE financial_context_id = ? AND kind IN ('income','expense') AND paid_at IS NULL
-               AND COALESCE(status, 'open') <> 'cancelled' AND due_date <= CURDATE() + INTERVAL ? DAY
-             ORDER BY due_date, id LIMIT 200"
+            "SELECT e.id, e.kind, e.description, e.due_date,
+                    e.amount_cents - COALESCE((SELECT SUM(s.amount_cents) FROM finance_entry_settlements AS s WHERE s.entry_id = e.id), 0) AS balance,
+                    CASE WHEN e.due_date < CURDATE() THEN 'overdue' WHEN e.due_date = CURDATE() THEN 'today' ELSE 'next' END AS grp
+             FROM finance_entries AS e
+             WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND e.paid_at IS NULL
+               AND COALESCE(e.status, 'open') <> 'cancelled' AND e.due_date <= CURDATE() + INTERVAL ? DAY
+             HAVING balance > 0
+             ORDER BY e.due_date, e.id LIMIT 200"
         );
         $statement->bindValue(1, $this->contextId, PDO::PARAM_INT);
         $statement->bindValue(2, $days, PDO::PARAM_INT);
         $statement->execute();
         return array_map(static fn (array $r): array => [
             'id' => (int) $r['id'], 'kind' => $r['kind'], 'description' => $r['description'],
-            'amount_cents' => (int) $r['amount_cents'], 'due_date' => $r['due_date'], 'group' => $r['grp'],
+            'amount_cents' => (int) $r['balance'], 'due_date' => $r['due_date'], 'group' => $r['grp'],
         ], $statement->fetchAll(PDO::FETCH_ASSOC));
     }
 }

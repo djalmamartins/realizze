@@ -31,7 +31,8 @@ final class CmsActions
         'testimonial-save' => ['content.manage', 'testimonialSave'], 'testimonial-delete' => ['content.manage', 'testimonialDelete'],
         'broadcast-send' => ['broadcasts.send', 'broadcastSend'], 'broadcast-cancel' => ['broadcasts.send', 'broadcastCancel'],
         'version-publish' => ['versions.manage', 'versionPublish'], 'system-log-resolve' => ['system_logs.view', 'systemLogResolve'],
-        'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'], 'seo-save' => ['seo.manage', 'seoSave'],
+        'contact-status' => ['tickets.reply', 'contactStatus'],
+        'menu-save' => ['menus.manage', 'menuSave'], 'menu-delete' => ['menus.manage', 'menuDelete'],
         'user-suspend' => ['users.manage', 'userSuspend'], 'company-status' => ['companies.manage', 'companyStatus'], 'company-support-access' => ['companies.manage', 'companySupportAccess'],
         'plan-save' => ['plans.manage', 'planSave'],
         'subscription-create' => ['subscriptions.manage', 'subscriptionCreate'], 'subscription-plan' => ['subscriptions.manage', 'subscriptionPlan'], 'subscription-cancel' => ['subscriptions.manage', 'subscriptionCancel'], 'subscription-renewal' => ['charges.manage', 'subscriptionRenewal'],
@@ -278,6 +279,13 @@ final class CmsActions
         return [\Moves\Services\SystemLog::resolve(is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [], $this->actor) . ' ocorrência(s) resolvida(s).'];
     }
 
+    private function contactStatus(): array
+    {
+        $answered = $this->str('answered') === '1';
+        \Moves\Services\ContactMessages::setStatus($this->id(), $answered, $this->actor);
+        return [$answered ? 'Mensagem marcada como respondida.' : 'Mensagem reaberta.'];
+    }
+
     private function menuSave(): array
     {
         CmsSite::saveMenuItem($this->optionalId(), $_POST, $this->actor);
@@ -288,12 +296,6 @@ final class CmsActions
     {
         CmsSite::deleteMenuItem($this->id(), $this->actor);
         return ['Item de menu excluído.'];
-    }
-
-    private function seoSave(): array
-    {
-        CmsSite::saveSeoRoute($_POST, $this->actor);
-        return ['SEO salvo.'];
     }
 
     private function userSuspend(): array

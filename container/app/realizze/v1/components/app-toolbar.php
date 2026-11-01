@@ -6,8 +6,7 @@
 use Moves\Services\AppUrl;
 use Moves\Services\Csrf;
 use Moves\Services\Finance;
-use Moves\Services\FinanceAlerts;
-use Moves\Services\FinanceContext;
+use Moves\Services\Notifications;
 use Moves\Services\OrganizationContext;
 use Moves\Services\PlatformBilling;
 use Moves\Services\SessionAuth;
@@ -20,6 +19,7 @@ $toolbarPeriod = Finance::period($toolbarHasYear ? $_GET : array_diff_key($_GET,
 $toolbarKeep = array_diff_key($_GET, ['pagina' => 1, 'mes' => 1, 'visao' => 1, 'ano' => 1, 'page' => 1]);
 $toolbarLink = static fn (array $query): string => $toolbarEscape(AppUrl::section($toolbarSection, null, $toolbarKeep + $query));
 $toolbarAlerts = [];
+$toolbarUnread = 0;
 $toolbarAlertsFailed = false;
 $toolbarPlan = 'Consultar plano';
 $toolbarToken = '';
@@ -29,7 +29,9 @@ try {
     $toolbarSession = SessionAuth::current();
     if ($toolbarSession !== null) {
         $toolbarOrganization = OrganizationContext::current();
-        $toolbarAlerts = (new FinanceAlerts((int) FinanceContext::currentId()))->upcoming();
+        $toolbarScope = Notifications::scope();
+        $toolbarAlerts = $toolbarScope === null ? [] : Notifications::refresh($toolbarScope);
+        $toolbarUnread = Notifications::unreadCount($toolbarAlerts);
         $toolbarContract = PlatformBilling::currentContract((int) $toolbarSession['id'], $toolbarOrganization === null ? null : (int) $toolbarOrganization['id']);
         $toolbarPlan = $toolbarContract === null ? 'Sem assinatura registrada' : (string) $toolbarContract['plan_name'];
     }
@@ -56,17 +58,18 @@ $user = is_array($user ?? null) ? $user + (array) $toolbarSession : (array) $too
 <?php endif; ?>
 <?php endif; ?>
 <details class="tool-menu">
-<summary class="bell" aria-label="Notificações<?= $toolbarAlerts !== [] ? ', ' . count($toolbarAlerts) . ' avisos' : '' ?>"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><?php if ($toolbarAlerts !== []): ?><span class="bell-count" aria-hidden="true"><?= count($toolbarAlerts) > 9 ? '9+' : count($toolbarAlerts) ?></span><?php endif; ?></summary>
-<div class="tool-panel">
+<summary class="bell" aria-label="Notificações<?= $toolbarUnread > 0 ? ', ' . $toolbarUnread . ' não lidas' : '' ?>"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><?php if ($toolbarUnread > 0): ?><span class="bell-count" aria-hidden="true"><?= $toolbarUnread > 9 ? '9+' : $toolbarUnread ?></span><?php endif; ?></summary>
+<div class="tool-panel tool-notes">
 <strong class="tool-title">Notificações</strong>
-<?php if ($toolbarAlerts === []): ?><p class="tool-empty"><?= $toolbarAlertsFailed ? 'Não foi possível carregar os avisos.' : 'Nenhum vencimento em atraso ou nos próximos 7 dias.' ?></p><?php else: ?>
+<?php if ($toolbarAlerts === []): ?><p class="tool-empty"><?= $toolbarAlertsFailed ? 'Não foi possível carregar as notificações.' : 'Nenhuma notificação no momento.' ?></p><?php else: ?>
 <ul class="tool-alerts">
-<?php foreach (array_slice($toolbarAlerts, 0, 5) as $alert): ?>
-<li><span><strong><?= $toolbarEscape($alert['description']) ?></strong><small><?= $alert['kind'] === 'income' ? 'A receber' : 'A pagar' ?> · <?= $toolbarEscape((new DateTimeImmutable($alert['due_date']))->format('d/m/Y')) ?><?= $alert['group'] === 'overdue' ? ' · em atraso' : '' ?></small></span><b><?= $toolbarEscape(Finance::money($alert['amount_cents'])) ?></b></li>
+<?php foreach (array_slice($toolbarAlerts, 0, 5) as $note): $token = $toolbarToken; $e = $toolbarEscape; $noteCompact = true; ?>
+<li><?php require __DIR__ . '/notification-item.php'; ?></li>
 <?php endforeach; ?>
 </ul>
 <?php endif; ?>
-<a class="tool-more" href="<?= $toolbarEscape(AppUrl::section('notificacoes')) ?>">Ver todas</a>
+<?php if ($toolbarUnread > 0 && Notifications::supported()): ?><form method="post" action="/minha-conta/notificacoes/lidas"><input type="hidden" name="csrf_token" value="<?= $toolbarEscape($toolbarToken) ?>"><button type="submit" class="tool-read-all">Marcar todas como lidas</button></form><?php endif; ?>
+<a class="tool-more" href="<?= $toolbarEscape(AppUrl::section('notificacoes')) ?>">Ver todas<?= count($toolbarAlerts) > 5 ? ' (' . count($toolbarAlerts) . ')' : '' ?></a>
 </div>
 </details>
 <details class="tool-menu">

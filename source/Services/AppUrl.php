@@ -36,4 +36,17 @@ final class AppUrl
         $url = $base . ($slug === '' ? '' : '/' . $slug);
         return $query === [] ? $url : $url . '?' . http_build_query($query);
     }
+
+    /** Mesma tela na área pessoal, seja qual for a empresa aberta na sessão. */
+    public static function personal(string $section, array $query = []): string
+    {
+        $slug = self::SECTIONS[$section] ?? '';
+        $url = '/p' . ($slug === '' ? '' : '/' . $slug);
+        return $query === [] ? $url : $url . '?' . http_build_query($query);
+    }
+
+    public static function hasSlug(string $slug): bool
+    {
+        return $slug !== '' && in_array($slug, self::SECTIONS, true);
+    }
 }

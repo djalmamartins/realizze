@@ -16,7 +16,7 @@ try {
     $manual = $finance->accounts();
     $categoriesIncome = $finance->categories('income');
     $categoriesExpense = $finance->categories('expense');
-    $series = $finance->monthlySeries($period['end']);
+    $series = $finance->monthlySeries($period['end'], $period['view'] === 'anual' ? 12 : 6);
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
 }
@@ -74,18 +74,9 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 <?php endforeach; ?>
   <div class="forecast"><span class="green">Fechamento previsto</span><p class="muted">Saldo atual + a receber − a pagar no período.</p><strong class="<?= $data['forecast'] < 0 ? 'red' : 'green' ?>"><?= $money($data['forecast']) ?></strong></div>
 </div></section>
-<?php
-$seriesMax = max(1, ...array_merge(...array_map(static fn (array $m): array => [$m['income'], $m['expense']], array_values($series ?: [['income' => 0, 'expense' => 0]]))));
-$shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
-?>
 <section class="card" aria-labelledby="overview-chart-title">
-  <div class="section-head"><h2 id="overview-chart-title">Receitas e despesas, últimos 6 meses</h2><a href="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>">Ver relatórios</a></div>
-  <div class="bars" role="img" aria-label="Gráfico de receitas e despesas pagas por mês">
-    <?php foreach ($series as $key => $values): ?>
-    <div class="bars-month"><div class="bars-pair"><span class="bar bar-income" data-height="<?= round($values['income'] / $seriesMax * 100, 1) ?>" title="Receitas: <?= $e(Finance::money($values['income'])) ?>"></span><span class="bar bar-expense" data-height="<?= round($values['expense'] / $seriesMax * 100, 1) ?>" title="Despesas: <?= $e(Finance::money($values['expense'])) ?>"></span></div><small><?= $e($shortMonths[substr((string) $key, 5)]) ?></small></div>
-    <?php endforeach; ?>
-  </div>
-  <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
+  <div class="section-head"><h2 id="overview-chart-title"><?= $period['view'] === 'anual' ? 'Receitas e despesas de ' . $e($period['label']) : 'Receitas e despesas, últimos 6 meses' ?></h2><a href="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>">Ver relatórios</a></div>
+  <?= $appView->render('components::overview-chart', ['chartSeries' => $series]) ?>
 </section>
 <section class="content-grid" aria-label="Painéis financeiros">
   <article class="card"><div class="section-head"><h2>Últimas movimentações</h2><a href="<?= $e(\Moves\Services\AppUrl::section('movimentacoes')) ?>">Ver todas</a></div>
@@ -124,22 +115,4 @@ $shortMonths = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05'
   </article>
 </section>
 <section class="card insights" aria-label="Insights"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3.500 10.900c.6.500 1 1.200 1 2.100h5c0-.9.4-1.600 1-2.100A6 6 0 0 0 12 3zM10 19.500h4"/></svg></span><div><strong>Insights do período</strong><p><?= $e($insight) ?></p></div></section>
-<?php foreach ([['income', 'quick-income', 'Novo recebimento', $categoriesIncome, 'recebido'], ['expense', 'quick-expense', 'Nova despesa', $categoriesExpense, 'pago']] as [$kind, $id, $title, $list, $word]): ?>
-<dialog class="finance-dialog" id="<?= $id ?>" aria-labelledby="<?= $id ?>-title">
-  <form method="post" action="/minha-conta/financeiro/lancamento" data-finance-form>
-    <header><h2 id="<?= $id ?>-title"><?= $title ?></h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="kind" value="<?= $kind ?>"><input type="hidden" name="back" value="overview"><input type="hidden" name="mes" value="<?= $e($month) ?>">
-    <label>Descrição<input name="description" maxlength="160" required></label>
-    <div class="finance-dialog-row">
-      <label>Valor (R$)<input name="amount" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?" required></label>
-      <label>Vencimento<input name="due_date" type="date" value="<?= $e($today->format('Y-m-d')) ?>" required></label>
-    </div>
-    <div class="finance-dialog-row">
-      <label>Conta<select name="account_id" required><?php foreach ($manual as $account): ?><option value="<?= (int) $account['id'] ?>"><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
-      <label>Categoria<select name="category_id"><option value="">Sem categoria</option><?php foreach ($list as $category): ?><option value="<?= (int) $category['id'] ?>"><?= $e($category['name']) ?></option><?php endforeach; ?></select></label>
-    </div>
-    <label class="finance-check"><input type="checkbox" name="paid" value="1"> Já foi <?= $word ?> hoje</label>
-    <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
-  </form>
-</dialog>
-<?php endforeach; ?>
+<?php foreach ([['income', 'quick-income', 'Novo recebimento', $categoriesIncome], ['expense', 'quick-expense', 'Nova despesa', $categoriesExpense]] as [$kind, $id, $title, $list]): $form = ['id' => $id, 'kind' => $kind, 'title' => $title, 'accounts' => $manual, 'categories' => $list, 'csrf' => $csrf, 'month' => $month, 'date' => $today->format('Y-m-d'), 'back' => 'overview', 'extras' => $finance->supportsEntryExtras(), 'tags' => $finance->tags()]; require __DIR__ . '/entry-form.php'; endforeach; ?>

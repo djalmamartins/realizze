@@ -56,8 +56,11 @@ final class ReceivableActions
 
     private function create(Receivables $receivables, int $userId): array
     {
-        $result = $receivables->create($_POST, $userId);
-        return ['success', $result['duplicate'] ? 'Este recebimento já havia sido registrado.' : 'Recebimento registrado.'];
+        $result = $receivables->createWithOptions($_POST, $userId, \Moves\Services\Helpdesk::uploadedFiles('attachments'));
+        if ($result['duplicate']) {
+            return ['success', 'Este recebimento já havia sido registrado.'];
+        }
+        return ['success', $result['count'] > 1 ? $result['count'] . ' recebimentos criados.' : 'Recebimento registrado.'];
     }
 
     private function update(Receivables $receivables, int|false $entryId, int $userId): array

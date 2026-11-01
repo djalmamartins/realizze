@@ -12,4 +12,5 @@ require_once dirname(__DIR__) . '/source/Boot/app.php';
 require_once dirname(__DIR__) . '/source/Boot/database.php';
 
 \Moves\Services\CmsBroadcasts::dispatchDue();
+\Moves\Services\Notifications::syncAll();
 echo json_encode(\Moves\Services\ExternalNotifications::process()) . PHP_EOL;

@@ -10,7 +10,7 @@ $base = rtrim((string) (getenv('APP_URL') ?: ''), '/') . '/'; ?>
  <div class="cms-field"><label for="page-slug">Endereço amigável</label><input id="page-slug" name="slug" value="<?= V::e($p['slug'] ?? '') ?>" placeholder="Gerado a partir do título"><small data-slug-preview="<?= V::e($base) ?>" data-slug-field="slug"></small><small>Use sobre, solucoes, contato, termos ou privacidade para substituir o texto dessas páginas.</small></div>
  <?= V::field('Resumo', 'excerpt', $p['excerpt'] ?? '', ['type' => 'textarea', 'rows' => 2]) ?>
  <?= V::field('Conteúdo *', 'content', $p['content'] ?? '', ['type' => 'textarea', 'rows' => 16, 'editor' => true, 'help' => 'Scripts, estilos e atributos perigosos são removidos ao salvar.']) ?>
- <?php $this->insert('components/seo-fields', ['seo' => $p]); ?>
+ <p class="cms-seo-note">SEO automático: título, descrição, URL e imagem social são gerados deste conteúdo ao publicar.</p>
 </div>
 <aside class="cms-editor-side">
  <section class="cms-card"><div class="cms-section-head"><h2>Publicação</h2><?= V::badge($status, $status === 'published' ? 'Publicada' : 'Rascunho') ?></div>

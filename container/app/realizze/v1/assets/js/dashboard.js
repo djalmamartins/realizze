@@ -402,10 +402,300 @@
     }
   };
 
+  // Novo lançamento: categoria pesquisável, painéis de opções, anexos e tags.
+  const normalize = (text) => text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  const setupEntryCategory = (form) => {
+    const select = form.querySelector('[data-entry-category]');
+    if (!select) return;
+    const box = select.closest('.entry-category');
+    const label = box.querySelector('label');
+    const listId = `${form.closest('dialog').id}-categories`;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.autocomplete = 'off';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-controls', listId);
+    input.value = select.selectedOptions[0]?.textContent || '';
+    const list = document.createElement('ul');
+    list.id = listId;
+    list.className = 'entry-options';
+    list.setAttribute('role', 'listbox');
+    list.hidden = true;
+    select.hidden = true;
+    select.tabIndex = -1;
+    label.append(input);
+    box.append(select, list);
+    let active = -1;
+    const items = () => [...list.querySelectorAll('[role="option"]')];
+    const mark = (index) => {
+      const options = items();
+      active = options.length ? (index + options.length) % options.length : -1;
+      options.forEach((option, i) => option.setAttribute('aria-selected', i === active ? 'true' : 'false'));
+      if (active >= 0) {
+        input.setAttribute('aria-activedescendant', options[active].id);
+        options[active].scrollIntoView({ block: 'nearest' });
+      } else input.removeAttribute('aria-activedescendant');
+    };
+    const show = (filter) => {
+      const query = normalize(filter);
+      list.replaceChildren();
+      [...select.options].filter((option) => normalize(option.textContent).includes(query)).forEach((option) => {
+        const item = document.createElement('li');
+        item.id = `${listId}-${option.value || 'none'}`;
+        item.setAttribute('role', 'option');
+        item.dataset.value = option.value;
+        item.textContent = option.textContent;
+        if (option.dataset.color) {
+          const dot = document.createElement('span');
+          dot.className = 'finance-dot';
+          dot.style.background = option.dataset.color;
+          item.prepend(dot);
+        }
+        list.append(item);
+      });
+      if (!list.children.length) {
+        const empty = document.createElement('li');
+        empty.className = 'entry-options-empty';
+        empty.textContent = 'Nenhuma categoria encontrada';
+        list.append(empty);
+      }
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      mark(items().length ? 0 : -1);
+    };
+    const hide = () => {
+      list.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+      active = -1;
+    };
+    const choose = (item) => {
+      select.value = item.dataset.value;
+      input.value = select.selectedOptions[0]?.textContent || '';
+      hide();
+    };
+    input.addEventListener('focus', () => { input.select(); show(''); });
+    input.addEventListener('input', () => show(input.value));
+    input.addEventListener('blur', () => { input.value = select.selectedOptions[0]?.textContent || ''; hide(); });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (list.hidden) show('');
+        else mark(active + (event.key === 'ArrowDown' ? 1 : -1));
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        if (!list.hidden && items()[active]) choose(items()[active]);
+      } else if (event.key === 'Escape' && !list.hidden) {
+        event.preventDefault();
+        event.stopPropagation();
+        hide();
+      }
+    });
+    list.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const item = event.target.closest('[role="option"]');
+      if (item) choose(item);
+    });
+  };
+
+  const setupEntryTags = (form) => {
+    const input = form.querySelector('[data-entry-tag-input]');
+    if (!input) return;
+    const field = form.querySelector('[data-entry-tags]');
+    const list = form.querySelector('[data-entry-tag-list]');
+    let tags = [];
+    const render = () => {
+      field.value = tags.join(',');
+      list.replaceChildren(...tags.map((tag) => {
+        const item = document.createElement('li');
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `Remover ${tag}`);
+        remove.addEventListener('click', () => { tags = tags.filter((other) => other !== tag); render(); });
+        item.append(tag, remove);
+        return item;
+      }));
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    const add = () => {
+      const tag = input.value.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+      input.value = '';
+      if (tag && tags.length < 10 && !tags.some((other) => normalize(other) === normalize(tag))) {
+        tags.push(tag);
+        render();
+      }
+    };
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ',') {
+        event.preventDefault();
+        add();
+      } else if (event.key === 'Backspace' && input.value === '' && tags.length) {
+        tags.pop();
+        render();
+      }
+    });
+    input.addEventListener('blur', add);
+  };
+
+  const setupEntryFiles = (form, showError) => {
+    const input = form.querySelector('[data-entry-files]');
+    if (!input) return;
+    const list = form.querySelector('[data-entry-file-list]');
+    let files = [];
+    const render = () => {
+      const transfer = new DataTransfer();
+      files.forEach((file) => transfer.items.add(file));
+      input.files = transfer.files;
+      list.replaceChildren(...files.map((file) => {
+        const item = document.createElement('li');
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `Remover ${file.name}`);
+        remove.addEventListener('click', () => { files = files.filter((other) => other !== file); render(); form.dispatchEvent(new Event('entry:changed')); });
+        item.append(file.name, remove);
+        return item;
+      }));
+    };
+    input.addEventListener('change', () => {
+      const added = [...input.files];
+      const large = added.some((file) => file.size > 10485760);
+      files = [...files, ...added.filter((file) => file.size <= 10485760)];
+      const excess = files.length > 5;
+      files = files.slice(0, 5);
+      showError(large ? 'Cada anexo pode ter até 10 MB.' : excess ? 'Envie no máximo 5 anexos por lançamento.' : '');
+      render();
+    });
+  };
+
+  const setupEntryRepeat = (form) => {
+    const fields = form.querySelector('[data-entry-repeat-fields]');
+    if (!fields) return;
+    const hint = form.querySelector('[data-entry-repeat-hint]');
+    const count = form.elements.repeat_count;
+    const sync = () => {
+      const type = form.elements.repeat.value;
+      fields.hidden = type === '';
+      hint.hidden = type === '';
+      if (type === '') return;
+      form.querySelector('[data-entry-count-label]').textContent = type === 'installment' ? 'Parcelas' : 'Quantas vezes';
+      const times = Math.max(Number(count.value) || 0, 0);
+      const cents = /^[\d.]+(,\d{1,2})?$/.test(form.elements.amount.value)
+        ? Math.round(Number(form.elements.amount.value.replace(/\./g, '').replace(',', '.')) * 100) : 0;
+      const money = (value) => (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      let text = `Cria ${times} lançamentos com ${cents ? money(cents) : 'o valor informado'} em cada um.`;
+      if (type === 'installment') {
+        const each = times ? Math.floor(cents / times) : 0;
+        const split = cents % times ? `1x de ${money(each + cents % times)} e ${times - 1}x de ${money(each)}` : `${times}x de ${money(each)}`;
+        text = cents && times ? `O valor é o total: ${split}.` : 'O valor informado é o total, dividido entre as parcelas.';
+      }
+      hint.textContent = form.elements.paid.checked ? `${text} Só o primeiro fica baixado.` : text;
+    };
+    form.addEventListener('input', sync);
+    form.addEventListener('change', sync);
+    sync();
+  };
+
+  const setupEntryTools = (form) => {
+    const buttons = [...form.querySelectorAll('[data-entry-tool]')];
+    const filled = (panel) => [...panel.querySelectorAll('textarea, [data-entry-tags], [data-entry-files], input[name="repeat"]:checked')]
+      .some((field) => (field.type === 'file' ? field.files.length > 0 : field.value !== ''));
+    const refresh = () => buttons.forEach((button) => button.classList.toggle('has-value', filled(document.getElementById(button.dataset.entryTool))));
+    buttons.forEach((button) => button.addEventListener('click', () => {
+      const panel = document.getElementById(button.dataset.entryTool);
+      panel.hidden = !panel.hidden;
+      button.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+      if (!panel.hidden) panel.querySelector('input:not([type="hidden"]), textarea')?.focus();
+    }));
+    form.addEventListener('input', refresh);
+    form.addEventListener('change', refresh);
+    form.addEventListener('entry:changed', refresh);
+  };
+
+  // Mesmas contas do servidor: parcelas com a sobra na primeira e dia ajustado nos meses curtos.
+  const entryPlan = (form) => {
+    const cents = /^[\d.]+(,\d{1,2})?$/.test(form.elements.amount.value)
+      ? Math.round(Number(form.elements.amount.value.replace(/\./g, '').replace(',', '.')) * 100) : 0;
+    const type = form.elements.repeat?.value || '';
+    const times = type === '' ? 1 : Math.min(Math.max(Number(form.elements.repeat_count.value) || 0, 0), 120);
+    const steps = { weekly: [0, 7], biweekly: [0, 15], monthly: [1, 0], bimonthly: [2, 0], quarterly: [3, 0], semiannual: [6, 0], yearly: [12, 0] };
+    const [months, days] = steps[form.elements.repeat_every?.value] || [1, 0];
+    const start = form.elements.due_date.value ? new Date(`${form.elements.due_date.value}T12:00:00`) : null;
+    const rows = [];
+    for (let i = 0; start && i < times; i += 1) {
+      let date = new Date(start);
+      if (months) {
+        date = new Date(start.getFullYear(), start.getMonth() + months * i, 1, 12);
+        date.setDate(Math.min(start.getDate(), new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()));
+      } else date.setDate(start.getDate() + days * i);
+      const value = type === 'installment' ? Math.floor(cents / times) + (i === 0 ? cents % times : 0) : cents;
+      rows.push({ date: date.toLocaleDateString('pt-BR'), value });
+    }
+    return { type, times, cents, rows, total: type === 'fixed' ? cents * times : cents };
+  };
+  const entryMoney = (value) => (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const setupEntryTotal = (form) => {
+    const total = form.querySelector('[data-entry-total]');
+    const table = form.querySelector('[data-entry-parcels]');
+    const sync = () => {
+      const plan = entryPlan(form);
+      if (total) total.textContent = plan.times > 1 ? `${entryMoney(plan.total)} em ${plan.times}x` : entryMoney(plan.total);
+      if (!table) return;
+      table.hidden = plan.type === '' || !plan.cents || plan.rows.length < 2;
+      const body = table.tBodies[0];
+      body.replaceChildren();
+      plan.rows.slice(0, 6).forEach((row, index) => {
+        const line = body.insertRow();
+        line.insertCell().textContent = `${index + 1}/${plan.times}`;
+        line.insertCell().textContent = row.date;
+        const value = line.insertCell();
+        value.className = 'num';
+        value.textContent = entryMoney(row.value);
+      });
+      if (plan.rows.length > 6) {
+        const more = body.insertRow().insertCell();
+        more.colSpan = 3;
+        more.textContent = `e mais ${plan.rows.length - 6}`;
+      }
+    };
+    form.addEventListener('input', sync);
+    form.addEventListener('change', sync);
+    sync();
+  };
+
+  const setupEntryForm = (dialog) => {
+    const form = dialog?.querySelector('[data-entry-form]');
+    if (!form || form.dataset.entryReady) return;
+    form.dataset.entryReady = '1';
+    const error = form.querySelector('[data-entry-error]');
+    const showError = (message) => { error.textContent = message; error.hidden = message === ''; };
+    setupEntryCategory(form);
+    setupEntryTags(form);
+    setupEntryFiles(form, showError);
+    setupEntryRepeat(form);
+    setupEntryTools(form);
+    setupEntryTotal(form);
+  };
+
   document.addEventListener('click', (event) => {
+    const preset = event.target.closest?.('[data-filter-preset]');
+    if (preset) {
+      const form = preset.closest('form');
+      form.elements.inicio.value = preset.dataset.start;
+      form.elements.fim.value = preset.dataset.end;
+      form.querySelectorAll('[data-filter-preset]').forEach((item) => item.setAttribute('aria-pressed', item === preset ? 'true' : 'false'));
+      return;
+    }
     const open = event.target.closest?.('[data-finance-open]');
     if (open) {
-      document.getElementById(open.dataset.financeOpen)?.showModal();
+      const dialog = document.getElementById(open.dataset.financeOpen);
+      setupEntryForm(dialog);
+      dialog?.showModal();
       return;
     }
     const tab = event.target.closest?.('[data-tab]');
@@ -417,7 +707,10 @@
     }
     const print = event.target.closest?.('[data-finance-print]');
     if (print) {
+      const pageTitle = document.title;
+      document.title = print.closest('[data-print-title]')?.dataset.printTitle || pageTitle;
       window.print();
+      document.title = pageTitle;
       return;
     }
     const close = event.target.closest?.('[data-finance-close]');
@@ -452,6 +745,228 @@
     }
     field.value = document.body.dataset.organizationId || '0';
   }, true);
+
+  // Foto da meta: mostra a imagem escolhida antes de salvar e avisa logo se passar do limite.
+  document.addEventListener('change', (event) => {
+    const input = event.target.closest?.('[data-goal-photo-input]');
+    if (!input) return;
+    const box = input.closest('[data-goal-photo]');
+    const file = input.files?.[0];
+    const error = box.querySelector('[data-goal-photo-error]');
+    const tooBig = Boolean(file && file.size > 5242880);
+    error.hidden = !tooBig;
+    if (tooBig) input.value = '';
+    const preview = box.querySelector('[data-goal-photo-preview]');
+    if (file && !tooBig) {
+      preview.style.backgroundImage = `url("${URL.createObjectURL(file)}")`;
+      preview.classList.add('has-photo');
+    } else if (tooBig) {
+      preview.style.backgroundImage = '';
+      preview.classList.remove('has-photo');
+    }
+  });
+
+  // Listagem de metas: ordenação aplica ao escolher; o menu de ações fecha ao clicar fora.
+  document.addEventListener('change', (event) => {
+    if (event.target.matches?.('[data-goal-sort]')) event.target.form.requestSubmit();
+  });
+  document.addEventListener('click', (event) => {
+    document.querySelectorAll('details.goal-menu[open]').forEach((menu) => {
+      if (!menu.contains(event.target) || event.target.closest('button')) menu.open = false;
+    });
+  });
+
+  // Criação de meta em passos: resumo ao vivo e análise com o histórico real recebido do servidor.
+  const goalMoney = (cents) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const goalCents = (value) => {
+    const text = String(value || '').trim();
+    if (!/^[0-9.]+(,[0-9]{1,2})?$/.test(text)) return 0;
+    return Math.round(Number(text.replace(/\./g, '').replace(',', '.')) * 100);
+  };
+  const goalMonthLabel = (date) => date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: 'UTC' }).replace(' de ', '/').replace('.', '');
+  const goalDuration = (months) => {
+    const years = Math.floor(months / 12);
+    const rest = months % 12;
+    return [years ? `${years} ano${years > 1 ? 's' : ''}` : '', rest ? `${rest} ${rest > 1 ? 'meses' : 'mês'}` : ''].filter(Boolean).join(' e ') || 'este mês';
+  };
+  const goalEl = (tag, className, text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const goalState = (dialog) => {
+    const form = dialog.querySelector('form');
+    const baseline = JSON.parse(dialog.dataset.goalBaseline);
+    const value = (name) => form.elements[name]?.value ?? '';
+    const today = new Date(`${dialog.dataset.goalToday}T00:00:00Z`);
+    const target = goalCents(value('amount'));
+    const initial = goalCents(value('initial'));
+    const deadline = value('deadline') ? new Date(`${value('deadline')}T00:00:00Z`) : null;
+    const monthsLeft = deadline ? (deadline.getUTCFullYear() - today.getUTCFullYear()) * 12 + deadline.getUTCMonth() - today.getUTCMonth() + 1 : null;
+    const free = baseline.income_cents - baseline.expense_cents - baseline.committed_cents;
+    return { form, baseline, value, today, target, initial, deadline, monthsLeft, free, hasHistory: baseline.months > 0, remaining: Math.max(0, target - initial), monthly: goalCents(value('monthly')) };
+  };
+  const goalFinish = (state, monthly) => {
+    if (monthly <= 0 || state.remaining <= 0) return null;
+    const months = Math.ceil(state.remaining / monthly);
+    const end = new Date(Date.UTC(state.today.getUTCFullYear(), state.today.getUTCMonth() + months - 1, 1));
+    return { months, label: goalMonthLabel(end) };
+  };
+  const goalRenderCapacity = (dialog, state) => {
+    const box = dialog.querySelector('[data-goal-capacity]');
+    box.replaceChildren();
+    if (!state.hasHistory) {
+      box.append(goalEl('strong', '', 'Ainda sem histórico para estimar quanto sobra'), goalEl('p', 'muted', 'Quando houver receitas e despesas pagas, o Realizze mostra a sua média aqui. Por enquanto, informe o valor que você pretende guardar.'));
+      return;
+    }
+    box.append(goalEl('span', 'muted', `Sobra média por mês (${state.baseline.months} ${state.baseline.months > 1 ? 'meses' : 'mês'} de lançamentos pagos)`), goalEl('strong', state.free < 0 ? 'red' : 'green', goalMoney(state.free)));
+    const parts = [`Receitas ${goalMoney(state.baseline.income_cents)}`, `despesas ${goalMoney(state.baseline.expense_cents)}`];
+    if (state.baseline.committed_cents > 0) parts.push(`outras metas ${goalMoney(state.baseline.committed_cents)}`);
+    box.append(goalEl('p', 'muted', parts.join(' · ')));
+  };
+  const goalRenderAnalysis = (dialog, state) => {
+    const box = dialog.querySelector('[data-goal-analysis]');
+    box.replaceChildren();
+    if (state.target > 0 && state.remaining === 0) {
+      box.append(goalEl('p', 'goal-note', 'O valor que você já tem guardado cobre a meta.'));
+      return;
+    }
+    const needed = state.monthsLeft ? Math.ceil(state.remaining / state.monthsLeft) : null;
+    const recommended = needed ?? (state.free > 0 ? Math.ceil(state.free / 2) : 0);
+    const accelerated = state.free > 0 ? state.free : 0;
+    const scenarios = [
+      ['Atual', state.monthly, 'A contribuição que você informou.'],
+      ['Recomendado', recommended, needed ? 'O necessário para chegar no prazo.' : 'Metade do que sobra por mês.'],
+      ['Acelerado', accelerated, 'Tudo o que sobra por mês.'],
+    ];
+    const grid = goalEl('div', 'goal-scenarios');
+    scenarios.forEach(([title, monthly, hint]) => {
+      const finish = goalFinish(state, monthly);
+      const card = goalEl('div', 'goal-scenario');
+      card.append(goalEl('span', '', title), goalEl('strong', '', monthly > 0 ? `${goalMoney(monthly)}/mês` : 'Sem dados'), goalEl('small', '', finish ? `${goalDuration(finish.months)} · ${finish.label}` : 'Sem estimativa de prazo'), goalEl('p', 'muted', hint));
+      grid.append(card);
+    });
+    box.append(grid);
+    if (state.hasHistory && needed !== null && needed > state.free) {
+      box.append(goalEl('p', 'goal-note is-warning', `Para chegar no prazo são ${goalMoney(needed)}/mês, mais do que a sua sobra média de ${goalMoney(state.free)}. Vale ajustar o prazo, o valor ou as despesas.`));
+    }
+    if (state.hasHistory && state.baseline.income_cents > 0 && state.baseline.categories.length) {
+      const impact = goalEl('div', 'goal-impact');
+      impact.append(goalEl('h4', '', 'Peso das despesas no objetivo'));
+      const list = goalEl('ul');
+      state.baseline.categories.forEach((item) => {
+        const row = goalEl('li');
+        row.append(goalEl('span', '', item.name), goalEl('strong', '', `${goalMoney(item.cents)}/mês · ${Math.round(item.cents / state.baseline.income_cents * 100)}% da receita`));
+        list.append(row);
+      });
+      impact.append(list);
+      const top = state.baseline.categories[0];
+      const base = state.monthly > 0 ? state.monthly : accelerated;
+      const before = goalFinish(state, base);
+      const after = goalFinish(state, base + Math.round(top.cents * 0.1));
+      if (before && after && before.months > after.months) {
+        impact.append(goalEl('p', 'muted', `Simulação: guardando também 10% do que vai para ${top.name}, a meta chega ${goalDuration(before.months - after.months)} antes.`));
+      }
+      box.append(impact);
+    } else if (!state.hasHistory) {
+      box.append(goalEl('p', 'goal-note', 'Ainda não há lançamentos pagos nos últimos três meses. Os cenários com a sua sobra e o peso das despesas aparecem quando houver histórico.'));
+    }
+    box.append(goalEl('p', 'muted', 'Estimativa sem juros nem rendimento, feita com a média dos seus lançamentos pagos nos últimos três meses completos.'));
+  };
+  const goalRender = (dialog) => {
+    const state = goalState(dialog);
+    const category = state.form.querySelector('input[name="category"]:checked');
+    const categoryLabel = category?.closest('label').textContent.trim() || '';
+    const set = (name, text) => { dialog.querySelector(`[data-goal-summary-${name}]`).textContent = text; };
+    set('name', state.value('name').trim() || 'Sua meta');
+    set('purpose', state.value('purpose').trim());
+    set('target', goalMoney(state.target));
+    set('deadline', state.deadline ? goalMonthLabel(state.deadline) : 'A definir');
+    set('monthly', goalMoney(state.monthly));
+    const chip = dialog.querySelector('[data-goal-summary-category]');
+    chip.textContent = categoryLabel;
+    chip.hidden = !categoryLabel || category.value === 'outra';
+    const picked = state.form.querySelector('input[name="icon"]:checked');
+    const svg = picked && dialog.querySelector(`[data-goal-icon-svg="${picked.value}"] svg`);
+    if (svg) {
+      const copy = svg.cloneNode(true);
+      copy.setAttribute('width', '34');
+      copy.setAttribute('height', '34');
+      dialog.querySelector('[data-goal-summary-icon]').replaceChildren(copy);
+    }
+    const preview = dialog.querySelector('.has-photo[data-goal-photo-preview]');
+    const image = dialog.querySelector('[data-goal-summary-image]');
+    image.style.backgroundImage = preview ? preview.style.backgroundImage : '';
+    image.classList.toggle('has-photo', Boolean(preview));
+    dialog.querySelectorAll('[data-goal-count]').forEach((field) => {
+      field.parentElement.querySelector('[data-goal-counter]').textContent = `${field.value.length}/${field.maxLength}`;
+    });
+    goalRenderCapacity(dialog, state);
+    goalRenderAnalysis(dialog, state);
+    const review = dialog.querySelector('[data-goal-review]');
+    const bank = state.form.elements.institution_id?.selectedOptions[0];
+    const place = [state.value('savings_place').trim(), state.form.elements.institution_id?.value ? bank.textContent : state.value('institution').trim()].filter(Boolean).join(' · ');
+    const finish = goalFinish(state, state.monthly);
+    review.replaceChildren();
+    [['Meta', state.value('name').trim()], ['Categoria', categoryLabel], ['Descrição', state.value('purpose').trim()], ['Valor da meta', goalMoney(state.target)], ['Já guardado', state.initial ? goalMoney(state.initial) : ''], ['Prazo', state.deadline ? state.deadline.toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'A definir'], ['Contribuição mensal', state.monthly ? goalMoney(state.monthly) : ''], ['Previsão com essa contribuição', finish ? `${goalDuration(finish.months)} · ${finish.label}` : ''], ['Guardando em', place]].forEach(([label, text]) => {
+      if (!text) return;
+      const row = goalEl('div');
+      row.append(goalEl('dt', '', label), goalEl('dd', '', text));
+      review.append(row);
+    });
+  };
+  const goalCurrent = (dialog) => Number(dialog.querySelector('[data-goal-panel]:not([hidden])').dataset.goalPanel);
+  const goalShow = (dialog, step) => {
+    dialog.querySelectorAll('[data-goal-panel]').forEach((panel) => { panel.hidden = Number(panel.dataset.goalPanel) !== step; });
+    dialog.querySelectorAll('[data-goal-step-item]').forEach((item) => {
+      const index = Number(item.dataset.goalStepItem);
+      item.classList.toggle('is-current', index === step);
+      item.classList.toggle('is-done', index < step);
+      if (index === step) item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
+      item.querySelector('button').disabled = index > step;
+    });
+    dialog.querySelector('[data-goal-back]').hidden = step === 0;
+    dialog.querySelector('[data-goal-next]').hidden = step === 4;
+    dialog.querySelector('[data-goal-submit]').hidden = step !== 4;
+    goalRender(dialog);
+    dialog.querySelector('.goal-panels').scrollTop = 0;
+  };
+  const goalPanelValid = (dialog) => {
+    const fields = dialog.querySelectorAll('[data-goal-panel]:not([hidden]) input, [data-goal-panel]:not([hidden]) textarea, [data-goal-panel]:not([hidden]) select');
+    return [...fields].every((field) => field.reportValidity());
+  };
+  const goalNext = (dialog) => {
+    if (goalPanelValid(dialog)) goalShow(dialog, Math.min(4, goalCurrent(dialog) + 1));
+  };
+  document.addEventListener('click', (event) => {
+    const dialog = event.target.closest?.('[data-goal-wizard]');
+    if (!dialog) return;
+    if (event.target.closest('[data-goal-next]')) goalNext(dialog);
+    else if (event.target.closest('[data-goal-back]')) goalShow(dialog, Math.max(0, goalCurrent(dialog) - 1));
+    else if (event.target.closest('[data-goal-step-go]')) goalShow(dialog, Number(event.target.closest('[data-goal-step-go]').dataset.goalStepGo));
+  });
+  document.addEventListener('keydown', (event) => {
+    const dialog = event.target.closest?.('[data-goal-wizard]');
+    if (dialog && event.key === 'Enter' && event.target.matches('input') && goalCurrent(dialog) < 4) {
+      event.preventDefault();
+      goalNext(dialog);
+    }
+  });
+  document.addEventListener('input', (event) => {
+    const dialog = event.target.closest?.('[data-goal-wizard]');
+    if (dialog) goalRender(dialog);
+  });
+  document.addEventListener('change', (event) => {
+    const dialog = event.target.closest?.('[data-goal-wizard]');
+    if (!dialog) return;
+    // A categoria sugere o ícone; a pessoa pode trocar depois na grade.
+    if (event.target.dataset.goalIconFor) {
+      const icon = dialog.querySelector(`input[name="icon"][value="${event.target.dataset.goalIconFor}"]`);
+      if (icon) icon.checked = true;
+    }
+    goalRender(dialog);
+  });
 
   document.addEventListener('submit', async (event) => {
     const form = event.target;

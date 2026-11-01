@@ -7,9 +7,11 @@ $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_Q
 $csrf = (string) ($csrf ?? '');
 $types = ['checking' => 'Conta corrente', 'savings' => 'Poupança', 'wallet' => 'Carteira', 'credit_card' => 'Cartão de crédito'];
 $accounts = [];
+$institutions = [];
 $loadFailed = false;
 try {
     $accounts = (new Finance((int) FinanceContext::currentId()))->accountsWithBalance();
+    $institutions = \Moves\Services\FinancialInstitutions::active();
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -38,8 +40,8 @@ unset($_SESSION['finance_flash']);
   <ul class="finance-account-list">
     <?php foreach ($accounts as $account): ?>
     <li>
-      <span class="finance-account-icon" aria-hidden="true"><?= $icon('credit-card') ?></span>
-      <span><strong><?= $e($account['name']) ?></strong><small><?= $e($types[$account['type']] ?? '') ?><?= $account['institution'] ? ' · ' . $e($account['institution']) : '' ?></small></span>
+      <?= $appView->render('components::bank-badge', ['name' => $account['institution_name'] ?: ($account['institution'] ?: $account['name']), 'logo' => $account['institution_logo'], 'slug' => $account['institution_slug'], 'type' => $account['type']]) ?>
+      <span><strong><?= $e($account['name']) ?></strong><small><?= $e($types[$account['type']] ?? '') ?><?= ($account['institution_name'] ?: $account['institution']) ? ' · ' . $e($account['institution_name'] ?: $account['institution']) : '' ?></small></span>
       <strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong>
     </li>
     <?php endforeach; ?>
@@ -53,8 +55,13 @@ unset($_SESSION['finance_flash']);
     <label>Nome<input name="name" maxlength="120" required autofocus placeholder="Ex.: Conta principal"></label>
     <div class="finance-dialog-row">
       <label>Tipo<select name="type" required><?php foreach ($types as $value => $label): ?><option value="<?= $e($value) ?>"><?= $e($label) ?></option><?php endforeach; ?></select></label>
-      <label>Instituição<input name="institution" maxlength="120" placeholder="Opcional"></label>
+      <label>Banco ou instituição<select name="institution_id"><option value="">Não está na lista</option>
+        <?php foreach (['Principais' => true, 'Todas as instituições' => false] as $groupLabel => $withLogo): ?><optgroup label="<?= $e($groupLabel) ?>">
+        <?php foreach ($institutions as $institution): if ((bool) $institution['logo_file'] !== $withLogo) continue; ?><option value="<?= (int) $institution['id'] ?>"><?= $e($institution['trade_name'] . ($institution['compe_code'] ? ' (' . $institution['compe_code'] . ')' : '')) ?></option><?php endforeach; ?>
+        </optgroup><?php endforeach; ?>
+      </select></label>
     </div>
+    <label>Outra instituição<input name="institution" maxlength="120" placeholder="Só se não estiver na lista"></label>
     <label>Saldo inicial (R$)<input name="opening_balance" inputmode="decimal" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
     <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
   </form>

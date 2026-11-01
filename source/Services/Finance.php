@@ -70,7 +70,7 @@ final class Finance
     }
 
     /** @param 'all'|'open'|'paid'|'overdue' $status */
-    public function entries(string $kind, string $start, string $end, string $status = 'all'): array
+    public function entries(string $kind, string $start, string $end, string $status = 'all', array $filters = []): array
     {
         $filter = match ($status) {
             'open' => ' AND e.paid_at IS NULL',
@@ -78,6 +78,21 @@ final class Finance
             'overdue' => ' AND e.paid_at IS NULL AND e.due_date < CURDATE()',
             default => '',
         };
+        $params = [$this->contextId, $kind, $start, $end];
+        if (($filters['search'] ?? '') !== '') {
+            $filter .= ' AND e.description LIKE ?';
+            $params[] = '%' . addcslashes($filters['search'], '%_\\') . '%';
+        }
+        foreach (['category_id' => 'e.category_id', 'account_id' => 'e.account_id'] as $key => $column) {
+            if (!empty($filters[$key])) {
+                $filter .= " AND {$column} = ?";
+                $params[] = (int) $filters[$key];
+            }
+        }
+        if (($filters['tag'] ?? '') !== '' && $this->supportsEntryExtras()) {
+            $filter .= ' AND EXISTS (SELECT 1 FROM finance_entry_tags AS l INNER JOIN finance_tags AS t ON t.id = l.tag_id WHERE l.entry_id = e.id AND t.name = ?)';
+            $params[] = $filters['tag'];
+        }
         $statement = $this->pdo->prepare(
             "SELECT e.id, e.description, e.amount_cents, e.due_date, e.paid_at,
                     c.name AS category, c.color AS category_color, a.name AS account
@@ -87,7 +102,7 @@ final class Finance
              WHERE e.financial_context_id = ? AND e.kind = ? AND e.due_date BETWEEN ? AND ?{$filter}
              ORDER BY e.due_date, e.id"
         );
-        $statement->execute([$this->contextId, $kind, $start, $end]);
+        $statement->execute($params);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -106,7 +121,82 @@ final class Finance
         return array_map('intval', $statement->fetch(PDO::FETCH_ASSOC));
     }
 
-    public function createEntry(string $kind, array $data, ?int $userId): int
+    /** Observação, tags, anexos e repetição dependem da migration 008. */
+    public function supportsEntryExtras(): bool
+    {
+        return $this->pdo->query("SHOW TABLES LIKE 'finance_entry_attachments'")->fetchColumn() !== false;
+    }
+
+    /** @return list<string> */
+    public function tags(): array
+    {
+        if (!$this->supportsEntryExtras()) {
+            return [];
+        }
+        $statement = $this->pdo->prepare('SELECT name FROM finance_tags WHERE financial_context_id = ? ORDER BY name');
+        $statement->execute([$this->contextId]);
+        return $statement->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Observação, repetição, tags e anexos de cada lançamento informado.
+     *
+     * @param list<int> $entryIds
+     * @return array<int,array{notes:?string,series_type:?string,series_index:?int,series_total:?int,tags:list<string>,attachments:list<array{id:int,name:string}>}>
+     */
+    public function entryDetails(array $entryIds): array
+    {
+        if ($entryIds === [] || !$this->supportsEntryExtras()) {
+            return [];
+        }
+        $marks = implode(',', array_fill(0, count($entryIds), '?'));
+        $params = [$this->contextId, ...$entryIds];
+        $statement = $this->pdo->prepare("SELECT id, notes, series_type, series_index, series_total FROM finance_entries WHERE financial_context_id = ? AND id IN ({$marks})");
+        $statement->execute($params);
+        $details = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $details[(int) $row['id']] = [
+                'notes' => $row['notes'], 'series_type' => $row['series_type'],
+                'series_index' => $row['series_index'] === null ? null : (int) $row['series_index'],
+                'series_total' => $row['series_total'] === null ? null : (int) $row['series_total'],
+                'tags' => [], 'attachments' => [],
+            ];
+        }
+        $statement = $this->pdo->prepare(
+            "SELECT l.entry_id, t.name FROM finance_entry_tags AS l INNER JOIN finance_tags AS t ON t.id = l.tag_id
+             WHERE t.financial_context_id = ? AND l.entry_id IN ({$marks}) ORDER BY t.name"
+        );
+        $statement->execute($params);
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $details[(int) $row['entry_id']]['tags'][] = $row['name'];
+        }
+        $statement = $this->pdo->prepare(
+            "SELECT id, entry_id, original_name FROM finance_entry_attachments WHERE financial_context_id = ? AND entry_id IN ({$marks}) ORDER BY id"
+        );
+        $statement->execute($params);
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $details[(int) $row['entry_id']]['attachments'][] = ['id' => (int) $row['id'], 'name' => $row['original_name']];
+        }
+        return $details;
+    }
+
+    /** @return array{stored_path:string,original_name:string,mime_type:string}|null */
+    public function attachment(int $id): ?array
+    {
+        if (!$this->supportsEntryExtras()) {
+            return null;
+        }
+        $statement = $this->pdo->prepare('SELECT stored_path, original_name, mime_type FROM finance_entry_attachments WHERE id = ? AND financial_context_id = ?');
+        $statement->execute([$id, $this->contextId]);
+        return $statement->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    /**
+     * Cria o lançamento e, se houver repetição, as demais ocorrências. Devolve o id do primeiro.
+     *
+     * @param list<array<string,mixed>> $files arquivos enviados; ficam na primeira ocorrência
+     */
+    public function createEntry(string $kind, array $data, ?int $userId, array $files = []): int
     {
         if (!in_array($kind, ['income', 'expense'], true)) {
             throw new InvalidArgumentException('Tipo de lançamento inválido.');
@@ -121,17 +211,165 @@ final class Finance
             throw new InvalidArgumentException('Escolha uma conta.');
         }
         $categoryId = $this->ownedId('finance_categories', $data['category_id'] ?? null);
-        $paidAt = !empty($data['paid']) ? date('Y-m-d') : null;
+        // Data futura paga agora conta como paga hoje; data passada, no próprio dia informado.
+        $paidAt = !empty($data['paid']) ? min($due, date('Y-m-d')) : null;
+        $amount = self::parseCents($data['amount'] ?? null);
 
-        $this->pdo->prepare(
+        $notes = trim((string) ($data['notes'] ?? ''));
+        if (mb_strlen($notes) > 5000) {
+            throw new InvalidArgumentException('Use até 5000 caracteres na observação.');
+        }
+        $tags = self::parseTags($data['tags'] ?? '');
+        $occurrences = self::occurrences($description, $amount, $due, $data);
+        $total = count($occurrences);
+        FinanceAttachments::validate($files);
+        $extras = $this->supportsEntryExtras();
+        if (!$extras && ($tags !== [] || $files !== [] || $total > 1)) {
+            throw new InvalidArgumentException('Tags, anexos e repetição ainda não estão disponíveis.');
+        }
+
+        $seriesId = $total > 1 ? bin2hex(random_bytes(16)) : null;
+        $insert = $this->pdo->prepare(
             'INSERT INTO finance_entries
-             (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        )->execute([
-            $this->contextId, $kind, $description, self::parseCents($data['amount'] ?? null),
-            $due, $paidAt, $accountId, $categoryId, $userId,
-        ]);
-        return (int) $this->pdo->lastInsertId();
+             (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, created_by, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stored = [];
+        $firstId = 0;
+        $this->pdo->beginTransaction();
+        try {
+            foreach ($occurrences as $index => $occurrence) {
+                $insert->execute([
+                    $this->contextId, $kind, $occurrence['description'], $occurrence['amount'], $occurrence['due'],
+                    $index === 0 ? $paidAt : null, $accountId, $categoryId, $userId, $notes === '' ? null : $notes,
+                ]);
+                $entryId = (int) $this->pdo->lastInsertId();
+                $firstId = $firstId ?: $entryId;
+                if ($extras) {
+                    $this->saveEntryExtras($entryId, $seriesId, $seriesId === null ? null : (string) $data['repeat'], $index + 1, $total, $tags);
+                }
+            }
+            if ($kind === 'income' && $paidAt !== null) {
+                $this->recordReceipt($firstId, $occurrences[0]['amount'], $paidAt, $accountId, $userId);
+            }
+            $stored = $this->addAttachments($firstId, $files, $userId);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            $this->pdo->rollBack();
+            array_walk($stored, static fn (string $path) => FinanceAttachments::remove($path));
+            throw $error;
+        }
+        return $firstId;
+    }
+
+    /** Contas a receber calcula o saldo pelas baixas, então a receita já recebida precisa de uma. */
+    private function recordReceipt(int $entryId, int $amount, string $date, int $accountId, ?int $userId): void
+    {
+        $this->pdo->prepare(
+            "INSERT INTO finance_entry_settlements (financial_context_id, entry_id, account_id, amount_cents, received_at, payment_method, idempotency_key, created_by)
+             VALUES (?, ?, ?, ?, ?, 'other', ?, ?)"
+        )->execute([$this->contextId, $entryId, $accountId, $amount, $date, bin2hex(random_bytes(32)), $userId]);
+        $this->pdo->prepare("UPDATE finance_entries SET status = 'received' WHERE id = ?")->execute([$entryId]);
+    }
+
+    /** @param list<string> $tags */
+    public function saveEntryExtras(int $entryId, ?string $seriesId, ?string $seriesType, int $index, int $total, array $tags): void
+    {
+        if ($seriesId !== null) {
+            $this->pdo->prepare('UPDATE finance_entries SET series_id = ?, series_type = ?, series_index = ?, series_total = ? WHERE id = ? AND financial_context_id = ?')
+                ->execute([$seriesId, $seriesType, $index, $total, $entryId, $this->contextId]);
+        }
+        $this->attachTags($entryId, $tags);
+    }
+
+    /**
+     * @param list<array<string,mixed>> $files
+     * @return list<string> caminhos gravados
+     */
+    public function addAttachments(int $entryId, array $files, ?int $userId): array
+    {
+        $stored = [];
+        foreach ($files as $file) {
+            $saved = FinanceAttachments::store($file);
+            $stored[] = $saved['path'];
+            $this->pdo->prepare(
+                'INSERT INTO finance_entry_attachments (financial_context_id, entry_id, uploaded_by, stored_path, original_name, mime_type, size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            )->execute([$this->contextId, $entryId, $userId, $saved['path'], $saved['name'], $saved['mime'], $saved['size']]);
+        }
+        return $stored;
+    }
+
+    /** @return list<string> */
+    public static function parseTags(mixed $value): array
+    {
+        $tags = [];
+        foreach (explode(',', is_string($value) ? $value : '') as $tag) {
+            $tag = trim((string) preg_replace('/\s+/u', ' ', $tag));
+            if ($tag === '') {
+                continue;
+            }
+            if (mb_strlen($tag) > 40) {
+                throw new InvalidArgumentException('Use até 40 caracteres em cada tag.');
+            }
+            $tags[mb_strtolower($tag)] ??= $tag;
+        }
+        if (count($tags) > 10) {
+            throw new InvalidArgumentException('Use no máximo 10 tags por lançamento.');
+        }
+        return array_values($tags);
+    }
+
+    /** @param list<string> $tags */
+    private function attachTags(int $entryId, array $tags): void
+    {
+        foreach ($tags as $tag) {
+            $this->pdo->prepare(
+                'INSERT INTO finance_tags (financial_context_id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)'
+            )->execute([$this->contextId, $tag]);
+            $this->pdo->prepare('INSERT IGNORE INTO finance_entry_tags (entry_id, tag_id) VALUES (?, ?)')
+                ->execute([$entryId, (int) $this->pdo->lastInsertId()]);
+        }
+    }
+
+    /**
+     * Ocorrências de um lançamento. "fixed" repete o valor; "installment" divide o total,
+     * com os centavos que sobram na primeira parcela.
+     *
+     * @return list<array{description:string,amount:int,due:string}>
+     */
+    public static function occurrences(string $description, int $amount, string $due, array $data): array
+    {
+        $type = $data['repeat'] ?? '';
+        if (!in_array($type, ['fixed', 'installment'], true)) {
+            return [['description' => $description, 'amount' => $amount, 'due' => $due]];
+        }
+        $total = filter_var($data['repeat_count'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 2, 'max_range' => 120]]);
+        if ($total === false) {
+            throw new InvalidArgumentException('Informe de 2 a 120 repetições.');
+        }
+        $steps = ['weekly' => [0, 7], 'biweekly' => [0, 15], 'monthly' => [1, 0], 'bimonthly' => [2, 0], 'quarterly' => [3, 0], 'semiannual' => [6, 0], 'yearly' => [12, 0]];
+        $step = $steps[$data['repeat_every'] ?? ''] ?? null;
+        if ($step === null) {
+            throw new InvalidArgumentException('Escolha a frequência da repetição.');
+        }
+        if ($type === 'installment' && $amount < $total) {
+            throw new InvalidArgumentException('O valor é pequeno demais para esse número de parcelas.');
+        }
+        $start = new DateTimeImmutable($due);
+        $list = [];
+        for ($i = 0; $i < $total; $i++) {
+            // Conta sempre a partir da data inicial: dia 31 cai no último dia dos meses curtos e volta a 31 depois.
+            $first = $start->modify('first day of this month')->modify('+' . ($step[0] * $i) . ' months');
+            $date = $step[0] > 0
+                ? $first->setDate((int) $first->format('Y'), (int) $first->format('n'), min((int) $start->format('j'), (int) $first->format('t')))
+                : $start->modify('+' . ($step[1] * $i) . ' days');
+            $list[] = [
+                'description' => $type === 'installment' ? mb_substr($description, 0, 150) . ' (' . ($i + 1) . '/' . $total . ')' : $description,
+                'amount' => $type === 'installment' ? intdiv($amount, $total) + ($i === 0 ? $amount % $total : 0) : $amount,
+                'due' => $date->format('Y-m-d'),
+            ];
+        }
+        return $list;
     }
 
     public function settle(int $entryId): bool
@@ -146,16 +384,33 @@ final class Finance
 
     public function delete(int $entryId): bool
     {
+        $files = [];
+        if ($this->supportsEntryExtras()) {
+            $statement = $this->pdo->prepare('SELECT stored_path FROM finance_entry_attachments WHERE entry_id = ? AND financial_context_id = ?');
+            $statement->execute([$entryId, $this->contextId]);
+            $files = $statement->fetchAll(PDO::FETCH_COLUMN);
+        }
         $statement = $this->pdo->prepare('DELETE FROM finance_entries WHERE id = ? AND financial_context_id = ?');
         $statement->execute([$entryId, $this->contextId]);
-        return $statement->rowCount() === 1;
+        if ($statement->rowCount() !== 1) {
+            return false;
+        }
+        array_walk($files, static fn (string $path) => FinanceAttachments::remove($path));
+        return true;
     }
 
     /** Contas com saldo: inicial + entradas pagas - saídas pagas +/- transferências. */
     public function accountsWithBalance(): array
     {
+        // Sem a migration 006, as colunas do catálogo vêm nulas e não há JOIN.
+        $catalogReady = FinancialInstitutions::catalogReady();
+        $institutionColumns = $catalogReady
+            ? 'a.institution_id, fi.trade_name AS institution_name, fi.slug AS institution_slug, fi.logo_file AS institution_logo'
+            : 'NULL AS institution_id, NULL AS institution_name, NULL AS institution_slug, NULL AS institution_logo';
+        $institutionJoin = $catalogReady ? 'LEFT JOIN financial_institutions AS fi ON fi.id = a.institution_id' : '';
         $statement = $this->pdo->prepare(
-            "SELECT a.id, a.name, a.type, a.institution, a.status, a.card_kind, a.credit_limit_cents, a.closing_day, a.due_day,
+            "SELECT a.id, a.name, a.type, a.institution, {$institutionColumns},
+                    a.status, a.card_kind, a.credit_limit_cents, a.closing_day, a.due_day,
                     a.opening_balance_cents + COALESCE(SUM(CASE
                         WHEN e.paid_at IS NULL THEN 0
                         WHEN e.kind = 'income' AND e.account_id = a.id THEN e.amount_cents
@@ -164,6 +419,7 @@ final class Finance
                         WHEN e.kind = 'transfer' AND e.target_account_id = a.id THEN e.amount_cents
                         ELSE 0 END), 0) AS balance_cents
              FROM finance_accounts AS a
+             {$institutionJoin}
              LEFT JOIN finance_entries AS e ON e.financial_context_id = a.financial_context_id
                  AND (e.account_id = a.id OR e.target_account_id = a.id)
              WHERE a.financial_context_id = ? AND a.archived_at IS NULL AND a.status = 'active'
@@ -200,14 +456,33 @@ final class Finance
         $limit = trim((string) ($data['credit_limit'] ?? ''));
         $closingDay = self::optionalDay($data['closing_day'] ?? null);
         $dueDay = self::optionalDay($data['due_day'] ?? null);
-        $this->pdo->prepare(
-            'INSERT INTO finance_accounts (financial_context_id, name, type, institution, opening_balance_cents, card_kind, credit_limit_cents, closing_day, due_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        )->execute([
-            $this->contextId, $name, $type, trim((string) ($data['institution'] ?? '')) ?: null,
+        // Banco do catálogo (opcional). Sem catálogo, vale o texto livre.
+        $catalogReady = FinancialInstitutions::catalogReady();
+        $institutionId = !$catalogReady || ($data['institution_id'] ?? '') === '' ? null : FinancialInstitutions::activeId($data['institution_id']);
+        if ($catalogReady && ($data['institution_id'] ?? '') !== '' && $institutionId === null) {
+            throw new InvalidArgumentException('Escolha uma instituição da lista.');
+        }
+        $institution = trim((string) ($data['institution'] ?? ''));
+        if ($institution === '' && $institutionId !== null) {
+            $institution = (string) (FinancialInstitutions::find($institutionId)['trade_name'] ?? '');
+        }
+        if (mb_strlen($institution) > 120) {
+            throw new InvalidArgumentException('Use até 120 caracteres na instituição.');
+        }
+        $values = [
             in_array($opening, ['', '0', '0,00'], true) ? 0 : self::parseCents($opening),
             $cardKind, $type === 'credit_card' && $limit !== '' ? self::parseCents($limit) : null,
             $type === 'credit_card' ? $closingDay : null, $type === 'credit_card' ? $dueDay : null,
-        ]);
+        ];
+        if ($catalogReady) {
+            $this->pdo->prepare(
+                'INSERT INTO finance_accounts (financial_context_id, name, type, institution, institution_id, opening_balance_cents, card_kind, credit_limit_cents, closing_day, due_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([$this->contextId, $name, $type, $institution ?: null, $institutionId, ...$values]);
+        } else {
+            $this->pdo->prepare(
+                'INSERT INTO finance_accounts (financial_context_id, name, type, institution, opening_balance_cents, card_kind, credit_limit_cents, closing_day, due_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            )->execute([$this->contextId, $name, $type, $institution ?: null, ...$values]);
+        }
         return (int) $this->pdo->lastInsertId();
     }
 
@@ -356,6 +631,67 @@ final class Finance
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Relatório do período, por data de vencimento. */
+    public function report(string $start, string $end): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT e.id, e.kind, e.description, e.counterparty_name, e.amount_cents, e.due_date, e.paid_at, e.status,
+                    c.name AS category, c.color AS category_color, a.name AS account, t.name AS target_account,
+                    COALESCE(s.settled_cents, 0) AS settled_cents
+             FROM finance_entries AS e
+             INNER JOIN finance_accounts AS a ON a.id = e.account_id
+             LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
+             LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS settled_cents FROM finance_entry_settlements WHERE financial_context_id = ? GROUP BY entry_id) AS s ON s.entry_id = e.id
+             WHERE e.financial_context_id = ? AND e.due_date BETWEEN ? AND ?
+             ORDER BY e.due_date, FIELD(e.kind, 'income', 'expense', 'transfer'), e.id"
+        );
+        $statement->execute([$this->contextId, $this->contextId, $start, $end]);
+        return self::buildReport($statement->fetchAll(PDO::FETCH_ASSOC), date('Y-m-d'));
+    }
+
+    /** Agrupa os lançamentos por dia. Cancelados e transferências aparecem, mas não somam. */
+    public static function buildReport(array $rows, string $today): array
+    {
+        $totals = ['income' => 0, 'income_paid' => 0, 'income_overdue' => 0, 'expense' => 0, 'expense_paid' => 0, 'expense_overdue' => 0];
+        $days = [];
+        $categories = [];
+        $accumulated = 0;
+        foreach ($rows as $row) {
+            $amount = (int) $row['amount_cents'];
+            $paid = $row['paid_at'] !== null ? $amount : min($amount, (int) $row['settled_cents']);
+            $cancelled = $row['status'] === 'cancelled';
+            $counts = !$cancelled && $row['kind'] !== 'transfer';
+            $date = (string) $row['due_date'];
+            $days[$date] ??= ['date' => $date, 'income' => 0, 'expense' => 0, 'result' => 0, 'accumulated' => 0, 'entries' => []];
+            $days[$date]['entries'][] = $row + [
+                'paid_cents' => $paid,
+                'cancelled' => $cancelled,
+                'overdue' => !$cancelled && $paid < $amount && $date < $today,
+            ];
+            if ($counts) {
+                $kind = (string) $row['kind'];
+                $totals[$kind] += $amount;
+                $totals[$kind . '_paid'] += $paid;
+                if ($date < $today) $totals[$kind . '_overdue'] += $amount - $paid;
+                $days[$date][$kind] += $amount;
+                if ($kind === 'expense') {
+                    $name = (string) ($row['category'] ?? 'Sem categoria');
+                    $categories[$name] ??= ['name' => $name, 'color' => $row['category_color'] ?? '#98a2b3', 'total' => 0];
+                    $categories[$name]['total'] += $amount;
+                }
+            }
+        }
+        foreach ($days as &$day) {
+            $day['result'] = $day['income'] - $day['expense'];
+            $accumulated += $day['result'];
+            $day['accumulated'] = $accumulated;
+        }
+        unset($day);
+        usort($categories, static fn (array $a, array $b): int => $b['total'] <=> $a['total']);
+        return ['totals' => $totals, 'days' => array_values($days), 'categories' => $categories, 'count' => count($rows)];
+    }
+
     /** Categorias com o total lançado no período. */
     public function categoriesWithTotals(string $start, string $end): array
     {
@@ -428,14 +764,183 @@ final class Finance
         )->execute([$this->contextId, $category, $month, self::parseCents($data['amount'] ?? null)]);
     }
 
+    public const GOAL_CATEGORIES = ['transporte' => 'Transporte', 'viagem' => 'Viagem', 'casa' => 'Casa', 'educacao' => 'Educação', 'investimento' => 'Investimento', 'outra' => 'Outra'];
+    public const GOAL_ICONS = ['carro', 'aviao', 'casa', 'educacao', 'coracao', 'maleta', 'guardar', 'jogo', 'camera', 'carteira', 'alvo', 'mais'];
+
+    /** Indica se a migration 009 (foto, categoria e local da meta) já foi aplicada. */
+    public function supportsGoalDetails(): bool
+    {
+        return $this->pdo->query("SHOW COLUMNS FROM finance_goals LIKE 'image_path'")->fetchColumn() !== false;
+    }
+
     public function goals(): array
     {
-        $statement = $this->pdo->prepare("SELECT id, name, purpose, target_cents, saved_cents, deadline, status FROM finance_goals WHERE financial_context_id = ? AND status <> 'cancelled' ORDER BY status = 'completed', deadline IS NULL, deadline, id");
+        $details = $this->supportsGoalDetails()
+            ? "g.category, g.icon, g.monthly_contribution_cents, g.image_path, g.savings_place, g.institution, g.institution_id, i.trade_name AS institution_name, i.logo_file AS institution_logo, i.slug AS institution_slug"
+            : "NULL AS category, NULL AS icon, NULL AS monthly_contribution_cents, NULL AS image_path, NULL AS savings_place, NULL AS institution, NULL AS institution_id, NULL AS institution_name, NULL AS institution_logo, NULL AS institution_slug";
+        $join = $this->supportsGoalDetails() ? 'LEFT JOIN financial_institutions AS i ON i.id = g.institution_id' : '';
+        $statement = $this->pdo->prepare("SELECT g.id, g.name, g.purpose, g.created_at, g.target_cents, g.saved_cents, g.deadline, g.status, {$details} FROM finance_goals AS g {$join} WHERE g.financial_context_id = ? AND g.status <> 'cancelled' ORDER BY g.status = 'completed', g.deadline IS NULL, g.deadline, g.id");
         $statement->execute([$this->contextId]);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function createGoal(array $data): int
+    /**
+     * Quanto falta e quanto guardar por mês para chegar ao prazo. O ritmo é a divisão simples
+     * do que falta pelos meses restantes, contando o mês atual, sem juros nem rendimento.
+     *
+     * @return array{percent:int,remaining_cents:int,done:bool,late:bool,months_left:?int,monthly_cents:?int}
+     */
+    public static function goalProgress(int $targetCents, int $savedCents, ?string $deadline, string $today): array
+    {
+        $done = $savedCents >= $targetCents;
+        $remaining = max(0, $targetCents - $savedCents);
+        $percent = $done ? 100 : min(99, (int) floor($savedCents / max(1, $targetCents) * 100));
+        $late = !$done && $deadline !== null && $deadline < $today;
+        $months = null;
+        $monthly = null;
+        if (!$done && !$late && $deadline !== null) {
+            $from = new DateTimeImmutable($today);
+            $to = new DateTimeImmutable($deadline);
+            $months = ((int) $to->format('Y') - (int) $from->format('Y')) * 12 + (int) $to->format('n') - (int) $from->format('n') + 1;
+            $monthly = (int) ceil($remaining / $months);
+        }
+        return ['percent' => $percent, 'remaining_cents' => $remaining, 'done' => $done, 'late' => $late, 'months_left' => $months, 'monthly_cents' => $monthly];
+    }
+
+    /** Curto até 1 ano, médio até 3 anos, longo acima disso. Prazo vencido conta como curto. */
+    public static function goalTerm(?string $deadline, string $today): ?string
+    {
+        if ($deadline === null) {
+            return null;
+        }
+        $from = new DateTimeImmutable($today);
+        if ($deadline <= $from->modify('+1 year')->format('Y-m-d')) {
+            return 'curto';
+        }
+        return $deadline <= $from->modify('+3 years')->format('Y-m-d') ? 'medio' : 'longo';
+    }
+
+    /**
+     * Previsão e situação da meta, por mês. O ritmo é a média dos aportes dos últimos 90 dias;
+     * sem aportes recentes, vale a contribuição planejada. Sem juros nem rendimento.
+     *
+     * @param list<array{amount_cents:int,contributed_at:string}> $contributions
+     * @return array{pace_cents:?int,months:?int,finish:?string,status:string,title:string,text:string}
+     */
+    public static function goalForecast(int $targetCents, int $savedCents, ?string $deadline, ?int $plannedCents, array $contributions, int $freeCents, string $today): array
+    {
+        $from = new DateTimeImmutable($today);
+        $since = $from->modify('-90 days')->format('Y-m-d');
+        $recent = array_sum(array_map(static fn (array $c): int => $c['contributed_at'] >= $since ? $c['amount_cents'] : 0, $contributions));
+        $pace = $recent > 0 ? (int) ceil($recent / 3) : ($plannedCents ?: null);
+        $remaining = max(0, $targetCents - $savedCents);
+        $result = ['pace_cents' => $pace, 'months' => null, 'finish' => null, 'status' => 'info', 'title' => '', 'text' => ''];
+        if ($remaining === 0) {
+            return ['status' => 'success', 'title' => 'Meta alcançada!', 'text' => 'Você juntou o valor completo.'] + $result;
+        }
+        $monthsTo = static fn (string $date): int => ((int) substr($date, 0, 4) - (int) $from->format('Y')) * 12 + (int) substr($date, 5, 2) - (int) $from->format('n') + 1;
+        if ($pace !== null) {
+            $result['months'] = (int) ceil($remaining / $pace);
+            $result['finish'] = $from->modify('first day of this month')->modify('+' . ($result['months'] - 1) . ' months')->format('Y-m-d');
+        }
+        if ($deadline !== null && $deadline < $today) {
+            return ['status' => 'warning', 'title' => 'Prazo encerrado', 'text' => 'Faltam ' . self::money($remaining) . '. Defina um novo prazo.'] + $result;
+        }
+        if ($pace === null) {
+            return $savedCents > 0 || $deadline === null
+                ? ['title' => 'Planeje o futuro', 'text' => 'Defina uma contribuição mensal para ver a previsão.'] + $result
+                : ['title' => 'Comece agora', 'text' => 'Registre o primeiro aporte para acompanhar o ritmo.'] + $result;
+        }
+        $gain = 0;
+        $extra = max(0, $freeCents);
+        if ($extra > 0) {
+            $gain = $result['months'] - (int) ceil($remaining / ($pace + $extra));
+        }
+        $canAnticipate = $gain > 0 ? ['title' => 'Você pode antecipar!', 'text' => 'Antecipe em até ' . $gain . ' ' . ($gain > 1 ? 'meses' : 'mês') . ' guardando mais ' . self::money($extra) . '/mês.'] : null;
+        if ($deadline === null) {
+            return ($canAnticipate ?? ['title' => 'No caminho certo', 'text' => 'Mantendo o ritmo de ' . self::money($pace) . '/mês.']) + $result;
+        }
+        $limit = $monthsTo($deadline);
+        if ($result['months'] > $limit) {
+            return ['status' => 'warning', 'title' => 'Acelere um pouco', 'text' => 'Aumente ' . self::money((int) ceil($remaining / $limit) - $pace) . '/mês para chegar no prazo.'] + $result;
+        }
+        $ahead = $limit - $result['months'];
+        if ($ahead > 0) {
+            return ['status' => 'success', 'title' => 'No ritmo certo!', 'text' => 'Deve alcançar ' . $ahead . ' ' . ($ahead > 1 ? 'meses' : 'mês') . ' antes do prazo.'] + $result;
+        }
+        return ($canAnticipate ?? ['status' => 'success', 'title' => 'No ritmo certo!', 'text' => 'Deve alcançar dentro do prazo.']) + $result;
+    }
+
+    /**
+     * Valor guardado ao fim de cada um dos últimos meses, a partir dos aportes reais.
+     *
+     * @param list<array{amount_cents:int,contributed_at:string}> $contributions
+     * @return list<int>
+     */
+    public static function goalTrend(int $savedCents, array $contributions, string $today, int $months = 6): array
+    {
+        $month = (new DateTimeImmutable($today))->modify('first day of this month');
+        $points = [];
+        for ($i = 0; $i < $months; $i++) {
+            $key = $month->modify("-{$i} months")->format('Y-m');
+            $after = array_sum(array_map(static fn (array $c): int => substr($c['contributed_at'], 0, 7) > $key ? $c['amount_cents'] : 0, $contributions));
+            array_unshift($points, max(0, $savedCents - $after));
+        }
+        return $points;
+    }
+
+    /** @param array<string,mixed>|null $photo */
+    public function createGoal(array $data, ?array $photo = null, ?int $userId = null): int
+    {
+        [$name, $purpose, $target, $deadline] = $this->goalFields($data);
+        $initial = trim((string) ($data['initial'] ?? ''));
+        $initialCents = $initial === '' ? 0 : self::parseCents($initial);
+        if (!$this->supportsGoalDetails()) {
+            $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, target_cents, deadline) VALUES (?, ?, ?, ?, ?)')
+                ->execute([$this->contextId, $name, $purpose, $target, $deadline]);
+        } else {
+            [$place, $institution, $institutionId] = $this->goalPlace($data);
+            [$category, $icon, $monthly] = $this->goalPlan($data);
+            $image = GoalPhotos::store($photo);
+            $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, category, icon, image_path, savings_place, institution, institution_id, target_cents, monthly_contribution_cents, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$this->contextId, $name, $purpose, $category, $icon, $image, $place, $institution, $institutionId, $target, $monthly, $deadline]);
+        }
+        $id = (int) $this->pdo->lastInsertId();
+        if ($initialCents > 0) {
+            $this->addToGoal($id, $initial, $userId);
+        }
+        return $id;
+    }
+
+    /** @param array<string,mixed>|null $photo */
+    public function updateGoal(int $id, array $data, ?array $photo = null): bool
+    {
+        [$name, $purpose, $target, $deadline] = $this->goalFields($data);
+        $current = $this->goalRow($id);
+        if ($current === null) {
+            return false;
+        }
+        $status = (int) $current['saved_cents'] >= $target ? 'completed' : 'active';
+        if (!$this->supportsGoalDetails()) {
+            $this->pdo->prepare('UPDATE finance_goals SET name = ?, purpose = ?, target_cents = ?, deadline = ?, status = ? WHERE id = ? AND financial_context_id = ?')
+                ->execute([$name, $purpose, $target, $deadline, $status, $id, $this->contextId]);
+            return true;
+        }
+        [$place, $institution, $institutionId] = $this->goalPlace($data);
+        [$category, $icon, $monthly] = $this->goalPlan($data);
+        $image = $current['image_path'] ?? null;
+        $new = GoalPhotos::store($photo);
+        if ($new !== null || !empty($data['remove_photo'])) {
+            GoalPhotos::remove($image);
+            $image = $new;
+        }
+        $this->pdo->prepare('UPDATE finance_goals SET name = ?, purpose = ?, category = ?, icon = ?, image_path = ?, savings_place = ?, institution = ?, institution_id = ?, target_cents = ?, monthly_contribution_cents = ?, deadline = ?, status = ? WHERE id = ? AND financial_context_id = ?')
+            ->execute([$name, $purpose, $category, $icon, $image, $place, $institution, $institutionId, $target, $monthly, $deadline, $status, $id, $this->contextId]);
+        return true;
+    }
+
+    /** @return array{0:string,1:?string,2:int,3:?string} */
+    private function goalFields(array $data): array
     {
         $name = trim((string) ($data['name'] ?? ''));
         if ($name === '' || mb_strlen($name) > 120) {
@@ -443,24 +948,134 @@ final class Finance
         }
         $deadline = trim((string) ($data['deadline'] ?? ''));
         $purpose = trim((string) ($data['purpose'] ?? ''));
-        $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, target_cents, deadline) VALUES (?, ?, ?, ?, ?)')
-            ->execute([$this->contextId, $name, $purpose === '' ? null : mb_substr($purpose, 0, 160), self::parseCents($data['amount'] ?? null), $deadline === '' ? null : self::date($deadline)]);
-        return (int) $this->pdo->lastInsertId();
+        return [$name, $purpose === '' ? null : mb_substr($purpose, 0, $this->supportsGoalDetails() ? 200 : 160), self::parseCents($data['amount'] ?? null), $deadline === '' ? null : self::date($deadline)];
     }
 
-    public function addToGoal(int $id, mixed $amount, ?int $userId = null): bool
+    /** @return array{0:?string,1:?string,2:?int} */
+    private function goalPlace(array $data): array
+    {
+        $place = trim((string) ($data['savings_place'] ?? ''));
+        $institution = trim((string) ($data['institution'] ?? ''));
+        return [$place === '' ? null : mb_substr($place, 0, 120), $institution === '' ? null : mb_substr($institution, 0, 120), FinancialInstitutions::activeId($data['institution_id'] ?? null)];
+    }
+
+    /** @return array{0:?string,1:?string,2:?int} */
+    private function goalPlan(array $data): array
+    {
+        $category = (string) ($data['category'] ?? '');
+        $icon = (string) ($data['icon'] ?? '');
+        $monthly = trim((string) ($data['monthly'] ?? ''));
+        return [isset(self::GOAL_CATEGORIES[$category]) ? $category : null, in_array($icon, self::GOAL_ICONS, true) ? $icon : null, $monthly === '' ? null : self::parseCents($monthly)];
+    }
+
+    /**
+     * Base real da análise: médias dos lançamentos pagos nos últimos três meses completos,
+     * divididas pelos meses que têm lançamento, e as contribuições já planejadas em outras metas.
+     *
+     * @return array{months:int,income_cents:int,expense_cents:int,committed_cents:int,categories:list<array{name:string,cents:int}>}
+     */
+    public function goalBaseline(?string $today = null): array
+    {
+        $end = (new DateTimeImmutable($today ?? 'today'))->modify('first day of this month')->modify('-1 day');
+        $start = $end->modify('first day of this month')->modify('-2 months');
+        $range = [$this->contextId, $start->format('Y-m-d'), $end->format('Y-m-d')];
+        $statement = $this->pdo->prepare("SELECT kind, SUM(amount_cents) AS total, DATE_FORMAT(paid_at, '%Y-%m') AS month FROM finance_entries WHERE financial_context_id = ? AND kind IN ('income','expense') AND paid_at BETWEEN ? AND ? AND (status IS NULL OR status <> 'cancelled') GROUP BY kind, month");
+        $statement->execute($range);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $months = max(1, count(array_unique(array_column($rows, 'month'))));
+        $totals = ['income' => 0, 'expense' => 0];
+        foreach ($rows as $row) {
+            $totals[$row['kind']] += (int) $row['total'];
+        }
+        $statement = $this->pdo->prepare("SELECT COALESCE(c.name, 'Sem categoria') AS name, SUM(e.amount_cents) AS total FROM finance_entries AS e LEFT JOIN finance_categories AS c ON c.id = e.category_id WHERE e.financial_context_id = ? AND e.kind = 'expense' AND e.paid_at BETWEEN ? AND ? AND (e.status IS NULL OR e.status <> 'cancelled') GROUP BY name ORDER BY total DESC LIMIT 3");
+        $statement->execute($range);
+        $categories = array_map(static fn (array $row): array => ['name' => (string) $row['name'], 'cents' => (int) round((int) $row['total'] / $months)], $statement->fetchAll(PDO::FETCH_ASSOC));
+        $committed = 0;
+        if ($this->supportsGoalDetails()) {
+            $statement = $this->pdo->prepare("SELECT COALESCE(SUM(monthly_contribution_cents), 0) FROM finance_goals WHERE financial_context_id = ? AND status = 'active'");
+            $statement->execute([$this->contextId]);
+            $committed = (int) $statement->fetchColumn();
+        }
+        return ['months' => $rows === [] ? 0 : $months, 'income_cents' => (int) round($totals['income'] / $months), 'expense_cents' => (int) round($totals['expense'] / $months), 'committed_cents' => $committed, 'categories' => $categories];
+    }
+
+    private function goalRow(int $id): ?array
+    {
+        $statement = $this->pdo->prepare("SELECT * FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled'");
+        $statement->execute([$id, $this->contextId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /** Foto de uma meta do contexto atual. */
+    public function goalPhoto(int $id): ?string
+    {
+        return $this->supportsGoalDetails() ? ($this->goalRow($id)['image_path'] ?? null) : null;
+    }
+
+    public function addToGoal(int $id, mixed $amount, ?int $userId = null, mixed $date = null): bool
     {
         $cents = self::parseCents($amount);
+        $date = trim((string) $date);
+        $date = $date === '' ? date('Y-m-d') : self::date($date);
+        if ($date > date('Y-m-d')) {
+            throw new InvalidArgumentException('A data do aporte não pode estar no futuro.');
+        }
         $this->pdo->beginTransaction();
         try {
-            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status = 'active' FOR UPDATE");
+            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled' FOR UPDATE");
             $statement->execute([$id, $this->contextId]);
             $goal = $statement->fetch(PDO::FETCH_ASSOC);
             if (!$goal) { $this->pdo->rollBack(); return false; }
             $saved = (int) $goal['saved_cents'] + $cents;
             $status = $saved >= (int) $goal['target_cents'] ? 'completed' : 'active';
             $this->pdo->prepare('UPDATE finance_goals SET saved_cents = ?, status = ? WHERE id = ? AND financial_context_id = ?')->execute([$saved, $status, $id, $this->contextId]);
-            $this->pdo->prepare('INSERT INTO finance_goal_contributions (financial_context_id, goal_id, amount_cents, contributed_at, actor_user_id) VALUES (?, ?, ?, CURDATE(), ?)')->execute([$this->contextId, $id, $cents, $userId]);
+            $this->pdo->prepare('INSERT INTO finance_goal_contributions (financial_context_id, goal_id, amount_cents, contributed_at, actor_user_id) VALUES (?, ?, ?, ?, ?)')->execute([$this->contextId, $id, $cents, $date, $userId]);
+            $this->pdo->commit();
+            return true;
+        } catch (\Throwable $exception) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $exception;
+        }
+    }
+
+    /**
+     * Aportes das metas informadas, do mais recente ao mais antigo.
+     *
+     * @param list<int> $goalIds
+     * @return array<int,list<array{id:int,amount_cents:int,contributed_at:string}>>
+     */
+    public function goalContributions(array $goalIds): array
+    {
+        if ($goalIds === []) {
+            return [];
+        }
+        $marks = implode(',', array_fill(0, count($goalIds), '?'));
+        $statement = $this->pdo->prepare("SELECT id, goal_id, amount_cents, contributed_at FROM finance_goal_contributions WHERE financial_context_id = ? AND goal_id IN ({$marks}) ORDER BY contributed_at DESC, id DESC");
+        $statement->execute([$this->contextId, ...$goalIds]);
+        $history = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $history[(int) $row['goal_id']][] = ['id' => (int) $row['id'], 'amount_cents' => (int) $row['amount_cents'], 'contributed_at' => $row['contributed_at']];
+        }
+        return $history;
+    }
+
+    /** Desfaz um aporte lançado por engano e devolve a meta ao saldo anterior. */
+    public function deleteContribution(int $id): bool
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $statement = $this->pdo->prepare('SELECT goal_id, amount_cents FROM finance_goal_contributions WHERE id = ? AND financial_context_id = ? FOR UPDATE');
+            $statement->execute([$id, $this->contextId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+            if (!$row) { $this->pdo->rollBack(); return false; }
+            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled' FOR UPDATE");
+            $statement->execute([$row['goal_id'], $this->contextId]);
+            $goal = $statement->fetch(PDO::FETCH_ASSOC);
+            if (!$goal) { $this->pdo->rollBack(); return false; }
+            $saved = max(0, (int) $goal['saved_cents'] - (int) $row['amount_cents']);
+            $this->pdo->prepare('UPDATE finance_goals SET saved_cents = ?, status = ? WHERE id = ? AND financial_context_id = ?')->execute([$saved, $saved >= (int) $goal['target_cents'] ? 'completed' : 'active', $row['goal_id'], $this->contextId]);
+            $this->pdo->prepare('DELETE FROM finance_goal_contributions WHERE id = ? AND financial_context_id = ?')->execute([$id, $this->contextId]);
             $this->pdo->commit();
             return true;
         } catch (\Throwable $exception) {
@@ -471,9 +1086,17 @@ final class Finance
 
     public function deleteGoal(int $id): bool
     {
+        $photo = $this->goalPhoto($id);
         $statement = $this->pdo->prepare("UPDATE finance_goals SET status = 'cancelled' WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled'");
         $statement->execute([$id, $this->contextId]);
-        return $statement->rowCount() === 1;
+        if ($statement->rowCount() !== 1) {
+            return false;
+        }
+        if ($photo !== null) {
+            GoalPhotos::remove($photo);
+            $this->pdo->prepare('UPDATE finance_goals SET image_path = NULL WHERE id = ? AND financial_context_id = ?')->execute([$id, $this->contextId]);
+        }
+        return true;
     }
 
     private function openCount(string $kind, string $start, string $end): int

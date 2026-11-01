@@ -19,7 +19,6 @@ final class CmsAuth
         'content.publish' => 'Publicar conteúdo',
         'media.manage' => 'Gerenciar mídia',
         'menus.manage' => 'Gerenciar menus',
-        'seo.manage' => 'Gerenciar SEO',
         'users.view' => 'Ver usuários',
         'users.manage' => 'Administrar usuários',
         'companies.view' => 'Ver empresas',

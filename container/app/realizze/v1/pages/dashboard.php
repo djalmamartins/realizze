@@ -32,10 +32,11 @@ $sections = [
     'contatos' => ['Clientes e Fornecedores', 'Gerencie seus contatos financeiros'],
     'clientes' => ['Clientes', 'Gerencie os clientes da empresa'],
     'fornecedores' => ['Fornecedores', 'Gerencie os fornecedores da empresa'],
+    'sair-das-dividas' => ['Sair das Dívidas', 'Diagnóstico, plano de quitação e negociação'],
     'assistente' => ['Assistente Financeiro', 'Prévia sem envio ou registro de movimentações'],
     'configuracoes' => ['Configurações', 'Personalize sua experiência'],
     'empresarial' => ['Empresarial', 'Gestão financeira para MEI e empresas'],
-    'notificacoes' => ['Notificações', 'Vencimentos que pedem atenção'],
+    'notificacoes' => ['Notificações', 'O que precisa da sua atenção'],
     'integracoes' => ['Integrações', 'Conexões com bancos e serviços'],
     'perfil' => ['Meu perfil', 'Seus dados e a segurança da conta'],
     'equipe' => ['Equipe e Permissões', 'Quem acessa os dados da empresa'],
@@ -81,14 +82,17 @@ if ($activeOrganization !== null) {
 $items += [
     'contas' => ['credit-card','Contas e Cartões',$baseUrl . '/cartoes'], 'relatorios' => ['chart-no-axes-column','Relatórios',$baseUrl . '/relatorios'],
     'planejamento' => ['calendar-days','Planejamento',$baseUrl . '/planejamento'], 'metas' => ['target','Metas',$baseUrl . '/metas'],
-    'categorias' => ['list-filter','Categorias',$baseUrl . '/categorias'],
+    'categorias' => ['list-filter','Categorias',$baseUrl . '/categorias'], 'recorrencias' => ['repeat','Assinaturas e recorrências',$baseUrl . '/recorrencias'],
 ];
+if ($activeOrganization === null) {
+    $items['sair-das-dividas'] = ['target','Sair das Dívidas',$baseUrl . '/sair-das-dividas'];
+}
 $items['integracoes'] = ['arrows-left-right','Integrações',$baseUrl . '/integracoes'];
 $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
     : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
 // Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
-$pendingSections = ['faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
+$pendingSections = ['faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
 $navGroups = null;
 if ($activeOrganization !== null) {
     $items['overview'][1] = 'Dashboard';
@@ -116,6 +120,7 @@ $iconPaths = [
     'chart-no-axes-column' => '<path d="M5 20v-6M10 20V9M15 20V4M20 20v-9"/>',
     'calendar-days' => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
     'target' => '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    'repeat' => '<path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>',
     'list-filter' => '<path d="M4 7h16M7 12h10M10 17h4"/>',
     'message-circle' => '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5.1A8 8 0 1 1 21 15Z"/>',
     'building' => '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M8 7h1M15 7h1M8 11h1M15 11h1"/>',
@@ -184,13 +189,13 @@ $icon = static function (string $name) use ($iconPaths): string {
         'title' => $sections[$section][0],
         'description' => $sections[$section][1],
         'context' => $activeOrganization !== null || $section === 'empresarial' ? 'enterprise' : 'personal',
-        'live' => in_array($section, ['receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true),
+        'live' => in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true),
     ],
     'appView' => $appView,
     'name' => $name,
     'user' => $user,
 ]) ?>
-<?php if (in_array($section, ['receber', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'contato-detalhe'], true)): ?>
+<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
 <?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>
@@ -198,7 +203,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 <section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[$section][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
 <?php endif; ?>
 <?php endif; ?>
-<?php if (!in_array($section, ['overview', 'receber', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true)): ?>
+<?php if (!in_array($section, ['overview', 'receber', 'sair-das-dividas', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true)): ?>
 <p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Dados financeiros ainda não integrados · Nenhuma movimentação real é exibida</p>
 <?php endif; ?>
 </main>

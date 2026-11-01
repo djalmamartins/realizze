@@ -41,8 +41,10 @@ final class FinanceActions
                 'category' => [$finance->createCategory($_POST) > 0 ? 'success' : 'error', 'Categoria criada.'],
                 'category_delete' => $finance->deleteCategory($id) ? ['success', 'Categoria excluída. Os lançamentos ficaram sem categoria.'] : ['error', 'Categoria não encontrada.'],
                 'budget' => $this->budget($finance),
-                'goal' => [$finance->createGoal($_POST) > 0 ? 'success' : 'error', 'Meta criada.'],
-                'goal_add' => $finance->addToGoal($id, $_POST['amount'] ?? null, (int) $user['id']) ? ['success', 'Valor adicionado à meta.'] : ['error', 'Meta não encontrada.'],
+                'goal' => [$finance->createGoal($_POST, $_FILES['photo'] ?? null, (int) $user['id']) > 0 ? 'success' : 'error', 'Meta criada.'],
+                'goal_update' => $finance->updateGoal($id, $_POST, $_FILES['photo'] ?? null) ? ['success', 'Meta atualizada.'] : ['error', 'Meta não encontrada.'],
+                'goal_add' => $finance->addToGoal($id, $_POST['amount'] ?? null, (int) $user['id'], $_POST['date'] ?? null) ? ['success', 'Valor adicionado à meta.'] : ['error', 'Meta não encontrada.'],
+                'goal_contribution_delete' => $finance->deleteContribution($id) ? ['success', 'Aporte removido e valor guardado atualizado.'] : ['error', 'Aporte não encontrado.'],
                 'goal_delete' => $finance->deleteGoal($id) ? ['success', 'Meta excluída.'] : ['error', 'Meta não encontrada.'],
                 'account' => [$finance->createAccount($_POST) > 0 ? 'success' : 'error', 'Conta cadastrada.'],
                 'transfer' => [$finance->transfer($_POST, (int) $user['id']) > 0 ? 'success' : 'error', 'Transferência registrada.'],
@@ -108,7 +110,42 @@ final class FinanceActions
     /** @return array{0:string,1:string} */
     private function create(Finance $finance, string $kind, int $userId): array
     {
-        $finance->createEntry($kind, $_POST, $userId);
+        $finance->createEntry($kind, $_POST, $userId, \Moves\Services\Helpdesk::uploadedFiles('attachments'));
+        if (in_array($_POST['repeat'] ?? '', ['fixed', 'installment'], true)) {
+            return ['success', (int) $_POST['repeat_count'] . ' lançamentos criados.'];
+        }
         return ['success', $kind === 'income' ? 'Recebimento registrado.' : 'Despesa registrada.'];
+    }
+
+    /** Baixa um anexo; só encontra arquivos do contexto atual. */
+    public function attachment(): void
+    {
+        if (SessionAuth::current() === null) {
+            \Moves\Services\AppError::render(403);
+            return;
+        }
+        $id = (int) filter_var($_GET['id'] ?? 0, FILTER_VALIDATE_INT);
+        $attachment = (new Finance((int) FinanceContext::currentId()))->attachment($id);
+        if ($attachment === null) {
+            \Moves\Services\AppError::render(404);
+            return;
+        }
+        \Moves\Services\FinanceAttachments::stream($attachment);
+    }
+
+    /** Entrega a foto de uma meta; só encontra metas do contexto atual. */
+    public function goalPhoto(): void
+    {
+        if (SessionAuth::current() === null) {
+            \Moves\Services\AppError::render(403);
+            return;
+        }
+        $id = (int) filter_var($_GET['id'] ?? 0, FILTER_VALIDATE_INT);
+        $photo = (new Finance((int) FinanceContext::currentId()))->goalPhoto($id);
+        if ($photo === null) {
+            \Moves\Services\AppError::render(404);
+            return;
+        }
+        \Moves\Services\GoalPhotos::stream($photo);
     }
 }

@@ -1,0 +1,32 @@
+<?php
+use Moves\Services\{Finance,FinanceContext,RecurringFinance};
+$e=static fn(mixed $v):string=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+$service=new RecurringFinance((int)FinanceContext::currentId());
+$requestedStatus=is_string($_GET['situacao']??null)?$_GET['situacao']:'active';
+$status=in_array($requestedStatus,['active','paused','canceled'],true)?$requestedStatus:'active';
+$rows=$service->listing($status);$counts=$service->counts();$finance=new Finance((int)FinanceContext::currentId());$accounts=$finance->accounts();
+$expenseCategories=$finance->categories('expense');$incomeCategories=$finance->categories('income');
+$base=\Moves\Services\AppUrl::section('recorrencias',\Moves\Services\OrganizationContext::current());
+$frequencyLabels=['weekly'=>'Semanal','monthly'=>'Mensal','quarterly'=>'Trimestral','yearly'=>'Anual'];
+$actionForm=static function(string $action,string $label,int $id)use($e,$csrf):string{return '<form method="post" action="/minha-conta/financeiro/recorrencia/'.$e($action).'"><input type="hidden" name="csrf_token" value="'.$e($csrf).'"><input type="hidden" name="id" value="'.$id.'"><button type="submit">'.$e($label).'</button></form>';};
+?>
+<section class="card recurring-card">
+<div class="recurring-head"><div><h2>Assinaturas e recorrências</h2><p class="muted">Controle cobranças repetidas e receitas recorrentes em um só lugar.</p></div><button class="finance-button is-primary" type="button" data-finance-open="recurring-dialog">+ Nova recorrência</button></div>
+<nav class="recurring-tabs" aria-label="Situação das recorrências">
+<?php foreach(['active'=>'Ativas','paused'=>'Pausadas','canceled'=>'Canceladas'] as $key=>$label):?><a href="<?=$e($base.'?situacao='.$key)?>"<?=$status===$key?' class="is-active" aria-current="page"':''?>><?=$label?> (<?=$counts[$key]?>)</a><?php endforeach;?>
+</nav>
+<?php if($rows===[]):?><div class="recurring-empty"><strong>Nenhuma recorrência nesta situação</strong><p>Cadastre assinaturas, contas fixas ou receitas que se repetem.</p></div><?php else:?>
+<div class="recurring-table-wrap"><table class="recurring-table"><caption class="sr-only">Lista de assinaturas e recorrências</caption><thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th><th>Próxima cobrança</th><th>Situação</th><th><span class="sr-only">Ações</span></th></tr></thead><tbody>
+<?php foreach($rows as $row):?><tr><td><span class="recurring-brand" aria-hidden="true"><?=mb_strtoupper(mb_substr($row['name'],0,1))?></span><strong><?=$e($row['name'])?></strong><?php if($row['provider']):?><small><?=$e($row['provider'])?></small><?php endif;?></td><td><span class="recurring-category" style="--category-color:<?=$e($row['category_color']??'#6b7a73')?>"><?=$e($row['category_name']??'Sem categoria')?></span></td><td><?=Finance::money((int)$row['amount_cents'])?></td><td><?=$frequencyLabels[$row['frequency']]?></td><td><?=date('d/m/Y',strtotime($row['next_due_date']))?></td><td><span class="finance-badge <?=$status==='active'?'is-paid':'is-open'?>"><?=$status==='active'?'Ativa':($status==='paused'?'Pausada':'Cancelada')?></span></td><td><details class="recurring-menu"><summary aria-label="Ações para <?=$e($row['name'])?>">•••</summary><div><?php if($status==='active'):?><?=$actionForm('pause','Pausar',$row['id'])??''?><?php elseif($status==='paused'):?><?=$actionForm('activate','Reativar',$row['id'])??''?><?php endif;?><?php if($status!=='canceled'):?><?=$actionForm('cancel','Cancelar',$row['id'])??''?><?php endif;?></div></details></td></tr><?php endforeach;?>
+</tbody></table></div><?php endif;?>
+</section>
+<?php
+/* Formulários de ação são renderizados sem JavaScript e preservam CSRF. */
+?>
+<dialog class="finance-dialog recurring-dialog" id="recurring-dialog" aria-labelledby="recurring-dialog-title"><form method="post" action="/minha-conta/financeiro/recorrencia/criar"><header><h2 id="recurring-dialog-title">Nova recorrência</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header><input type="hidden" name="csrf_token" value="<?=$e($csrf)?>">
+<div class="finance-dialog-row"><label>Tipo<select name="item_type"><option value="subscription">Assinatura</option><option value="recurring">Conta ou receita recorrente</option></select></label><label>Movimento<select name="kind"><option value="expense">Despesa</option><option value="income">Receita</option></select></label></div>
+<label>Nome<input name="name" maxlength="160" required placeholder="Ex.: Netflix, aluguel ou mensalidade"></label><label>Fornecedor ou plano<input name="provider" maxlength="120" placeholder="Opcional"></label>
+<div class="finance-dialog-row"><label>Valor<input name="amount" inputmode="decimal" required placeholder="0,00"></label><label>Frequência<select name="frequency"><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="quarterly">Trimestral</option><option value="yearly">Anual</option></select></label></div>
+<div class="finance-dialog-row"><label>Próxima cobrança<input type="date" name="next_due_date" required></label><label>Conta<select name="account_id" required><option value="">Selecione</option><?php foreach($accounts as $account):?><option value="<?=(int)$account['id']?>"><?=$e($account['name'])?></option><?php endforeach;?></select></label></div>
+<label>Categoria<select name="category_id"><option value="">Sem categoria</option><optgroup label="Despesas"><?php foreach($expenseCategories as $category):?><option value="<?=(int)$category['id']?>"><?=$e($category['name'])?></option><?php endforeach;?></optgroup><optgroup label="Receitas"><?php foreach($incomeCategories as $category):?><option value="<?=(int)$category['id']?>"><?=$e($category['name'])?></option><?php endforeach;?></optgroup></select></label>
+<label class="recurring-check"><input type="checkbox" name="auto_create" value="1" checked> Criar automaticamente os próximos lançamentos</label><label>Observações<textarea name="notes" maxlength="500" rows="2"></textarea></label><footer><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Salvar recorrência</button></footer></form></dialog>

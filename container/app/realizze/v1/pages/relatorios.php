@@ -1,65 +1,142 @@
 <?php
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
+use Moves\Services\OrganizationContext;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-$csrf = (string) ($csrf ?? '');
 $period = Finance::period($_GET);
 $link = static fn (array $query): string => \Moves\Services\AppUrl::section('relatorios', null, $query);
-$flash = $_SESSION['finance_flash'] ?? null;
-unset($_SESSION['finance_flash']);
+$monthly = $period['view'] === 'mensal';
+$months = $monthly ? 6 : 12;
 $loadFailed = false;
-$data = null;
+$report = null;
 $series = [];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
-    $data = $finance->overview($period['start'], $period['end'], $period['compareStart'], $period['compareEnd']);
-    $series = $finance->monthlySeries($period['end']);
+    $report = $finance->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+    $series = $finance->monthlySeries($period['end'], $months);
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
 }
-$max = max([1, ...array_merge(...array_map(static fn (array $m): array => [$m['income'], $m['expense']], array_values($series ?: [['income' => 0, 'expense' => 0]])))]);
 $short = ['01' => 'Jan', '02' => 'Fev', '03' => 'Mar', '04' => 'Abr', '05' => 'Mai', '06' => 'Jun', '07' => 'Jul', '08' => 'Ago', '09' => 'Set', '10' => 'Out', '11' => 'Nov', '12' => 'Dez'];
-$categoryTotal = $data ? array_sum(array_column($data['categories'], 'total')) : 0;
+$weekdays = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+$brDate = static fn (string $date): string => (new DateTimeImmutable($date))->format('d/m/Y');
+$height = static fn (int $value, int $max): string => 'height:' . round($value / max(1, $max) * 100, 1) . '%';
+$holder = OrganizationContext::current()['name'] ?? 'Meu financeiro';
+$totals = $report['totals'] ?? [];
+$resultPaid = ($totals['income_paid'] ?? 0) - ($totals['expense_paid'] ?? 0);
+$resultExpected = ($totals['income'] ?? 0) - ($totals['expense'] ?? 0);
+$seriesMax = max([1, ...array_column($series, 'income'), ...array_column($series, 'expense')]);
+$daily = [];
+if ($monthly && $report !== null) {
+    foreach ($report['days'] as $day) {
+        $daily[(int) substr($day['date'], 8, 2)] = $day;
+    }
+}
+$dailyMax = max([1, ...array_column($daily, 'income'), ...array_column($daily, 'expense')]);
+$categoryRows = array_slice($report['categories'] ?? [], 0, 5);
+$otherCategories = array_sum(array_column(array_slice($report['categories'] ?? [], 5), 'total'));
+if ($otherCategories > 0) {
+    $categoryRows[] = ['name' => 'Outras', 'color' => '#98a2b3', 'total' => $otherCategories];
+}
+$categoryTotal = array_sum(array_column($report['categories'] ?? [], 'total'));
+$situation = static function (array $entry) use ($brDate): array {
+    if ($entry['cancelled']) return ['Cancelado', 'is-muted'];
+    if ($entry['paid_at'] !== null) {
+        $word = ['income' => 'Recebido', 'expense' => 'Pago', 'transfer' => 'Transferido'][$entry['kind']];
+        return [$word . ' em ' . substr($brDate((string) $entry['paid_at']), 0, 5), 'is-paid'];
+    }
+    if ($entry['paid_cents'] > 0) return ['Parcial: ' . Finance::money($entry['paid_cents']), $entry['overdue'] ? 'is-late' : 'is-open'];
+    if ($entry['overdue']) return ['Vencido', 'is-late'];
+    return [$entry['kind'] === 'income' ? 'A receber' : ($entry['kind'] === 'expense' ? 'A pagar' : 'Pendente'), 'is-open'];
+};
 ?>
-<section class="card finance-workspace" aria-labelledby="reports-title">
-  <div class="finance-toolbar">
-    <div><h2 id="reports-title">Relatórios</h2><p class="muted">Resultado de <?= $e($period['long']) ?> e evolução recente.</p></div>
-    <div class="finance-toolbar-actions no-print">
-      <a class="finance-button" href="/minha-conta/financeiro/exportar?<?= $e(http_build_query($period['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $period['start']->format('Y')] : ['mes' => $period['start']->format('Y-m')])) ?>" download>Exportar CSV</a>
-      <button type="button" class="primary" data-finance-print>Salvar em PDF</button>
+<section class="card finance-workspace finance-report" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
+  <header class="report-print-head">
+    <img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze">
+    <div><strong>Relatório financeiro: <?= $e($period['long']) ?></strong><span><?= $e($holder) ?> · Período de <?= $e($period['start']->format('d/m/Y')) ?> a <?= $e($period['end']->format('d/m/Y')) ?> · Emitido em <?= $e(date('d/m/Y H:i')) ?></span></div>
+  </header>
+  <div class="finance-toolbar no-print">
+    <div><h2 id="reports-title">Relatórios</h2><p class="muted">Resultado de <?= $e($period['long']) ?>, dia a dia.</p></div>
+    <div class="finance-toolbar-actions">
+      <a class="finance-button" href="/minha-conta/financeiro/exportar?<?= $e(http_build_query($monthly ? ['mes' => $period['start']->format('Y-m')] : ['visao' => 'anual', 'ano' => $period['start']->format('Y')])) ?>" download>Exportar CSV</a>
+      <button type="button" class="primary" data-finance-print>Gerar PDF</button>
     </div>
   </div>
   <div class="finance-filter-bar no-print">
     <nav class="finance-month" aria-label="Período"><a href="<?= $e($link($period['previous'])) ?>" aria-label="Período anterior">‹</a><strong><?= $e($period['long']) ?></strong><a href="<?= $e($link($period['next'])) ?>" aria-label="Próximo período">›</a></nav>
-    <nav class="finance-status" aria-label="Visão"><a href="<?= $e($link($period['view'] === 'mensal' ? ['mes' => $period['start']->format('Y-m')] : $period['other'])) ?>"<?= $period['view'] === 'mensal' ? ' aria-current="true"' : '' ?>>Mensal</a><a href="<?= $e($link($period['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $period['start']->format('Y')] : $period['other'])) ?>"<?= $period['view'] === 'anual' ? ' aria-current="true"' : '' ?>>Anual</a></nav>
+    <nav class="finance-status" aria-label="Visão"><a href="<?= $e($link($monthly ? ['mes' => $period['start']->format('Y-m')] : $period['other'])) ?>"<?= $monthly ? ' aria-current="true"' : '' ?>>Mensal</a><a href="<?= $e($link($monthly ? $period['other'] : ['visao' => 'anual', 'ano' => $period['start']->format('Y')])) ?>"<?= $monthly ? '' : ' aria-current="true"' ?>>Anual</a></nav>
   </div>
-  <?php if ($loadFailed || $data === null): ?>
+  <?php if ($loadFailed || $report === null): ?>
   <div class="finance-empty"><h3>Não foi possível carregar os relatórios</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php else: ?>
-  <div class="finance-goal-summary" aria-label="Resultado do período">
-    <div class="finance-goal-stat"><span>Receitas pagas</span><strong class="green"><?= $e(Finance::money($data['income_paid'])) ?></strong><small>Recebidas no período</small></div>
-    <div class="finance-goal-stat"><span>Despesas pagas</span><strong class="red"><?= $e(Finance::money($data['expense_paid'])) ?></strong><small>Pagas no período</small></div>
-    <div class="finance-goal-stat"><span>Resultado</span><strong class="<?= $data['result'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($data['result'])) ?></strong><small>Receitas − despesas</small></div>
+  <div class="finance-goal-summary is-four" aria-label="Indicadores do período">
+    <div class="finance-goal-stat"><span>Receitas</span><strong class="green"><?= $e(Finance::money($totals['income'])) ?></strong><small>Recebido <?= $e(Finance::money($totals['income_paid'])) ?> · a receber <?= $e(Finance::money($totals['income'] - $totals['income_paid'])) ?></small></div>
+    <div class="finance-goal-stat"><span>Despesas</span><strong class="red"><?= $e(Finance::money($totals['expense'])) ?></strong><small>Pago <?= $e(Finance::money($totals['expense_paid'])) ?> · a pagar <?= $e(Finance::money($totals['expense'] - $totals['expense_paid'])) ?></small></div>
+    <div class="finance-goal-stat"><span>Resultado previsto</span><strong class="<?= $resultExpected < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado até agora <?= $e(Finance::money($resultPaid)) ?></small></div>
+    <div class="finance-goal-stat"><span>Em atraso</span><strong class="<?= $totals['expense_overdue'] + $totals['income_overdue'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money($totals['expense_overdue'] + $totals['income_overdue'])) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
-  <div class="finance-report-panels">
-    <section class="finance-report-panel"><h3>Receitas e despesas, últimos 6 meses</h3>
-      <div class="bars" role="img" aria-label="Gráfico de barras de receitas e despesas por mês">
-        <?php foreach ($series as $key => $values): ?>
-        <div class="bars-month"><div class="bars-pair"><span class="bar bar-income" data-height="<?= round($values['income'] / $max * 100, 1) ?>" title="Receitas: <?= $e(Finance::money($values['income'])) ?>"></span><span class="bar bar-expense" data-height="<?= round($values['expense'] / $max * 100, 1) ?>" title="Despesas: <?= $e(Finance::money($values['expense'])) ?>"></span></div><small><?= $e($short[substr((string) $key, 5)]) ?></small></div>
-        <?php endforeach; ?>
+  <div class="finance-report-panels<?= $monthly ? ' has-daily' : '' ?>">
+    <?php if ($monthly): ?>
+    <section class="finance-report-panel"><h3>Receitas e despesas por dia</h3>
+      <div class="bars report-daily" role="img" aria-label="Gráfico de barras de receitas e despesas por dia do mês">
+        <?php for ($dayNumber = 1, $last = (int) $period['end']->format('j'); $dayNumber <= $last; $dayNumber++): $point = $daily[$dayNumber] ?? ['income' => 0, 'expense' => 0]; ?>
+        <div class="bars-month"><div class="bars-pair"><span class="bar bar-income" style="<?= $height($point['income'], $dailyMax) ?>" title="Dia <?= $dayNumber ?>, receitas: <?= $e(Finance::money($point['income'])) ?>"></span><span class="bar bar-expense" style="<?= $height($point['expense'], $dailyMax) ?>" title="Dia <?= $dayNumber ?>, despesas: <?= $e(Finance::money($point['expense'])) ?>"></span></div><small><?= $dayNumber === 1 || $dayNumber % 5 === 0 ? $dayNumber : '&nbsp;' ?></small></div>
+        <?php endfor; ?>
       </div>
       <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
     </section>
+    <?php endif; ?>
+    <section class="finance-report-panel"><h3>Recebido e pago, <?= $monthly ? 'últimos 6 meses' : 'mês a mês' ?></h3>
+      <div class="bars" role="img" aria-label="Gráfico de barras de valores recebidos e pagos por mês">
+        <?php foreach ($series as $key => $values): ?>
+        <div class="bars-month"><div class="bars-pair"><span class="bar bar-income" style="<?= $height($values['income'], $seriesMax) ?>" title="Recebido: <?= $e(Finance::money($values['income'])) ?>"></span><span class="bar bar-expense" style="<?= $height($values['expense'], $seriesMax) ?>" title="Pago: <?= $e(Finance::money($values['expense'])) ?>"></span></div><small><?= $e($short[substr((string) $key, 5)]) ?></small></div>
+        <?php endforeach; ?>
+      </div>
+    </section>
     <section class="finance-report-panel"><h3>Despesas por categoria</h3>
-      <?php if ($data['categories'] === []): ?><p class="muted">Sem despesas no período.</p><?php else: ?>
+      <?php if ($categoryRows === []): ?><p class="muted">Sem despesas no período.</p><?php else: ?>
       <ul class="report-bars">
-        <?php foreach ($data['categories'] as $category): $share = $categoryTotal ? $category['total'] / $categoryTotal * 100 : 0; ?>
-        <li><span><?= $e($category['name']) ?><b><?= $e(Finance::money($category['total'])) ?></b></span><div class="track"><span data-width="<?= round($share, 1) ?>" style="background:<?= $e($category['color']) ?>"></span></div></li>
+        <?php foreach ($categoryRows as $category): ?>
+        <li><span><?= $e($category['name']) ?><b><?= $e(Finance::money($category['total'])) ?></b></span><div class="track"><span style="width:<?= round($category['total'] / max(1, $categoryTotal) * 100, 1) ?>%;background:<?= $e($category['color']) ?>"></span></div></li>
         <?php endforeach; ?>
       </ul><?php endif; ?>
     </section>
   </div>
+  <section class="report-daily-list" aria-labelledby="report-days-title">
+    <h3 id="report-days-title">Dia a dia <small><?= (int) $report['count'] ?> <?= $report['count'] === 1 ? 'lançamento' : 'lançamentos' ?>, pela data de vencimento</small></h3>
+    <?php if ($report['days'] === []): ?>
+    <div class="finance-empty"><h3>Nenhum lançamento neste período</h3><p>Os lançamentos de <?= $e($period['long']) ?> aparecem aqui, um a um.</p></div>
+    <?php else: ?>
+    <div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="report-days-title">
+      <table class="report-table">
+        <thead><tr><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Situação</th><th class="is-money">Entrada</th><th class="is-money">Saída</th></tr></thead>
+        <?php foreach ($report['days'] as $day): $date = new DateTimeImmutable($day['date']); ?>
+        <tbody>
+          <tr class="report-day">
+            <th scope="rowgroup" colspan="4"><?= $e($date->format('d/m/Y')) ?> <em><?= $e($weekdays[(int) $date->format('w')]) ?></em><span>Resultado do dia <?= $e(Finance::money($day['result'])) ?> · acumulado <?= $e(Finance::money($day['accumulated'])) ?></span></th>
+            <td class="is-money green"><?= $day['income'] > 0 ? $e(Finance::money($day['income'])) : '' ?></td>
+            <td class="is-money red"><?= $day['expense'] > 0 ? $e(Finance::money($day['expense'])) : '' ?></td>
+          </tr>
+          <?php foreach ($day['entries'] as $entry): [$label, $tone] = $situation($entry); $money = $e(Finance::money((int) $entry['amount_cents'])); ?>
+          <tr class="<?= $entry['cancelled'] ? 'is-cancelled' : '' ?>">
+            <td><?= $e($entry['description']) ?><?php if (($entry['counterparty_name'] ?? '') !== ''): ?><small><?= $e($entry['counterparty_name']) ?></small><?php endif; ?></td>
+            <td><?= $e($entry['kind'] === 'transfer' ? 'Transferência' : ($entry['category'] ?? 'Sem categoria')) ?></td>
+            <td><?= $e($entry['account']) ?><?= $entry['kind'] === 'transfer' && $entry['target_account'] !== null ? ' → ' . $e($entry['target_account']) : '' ?></td>
+            <td><span class="report-situation <?= $tone ?>"><?= $e($label) ?></span></td>
+            <?php if ($entry['kind'] === 'transfer'): ?><td class="is-money is-neutral" colspan="2"><?= $money ?></td>
+            <?php elseif ($entry['kind'] === 'income'): ?><td class="is-money"><?= $money ?></td><td></td>
+            <?php else: ?><td></td><td class="is-money"><?= $money ?></td><?php endif; ?>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+        <?php endforeach; ?>
+        <tfoot><tr><th scope="row" colspan="4">Total do período <span>Resultado previsto <?= $e(Finance::money($resultExpected)) ?></span></th><td class="is-money green"><?= $e(Finance::money($totals['income'])) ?></td><td class="is-money red"><?= $e(Finance::money($totals['expense'])) ?></td></tr></tfoot>
+      </table>
+    </div>
+    <p class="report-note">Transferências entre contas e lançamentos cancelados aparecem na lista, mas não entram nos totais. Dias sem lançamentos não aparecem.</p>
+    <?php endif; ?>
+  </section>
   <?php endif; ?>
 </section>

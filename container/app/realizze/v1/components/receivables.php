@@ -29,7 +29,8 @@ $result = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1, 'per_page' => 
 $summary = ['to_receive' => 0, 'received' => 0, 'overdue' => 0, 'forecast' => 0];
 $loadFailed = false;
 $receivables = null;
-$tabCounts = [];
+$tabCounts = $entryTags = $entryDetails = [];
+$entryExtras = false;
 try {
     $contextId = FinanceContext::currentId();
     if ($contextId === null) {
@@ -45,7 +46,10 @@ try {
         'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'page' => $page,
     ]);
     $summary = $receivables->summary($start, $end);
-    $base = ['start' => $start, 'end' => $end, 'search' => $search, 'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'per_page' => 5];
+    $entryExtras = $finance->supportsEntryExtras();
+    $entryTags = $finance->tags();
+    $entryDetails = $finance->entryDetails(array_map(static fn (array $row): int => (int) $row['id'], $result['rows']));
+    $base =['start' => $start, 'end' => $end, 'search' => $search, 'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'per_page' => 5];
     foreach (['pending', 'overdue', 'partially_received', 'received', 'cancelled'] as $tabStatus) {
         $tabCounts[$tabStatus] = $receivables->listing($base + ['status' => $tabStatus])['total'];
     }
@@ -95,23 +99,50 @@ $renderState = static function () use ($state, $e): void {
     <div class="finance-goal-stat"><span>Previsto no período</span><strong><?= $e(Finance::money($summary['forecast'])) ?></strong><small>Valor original não cancelado</small></div>
   </div>
 
+  <div class="finance-filter-bar">
   <nav class="finance-status receivables-tabs" aria-label="Situação">
     <a href="<?= $e($query(['situacao' => '', 'page' => ''])) ?>"<?= $status === '' ? ' aria-current="true"' : '' ?>>Todos (<?= array_sum($tabCounts) ?>)</a>
     <?php foreach (['pending' => 'Pendentes', 'overdue' => 'Vencidos', 'partially_received' => 'Parciais', 'received' => 'Recebidos', 'cancelled' => 'Cancelados'] as $value => $label): ?>
     <a href="<?= $e($query(['situacao' => $value, 'page' => ''])) ?>"<?= $status === $value ? ' aria-current="true"' : '' ?>><?= $e($label) ?> (<?= (int) ($tabCounts[$value] ?? 0) ?>)</a>
     <?php endforeach; ?>
   </nav>
+  <?php $filterPanelId = 'receivable-filters'; require __DIR__ . '/filter-button.php'; ?>
+  </div>
 
-  <form class="receivables-filters" method="get" action="<?= $e(\Moves\Services\AppUrl::section('receber')) ?>" data-swap-get>
+  <?php
+  $filterQuery = array_filter(['inicio' => $start, 'fim' => $end, 'situacao' => $status, 'busca' => $search, 'categoria' => $category ?: '', 'cliente' => $counterparty, 'contato' => $contactFilter ?: ''], static fn (mixed $value): bool => $value !== '');
+  $without = static fn (string ...$keys): string => \Moves\Services\AppUrl::section('receber', null, array_diff_key($filterQuery, array_flip($keys)));
+  $findName = static function (array $items, mixed $id, string ...$fields): string {
+      foreach ($items as $item) {
+          if ((int) $item['id'] === (int) $id) {
+              foreach ($fields as $field) {
+                  if (!empty($item[$field])) return (string) $item[$field];
+              }
+          }
+      }
+      return '';
+  };
+  $filterChips = [];
+  if ($start !== date('Y-m-01') || $end !== date('Y-m-t')) $filterChips['Vencimento: ' . (new DateTimeImmutable($start))->format('d/m/Y') . ' a ' . (new DateTimeImmutable($end))->format('d/m/Y')] = $without('inicio', 'fim');
+  if ($search !== '') $filterChips['Busca: ' . $search] = $without('busca');
+  if ($category) $filterChips['Categoria: ' . $findName($categories, $category, 'name')] = $without('categoria');
+  if ($counterparty !== '') $filterChips['Cliente: ' . $counterparty] = $without('cliente');
+  if ($contactFilter) $filterChips['Cliente: ' . $findName($customers, $contactFilter, 'trade_name', 'legal_name')] = $without('contato');
+  $filterClearUrl = \Moves\Services\AppUrl::section('receber', null, $status === '' ? [] : ['situacao' => $status]);
+  require __DIR__ . '/filter-bar.php';
+  ?>
+<dialog class="finance-dialog filter-dialog" id="receivable-filters" aria-labelledby="receivable-filters-title">
+  <form method="get" action="<?= $e(\Moves\Services\AppUrl::section('receber')) ?>" data-swap-get>
+    <header><h2 id="receivable-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <?php $periodStart = $start; $periodEnd = $end; require __DIR__ . '/filter-period.php'; ?>
     <label>Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Descrição ou documento"></label>
-    <label>Início<input type="date" name="inicio" value="<?= $e($start) ?>"></label>
-    <label>Fim<input type="date" name="fim" value="<?= $e($end) ?>"></label>
     <?php if ($status !== ''): ?><input type="hidden" name="situacao" value="<?= $e($status) ?>"><?php endif; ?>
     <label>Categoria<select name="categoria"><option value="">Todas</option><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $category !== false && (int) $category === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
     <label>Cliente ou origem<input name="cliente" value="<?= $e($counterparty) ?>" maxlength="160"></label>
     <label>Cliente cadastrado<select name="contato"><option value="">Todos</option><?php foreach ($customers as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= $contactFilter !== false && (int) $contactFilter === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
-    <div class="receivables-filter-actions"><button type="submit" class="primary">Filtrar</button><a href="<?= $e(\Moves\Services\AppUrl::section('receber')) ?>">Limpar</a></div>
+    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Aplicar</button></footer>
   </form>
+</dialog>
 
   <?php if ($loadFailed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar os recebimentos</h3><p>Verifique a migração do banco e tente novamente.</p></div>
@@ -128,8 +159,8 @@ $renderState = static function () use ($state, $e): void {
           $editable = $entry['display_status'] !== 'cancelled';
           $canSettle = in_array($entry['display_status'], ['pending', 'partially_received', 'overdue'], true);
       ?>
-      <tr>
-        <td><strong><?= $e($entry['description']) ?></strong><small class="receivables-origin"><?= $e($entry['counterparty_name'] ?: 'Origem não informada') ?><?= $entry['document_number'] ? ' · Doc. ' . $e($entry['document_number']) : '' ?></small></td>
+      <tr id="lancamento-<?= (int) $entry['id'] ?>">
+        <td><strong><?= $e($entry['description']) ?></strong><small class="receivables-origin"><?= $e($entry['counterparty_name'] ?: 'Origem não informada') ?><?= $entry['document_number'] ? ' · Doc. ' . $e($entry['document_number']) : '' ?></small><?php $detail = $entryDetails[(int) $entry['id']] ?? null; $metaHideNotes = true; require __DIR__ . '/entry-meta.php'; ?></td>
         <td class="nowrap<?= $entry['display_status'] === 'overdue' ? ' red' : '' ?>"><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?><?php if ($entry['display_status'] === 'overdue'): $late = (int) (new DateTimeImmutable($entry['due_date']))->diff(new DateTimeImmutable('today'))->days; ?><small class="receivables-origin">há <?= $late ?> dia<?= $late === 1 ? '' : 's' ?></small><?php endif; ?></td>
         <td class="num"><?= $e(Finance::money($entry['amount_cents'])) ?></td>
         <td class="num"><strong><?= $e(Finance::money($entry['balance_cents'])) ?></strong></td>
@@ -199,9 +230,12 @@ $renderState = static function () use ($state, $e): void {
   <?php if ($result['pages'] > 1): ?><nav class="receivables-pagination" aria-label="Páginas de recebimentos"><?php for ($number = 1; $number <= $result['pages']; $number++): ?><a href="<?= $e($query(['page' => $number])) ?>"<?= $number === $result['page'] ? ' aria-current="page"' : '' ?>><?= $number ?></a><?php endfor; ?></nav><?php endif; ?>
 </section>
 
-<dialog class="finance-dialog" id="receivable-create" aria-labelledby="receivable-create-title"><form method="post" action="/minha-conta/financeiro/recebimento" data-finance-form>
+<dialog class="finance-dialog entry-dialog" id="receivable-create" aria-labelledby="receivable-create-title"><form method="post" action="/minha-conta/financeiro/recebimento" enctype="multipart/form-data" data-finance-form data-entry-form>
   <header><h2 id="receivable-create-title">Novo recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
   <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="idempotency_key" value="<?= $e(bin2hex(random_bytes(16))) ?>"><?php $renderState(); ?>
-  <?php $formEntry = ['description' => '', 'amount_cents' => 0, 'due_date' => $today, 'competency_date' => $competence . '-01', 'counterparty_name' => '', 'contact_id' => null, 'notes' => '', 'document_number' => '', 'payment_method' => 'pix', 'account_id' => $accounts[0]['id'] ?? 0, 'category_id' => $categories[0]['id'] ?? 0]; require __DIR__ . '/receivables-fields.php'; ?>
-  <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar recebimento</button></footer>
+  <?php $formEntry = ['description' => '', 'amount_cents' => 0, 'due_date' => $today, 'competency_date' => $competence . '-01', 'counterparty_name' => '', 'contact_id' => null, 'notes' => '', 'document_number' => '', 'payment_method' => 'pix', 'account_id' => $accounts[0]['id'] ?? 0, 'category_id' => $categories[0]['id'] ?? 0]; $entryCreateForm = $entryExtras; require __DIR__ . '/receivables-fields.php'; ?>
+  <label class="entry-switch"><input type="checkbox" name="paid" value="1"><span aria-hidden="true"></span>Já foi recebido</label>
+  <?php if ($entryExtras): $extrasId = 'receivable-create'; $extrasTags = $entryTags; require __DIR__ . '/entry-extras.php'; endif; ?>
+  <p class="entry-error" role="alert" data-entry-error hidden></p>
+  <footer><span class="entry-total" data-entry-total-box>Total <strong data-entry-total>R$ 0,00</strong></span><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar recebimento</button></footer>
 </form></dialog>
