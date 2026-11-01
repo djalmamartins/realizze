@@ -90,9 +90,27 @@ final class CmsSite
     public static function publishedPost(string $uri): ?array
     {
         return self::safe(static fn () => CmsQuery::one(
-            "SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE p.uri=? AND p.status='published' AND p.deleted_at IS NULL",
+            "SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE p.uri=? AND p.status='published' AND p.deleted_at IS NULL AND p.post_type<>'help'",
             [$uri]
         ), null);
+    }
+
+    /** Base de conhecimento: artigos do tipo Ajuda, lidos pelo App e pelo CMS. */
+    public static function helpArticles(string $search, int $page, int $perPage = 20): array
+    {
+        $where = "p.status='published' AND p.deleted_at IS NULL AND p.post_type='help'";
+        $args = [];
+        if ($search !== '') {
+            $where .= ' AND (p.title LIKE ? OR p.subtitle LIKE ? OR p.content LIKE ?)';
+            array_push($args, '%' . $search . '%', '%' . $search . '%', '%' . $search . '%');
+        }
+        return self::safe(static fn () => CmsQuery::page('FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE ' . $where, 'p.id,p.title,p.uri,p.subtitle,c.title AS category_title', 'c.title, p.title', $args, $page, $perPage), ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1]);
+    }
+
+    public static function helpArticle(string $column, int|string $value): ?array
+    {
+        $column = $column === 'id' ? 'p.id' : 'p.uri';
+        return self::safe(static fn () => CmsQuery::one("SELECT p.*, c.title AS category_title FROM posts p LEFT JOIN categories c ON c.id=p.category WHERE {$column}=? AND p.status='published' AND p.deleted_at IS NULL AND p.post_type='help'", [$value]), null);
     }
 
     public static function publishedFaqs(): array

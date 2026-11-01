@@ -29,11 +29,12 @@ $unread = isset($admin) ? \Moves\Services\HelpdeskNotifier::unread((int) $admin[
  </div>
 </header>
 <main class="cms-content" id="cms-content" tabindex="-1">
-<h1 id="cms-page-title"><?= V::e($title ?? '') ?></h1>
+<header class="cms-page-head"><?php if (($group ?? '') !== ''): ?><span class="cms-eyebrow"><?= V::e($group) ?></span><?php endif; ?><h1 id="cms-page-title"><?= V::e($title ?? '') ?></h1></header>
 <?php if (!empty($flash)): ?><div class="cms-alert cms-alert-<?= $flash[0] === 'success' ? 'ok' : 'bad' ?>" role="<?= $flash[0] === 'success' ? 'status' : 'alert' ?>"><?= V::e($flash[1]) ?></div><?php endif; ?>
 <?= $this->section('content', '') ?>
 </main>
 <footer class="cms-footer">Realizze CMS</footer>
+<a class="cms-help" href="/ajuda"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.7M12 17h.01"/></svg>Ajuda</a>
 </div></div>
 <script src="/assets/realizze-cms/v1/js/cms.min.js?v=<?= (int) @filemtime($js) ?>" defer></script>
 </body></html>

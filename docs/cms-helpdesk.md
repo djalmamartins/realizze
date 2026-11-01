@@ -12,7 +12,7 @@ Fora do ambiente local, o CMS só abre com `REALIZZE_CMS_ENABLED=1`.
 
 ## Migrations
 
-`100` administração, `101` conteúdo, `102` planos e cobranças, `103` atendimento, `104` respostas rápidas. São aditivas e usam numeração própria para não colidir com as do App.
+`100` administração, `101` conteúdo, `102` planos e cobranças, `103` atendimento, `104` respostas rápidas, `105` equipe, tags e tempo dedicado. São aditivas e usam numeração própria para não colidir com as do App.
 
 ## Papéis
 
@@ -74,6 +74,10 @@ Comparação para aviso interno à equipe e aviso ao cliente. Preços e limites 
 | Confiabilidade | Boa para equipe interna | Boa para falar com clientes | Boa, depende também do provedor |
 
 Recomendação: Telegram para a equipe agora. WhatsApp Cloud API direto só quando houver demanda de avisar clientes por esse canal, pois exige conta verificada e custo por mensagem. Bibliotecas não oficiais que simulam o WhatsApp Web ficam descartadas: colocam o número em risco de bloqueio. O botão de WhatsApp da aba lateral é só um link `wa.me`, exibido quando o número é configurado no CMS.
+
+## Base de conhecimento e assinatura no App
+
+Artigos do tipo Ajuda em Conteúdos aparecem em `/suporte/ajuda` no App e em `/ajuda` no CMS, e não entram no blog. `/minha-assinatura` mostra plano, situação e limites do contexto atual. Os limites são apenas exibidos: nenhum módulo do App os aplica ainda.
 
 ## Testes
 

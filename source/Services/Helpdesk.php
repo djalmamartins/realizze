@@ -294,6 +294,10 @@ final class Helpdesk
             $where[] = 't.assignee_user_id=?';
             $args[] = (int) $filters['assignee'];
         }
+        if (($filters['tag'] ?? '') !== '') {
+            $where[] = 'EXISTS (SELECT 1 FROM helpdesk_ticket_tags g WHERE g.ticket_id=t.id AND g.tag=?)';
+            $args[] = mb_strtolower($filters['tag']);
+        }
         if (($filters['queue'] ?? '') === '1') {
             $where[] = "t.status IN ('open','waiting_agent','in_progress')";
         }
@@ -351,6 +355,60 @@ final class Helpdesk
             }
         }
         return [$changed, $skipped];
+    }
+
+    /** Abertura pela equipe em nome do cliente. A primeira mensagem é pública. */
+    public static function staffOpen(array $input, array $admin): array
+    {
+        $user = CmsQuery::one("SELECT id FROM users WHERE email=? AND status='active'", [CmsContent::text($input['requester_email'] ?? '', 255, 'Cliente')]);
+        if ($user === null) {
+            throw new InvalidArgumentException('Não há cliente ativo com este e-mail.');
+        }
+        $ticket = self::open((int) $user['id'], null, $input);
+        CmsQuery::run('UPDATE helpdesk_tickets SET opened_by_user_id=COALESCE(opened_by_user_id,?) WHERE id=?', [$admin['id'], $ticket['id']]);
+        CmsAudit::record((int) $admin['id'], 'ticket.created_by_staff', 'ticket', (string) $ticket['id']);
+        return $ticket;
+    }
+
+    public static function saveTriage(array $ticket, array $input, array $admin): void
+    {
+        $id = (int) $ticket['id'];
+        $team = CmsContent::text($input['team'] ?? '', 60, 'Equipe');
+        $tags = array_values(array_unique(array_filter(array_map(
+            static fn (string $tag): string => mb_strtolower(mb_substr(trim($tag), 0, 40)),
+            explode(',', is_string($input['tags'] ?? null) ? $input['tags'] : '')
+        ), 'strlen')));
+        if (count($tags) > 10) {
+            throw new InvalidArgumentException('Use no máximo 10 tags.');
+        }
+        CmsQuery::transaction(static function () use ($id, $team, $tags, $admin): void {
+            CmsQuery::run('UPDATE helpdesk_tickets SET team=? WHERE id=?', [$team, $id]);
+            CmsQuery::run('DELETE FROM helpdesk_ticket_tags WHERE ticket_id=?', [$id]);
+            foreach ($tags as $tag) {
+                CmsQuery::run('INSERT INTO helpdesk_ticket_tags (ticket_id,tag) VALUES (?,?)', [$id, $tag]);
+            }
+            CmsAudit::record((int) $admin['id'], 'ticket.triage_updated', 'ticket', (string) $id, ['team' => $team, 'tags' => $tags]);
+        });
+    }
+
+    public static function tags(int $ticketId): array
+    {
+        return array_column(CmsQuery::all('SELECT tag FROM helpdesk_ticket_tags WHERE ticket_id=? ORDER BY tag', [$ticketId]), 'tag');
+    }
+
+    public static function addTime(array $ticket, mixed $minutes, string $note, array $admin): void
+    {
+        $value = filter_var($minutes, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1440]]);
+        if ($value === false) {
+            throw new InvalidArgumentException('Informe de 1 a 1.440 minutos.');
+        }
+        CmsQuery::run('INSERT INTO helpdesk_time_entries (ticket_id,user_id,minutes,note,created_at) VALUES (?,?,?,?,NOW())', [$ticket['id'], $admin['id'], $value, CmsContent::text($note, 190, 'Observação')]);
+        CmsAudit::record((int) $admin['id'], 'ticket.time_added', 'ticket', (string) $ticket['id'], ['minutes' => $value]);
+    }
+
+    public static function timeEntries(int $ticketId): array
+    {
+        return CmsQuery::all("SELECT e.minutes,e.note,e.created_at,CONCAT(u.first_name,' ',u.last_name) AS author FROM helpdesk_time_entries e LEFT JOIN users u ON u.id=e.user_id WHERE e.ticket_id=? ORDER BY e.id DESC", [$ticketId]);
     }
 
     public static function quickReplies(): array
@@ -554,6 +612,7 @@ final class Helpdesk
             'reopened' => (int) CmsQuery::value('SELECT COUNT(*) FROM helpdesk_tickets WHERE reopened_count>0'),
             'by_status' => CmsQuery::all('SELECT status, COUNT(*) AS total FROM helpdesk_tickets GROUP BY status ORDER BY total DESC'),
             'by_category' => CmsQuery::all('SELECT c.name, COUNT(*) AS total FROM helpdesk_tickets t JOIN helpdesk_categories c ON c.id=t.category_id GROUP BY c.id,c.name ORDER BY total DESC LIMIT 20'),
+            'time_total' => (int) CmsQuery::value('SELECT COALESCE(SUM(minutes),0) FROM helpdesk_time_entries'),
             'by_agent' => CmsQuery::all(
                 "SELECT CONCAT(u.first_name,' ',u.last_name) AS name, COUNT(*) AS total, SUM(t.status IN ('resolved','closed')) AS resolved
                  FROM helpdesk_tickets t JOIN users u ON u.id=t.assignee_user_id GROUP BY u.id,u.first_name,u.last_name ORDER BY total DESC LIMIT 20"

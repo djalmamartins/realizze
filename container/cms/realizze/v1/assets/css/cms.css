@@ -123,3 +123,52 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:540px){.cms-breadcrumbs{font-size:.78rem}.cms-profile summary{font-size:0}.cms-profile summary span{font-size:15px}.cms-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.cms-dl{grid-template-columns:minmax(0,1fr)}.cms-dl dt{margin-top:6px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 @media (forced-colors: active){.cms-nav a.selected{outline:2px solid Highlight}.cms-skip-link:focus-visible{outline:3px solid Highlight}.cms-alert,.cms-badge{border:1px solid CanvasText}}
+/* Refinamento visual: conteúdo centralizado, hierarquia clara e superfícies leves. */
+.cms-shell{grid-template-columns:248px minmax(0,1fr)}
+.cms-content{width:100%;max-width:1240px;margin-inline:auto;padding:28px 32px 40px}
+.cms-page-head{margin-bottom:18px}
+.cms-eyebrow{display:block;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--rz-green-2);margin-bottom:3px}
+h1{font-size:1.75rem;letter-spacing:-.02em;margin:0;line-height:1.2}
+.cms-lead{color:var(--rz-muted);margin:-8px 0 20px}
+.cms-section-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:22px 0 10px}
+.cms-section-head h2{margin:0}
+.cms-section-head a{font-size:.85rem;text-decoration:none;font-weight:600}
+.cms-card,.cms-kpi{border-color:#eceef1;box-shadow:0 1px 2px rgba(17,24,39,.04);border-radius:14px}
+.cms-card{padding:22px}
+.cms-kpi{padding:16px 18px;position:relative;overflow:hidden}
+.cms-kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--rz-green)}
+.cms-kpi span{font-size:.8rem}
+.cms-sidebar{padding:18px 12px;display:flex;flex-direction:column}
+.cms-nav{flex:1}
+.cms-nav-group summary{list-style:none;display:flex;justify-content:space-between;align-items:center;border-radius:7px}
+.cms-nav-group summary::-webkit-details-marker{display:none}
+.cms-nav-group summary::after{content:"";width:6px;height:6px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(-45deg);margin-right:4px}
+.cms-nav-group[open] summary::after{transform:rotate(45deg)}
+.cms-nav-group summary:hover{background:var(--rz-bg)}
+.cms-nav a{font-size:.92rem;padding:7px 10px}
+.cms-nav a.selected{box-shadow:inset 3px 0 0 var(--rz-green)}
+.cms-sidebar-foot{border-top:1px solid var(--rz-line);padding-top:10px;margin-top:10px}
+.cms-sidebar-foot a{display:flex;gap:10px;align-items:center;padding:7px 10px;color:var(--rz-muted);text-decoration:none;font-size:.9rem}
+.cms-topbar{padding:10px 32px}
+.cms-footer{max-width:1240px;width:100%;margin-inline:auto;padding:12px 32px}
+th{background:#f9fafb;border-bottom:1px solid #eceef1}
+th:first-child{border-top-left-radius:8px}
+th:last-child{border-top-right-radius:8px}
+tbody tr:hover{background:#fafbfb}
+td a{font-weight:600;text-decoration:none}
+.cms-filters{padding-bottom:14px;border-bottom:1px solid #f0f1f3}
+form.cms-card .cms-filters,.cms-bulk{border-bottom:0;padding-bottom:0}
+.cms-field label{color:#374151;font-size:.82rem}
+input:not([type=checkbox],[type=radio],[type=hidden]):focus,select:focus,textarea:focus{border-color:var(--rz-green);box-shadow:0 0 0 3px rgba(22,163,74,.14);outline:none}
+.cms-btn-primary{box-shadow:0 1px 2px rgba(15,122,57,.25)}
+.cms-btn:hover{background:#f9fafb}
+.cms-empty{padding:44px 16px}
+.cms-help{position:fixed;right:20px;bottom:20px;z-index:6;display:inline-flex;gap:7px;align-items:center;background:var(--rz-green);color:#fff;font-weight:600;padding:10px 16px;border-radius:999px;text-decoration:none;box-shadow:0 8px 22px rgba(15,122,57,.3)}
+.cms-help:hover{background:var(--rz-green-dark)}
+.cms-login{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:0;align-items:stretch;place-items:stretch}
+.cms-login-brand{background:linear-gradient(150deg,#052f28,#07513f 60%,#059669);color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:flex-end}
+.cms-login-brand strong{font-size:1.7rem;line-height:1.2;max-width:420px}
+.cms-login-brand p{opacity:.85;max-width:420px}
+.cms-login-card{align-self:center;justify-self:center;margin:24px 16px;box-shadow:0 8px 30px rgba(17,24,39,.07)}
+@media(max-width:850px){.cms-shell{grid-template-columns:minmax(0,1fr)}.cms-sidebar{display:block}.cms-sidebar-foot{display:none}.cms-content{padding:18px 16px 70px}.cms-topbar{padding:10px 16px}.cms-footer{padding:12px 16px}.cms-login{grid-template-columns:minmax(0,1fr)}.cms-login-brand{display:none}h1{font-size:1.45rem}}
+.cms-form-grid{align-items:start}

@@ -406,6 +406,60 @@ try {
     $bulk = \Moves\Services\Helpdesk::bulkStatus([$tid, $orgTicket['id']], 'resolved', ['id' => $users['super']['id']]);
     $ok($bulk === [1, 1] && Q::value('SELECT status FROM helpdesk_tickets WHERE id=?', [$tid]) === 'closed', 'Lote respeita a máquina de estados');
 
+    // Atendimento avançado
+    $super->get('/chamados/novo');
+    $super->post('/acao/ticket-create', ['requester_email' => $users['other']['email'], 'subject' => 'Aberto pela equipe', 'body' => 'Contato por telefone', 'category_id' => $category]);
+    $staffTicket = Q::one('SELECT * FROM helpdesk_tickets WHERE requester_user_id=? ORDER BY id DESC LIMIT 1', [$users['other']['id']]);
+    $ok($staffTicket !== null && (int) $staffTicket['opened_by_user_id'] === $users['super']['id'], 'Equipe abre chamado em nome do cliente');
+    $sid = (int) $staffTicket['id'];
+    $other->get('/suporte/' . $staffTicket['protocol']);
+    $ok($other->status === 200, 'Cliente vê o chamado aberto pela equipe');
+    $super->get('/chamados/' . $sid);
+    $super->post('/acao/ticket-triage', ['id' => $sid, 'team' => 'Suporte técnico', 'tags' => 'Acesso, urgente, acesso']);
+    $ok(\Moves\Services\Helpdesk::tags($sid) === ['acesso', 'urgente'], 'Tags normalizadas');
+    $super->get('/chamados?tag=acesso');
+    $ok(str_contains($super->body, $staffTicket['protocol']), 'Filtro por tag');
+    $other->get('/suporte/' . $staffTicket['protocol']);
+    $ok(!str_contains($other->body, 'Suporte técnico') && !str_contains($other->body, 'urgente'), 'Equipe e tags não aparecem ao cliente');
+    $supportStaff->get('/chamados/' . $sid);
+    $supportStaff->post('/acao/ticket-time', ['id' => $sid, 'minutes' => '0']);
+    $supportStaff->post('/acao/ticket-time', ['id' => $sid, 'minutes' => '25', 'note' => 'Análise']);
+    $ok((int) Q::value('SELECT SUM(minutes) FROM helpdesk_time_entries WHERE ticket_id=?', [$sid]) === 25, 'Tempo dedicado validado e somado');
+    $other->get('/suporte/' . $staffTicket['protocol']);
+    $ok(!str_contains($other->body, 'Análise'), 'Tempo não aparece ao cliente');
+
+    // Base de conhecimento
+    $helpUri = 'ajuda-e2e-' . bin2hex(random_bytes(3));
+    $super->get('/conteudos/novo?type=help');
+    $super->post('/acao/post-save', ['title' => 'Como emitir relatório', 'uri' => $helpUri, 'subtitle' => 'Passo a passo', 'content' => '<p>Corpo da ajuda</p>', 'post_type' => 'help']);
+    $helpId = (int) Q::value('SELECT id FROM posts WHERE uri=?', [$helpUri]);
+    $created['posts'][] = $helpId;
+    $other->get('/suporte/ajuda');
+    $ok(!str_contains($other->body, 'Como emitir relatório'), 'Rascunho de ajuda fica oculto');
+    $super->post('/acao/post-publish', ['id' => $helpId, 'publish' => '1']);
+    $other->get('/suporte/ajuda?q=relat%C3%B3rio');
+    $ok(str_contains($other->body, 'Como emitir relatório'), 'Pesquisa na base de conhecimento do App');
+    $other->get('/suporte/ajuda/' . $helpUri);
+    $ok($other->status === 200 && str_contains($other->body, 'Corpo da ajuda'), 'Artigo de ajuda abre no App');
+    $supportStaff->get('/ajuda');
+    $ok($supportStaff->status === 200 && str_contains($supportStaff->body, 'Como emitir relatório'), 'Ajuda disponível à equipe');
+    $web->get('/blog/' . $helpUri);
+    $ok($web->status === 404, 'Ajuda não entra no blog');
+
+    // Assinatura no App
+    $other->get('/minha-assinatura');
+    $ok($other->status === 200 && str_contains($other->body, 'Sem assinatura'), 'App informa ausência de assinatura');
+    $billing->get('/assinaturas');
+    $billing->post('/acao/subscription-create', ['owner_email' => $users['other']['email'], 'plan_id' => $planId, 'billing_cycle' => 'annual']);
+    $other->get('/minha-assinatura');
+    $ok(str_contains($other->body, 'Plano E2E') && str_contains($other->body, 'Pendente') && str_contains($other->body, 'R$ 599,00'), 'App mostra plano, situação e valor contratado');
+    $member->get('/minha-assinatura');
+    $ok(!str_contains($member->body, 'Plano E2E'), 'Assinatura de outra pessoa não aparece');
+
+    // Models
+    $ok((new \Moves\Models\HelpdeskTicket())->findById($tid)?->protocol === $proto, 'Model de chamado lê o banco');
+    $ok((new \Moves\Models\Plan())->findById($planId)?->plan_key === $key, 'Model de plano lê o banco');
+
     // Privacidade
     $supportStaff->get('/chamados/' . $tid);
     $ok(!str_contains($supportStaff->body, 'finance_') && !str_contains($supportStaff->body, 'Saldo'), 'Atendente não recebe dados financeiros do cliente');

@@ -33,6 +33,7 @@ final class CmsActions
         'subscription-create' => ['subscriptions.manage', 'subscriptionCreate'], 'subscription-plan' => ['subscriptions.manage', 'subscriptionPlan'], 'subscription-cancel' => ['subscriptions.manage', 'subscriptionCancel'], 'subscription-renewal' => ['charges.manage', 'subscriptionRenewal'],
         'charge-paid' => ['charges.manage', 'chargePaid'], 'charge-failed' => ['charges.manage', 'chargeFailed'],
         'ticket-reply' => ['tickets.reply', 'ticketReply'], 'ticket-status' => ['tickets.reply', 'ticketStatus'], 'ticket-priority' => ['tickets.assign', 'ticketPriority'], 'ticket-assign' => ['tickets.assign', 'ticketAssign'], 'ticket-attachment-delete' => ['tickets.assign', 'ticketAttachmentDelete'], 'ticket-bulk-status' => ['tickets.reply', 'ticketBulkStatus'],
+        'ticket-create' => ['tickets.reply', 'ticketCreate'], 'ticket-triage' => ['tickets.assign', 'ticketTriage'], 'ticket-time' => ['tickets.reply', 'ticketTime'],
         'quick-reply-save' => ['tickets.categories', 'quickReplySave'], 'quick-reply-delete' => ['tickets.categories', 'quickReplyDelete'],
         'ticket-category-save' => ['tickets.categories', 'ticketCategorySave'], 'sla-save' => ['notifications.configure', 'slaSave'], 'notifications-save' => ['notifications.configure', 'notificationsSave'],
         'notifications-read' => [null, 'notificationsRead'],
@@ -313,6 +314,24 @@ final class CmsActions
     {
         Helpdesk::deleteAttachment($this->id(), $this->actor);
         return ['Anexo removido.'];
+    }
+
+    private function ticketCreate(): array
+    {
+        $ticket = Helpdesk::staffOpen($_POST, $this->admin);
+        return ['Chamado ' . $ticket['protocol'] . ' aberto.', '/chamados/' . $ticket['id']];
+    }
+
+    private function ticketTriage(): array
+    {
+        Helpdesk::saveTriage($this->ticket(), $_POST, $this->admin);
+        return ['Equipe e tags salvas.'];
+    }
+
+    private function ticketTime(): array
+    {
+        Helpdesk::addTime($this->ticket(), $_POST['minutes'] ?? null, $this->str('note'), $this->admin);
+        return ['Tempo registrado.'];
     }
 
     private function ticketBulkStatus(): array

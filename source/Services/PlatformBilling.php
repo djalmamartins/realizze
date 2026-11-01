@@ -147,6 +147,22 @@ final class PlatformBilling
         return $rows;
     }
 
+    /** Plano vigente do contexto atual, para o App. Sem dados financeiros do cliente. */
+    public static function currentContract(int $userId, ?int $organizationId): ?array
+    {
+        $column = $organizationId !== null ? 's.organization_id' : 's.user_id';
+        $row = CmsQuery::one(
+            "SELECT s.status,s.billing_cycle,s.contracted_amount,s.currency,s.started_at,s.renews_at,p.name AS plan_name,p.max_companies,p.max_users,p.features_json,p.benefits_json
+             FROM subscriptions s JOIN plans p ON p.id=s.plan_id WHERE {$column}=? AND s.status<>'canceled' ORDER BY s.id DESC LIMIT 1",
+            [$organizationId ?? $userId]
+        );
+        if ($row !== null) {
+            $row['features'] = json_decode($row['features_json'], true) ?: [];
+            $row['benefits'] = json_decode($row['benefits_json'], true) ?: [];
+        }
+        return $row;
+    }
+
     // ---- Assinaturas ----
     private const OWNER_SQL = "COALESCE(o.name, CONCAT(u.first_name,' ',u.last_name)) AS owner_name, COALESCE(u.email,o.email) AS owner_email";
     private const SUB_FROM = 'FROM subscriptions s JOIN plans p ON p.id=s.plan_id LEFT JOIN users u ON u.id=s.user_id LEFT JOIN organizations o ON o.id=s.organization_id';

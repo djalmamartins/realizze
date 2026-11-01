@@ -9,7 +9,7 @@ use Moves\Support\HtmlSanitizer;
 /** Páginas, artigos, categorias e FAQ. Reaproveita posts, categories e faqs. */
 final class CmsContent
 {
-    public const POST_TYPES = ['article' => 'Artigo', 'news' => 'Notícia', 'institutional' => 'Institucional'];
+    public const POST_TYPES = ['article' => 'Artigo', 'news' => 'Notícia', 'institutional' => 'Institucional', 'help' => 'Ajuda'];
     /** Caminhos já usados por rotas do site; não podem virar página dinâmica por engano. */
     private const RESERVED = ['blog', 'entrar', 'sair', 'cadastrar', 'recuperar-senha', 'redefinir-senha', 'minha-conta', 'confirmar-email', 'configuracao-inicial', 'planos', 'assets'];
     /** Páginas com template próprio cujo conteúdo o CMS pode substituir ao publicar. */

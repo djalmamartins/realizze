@@ -31,6 +31,8 @@ $modules = ['Geral', 'Receber', 'Pagar', 'Movimentações', 'Cartões', 'Relató
  <header><button type="button" class="sp-icon" data-sp-back hidden aria-label="Voltar">←</button><h2 data-sp-title tabindex="-1">Suporte</h2><button type="button" class="sp-icon" data-sp-close aria-label="Fechar suporte">×</button></header>
  <section data-sp-view="home">
   <button type="button" class="sp-option" data-sp-go="service"><strong>Atendimento</strong><span>Envie dúvidas, solicitações ou sugestões.</span></button>
+  <a class="sp-option" href="/suporte/ajuda"><strong>Base de conhecimento</strong><span>Tutoriais e respostas sobre o Realizze.</span></a>
+  <a class="sp-option" href="/minha-assinatura"><strong>Minha assinatura</strong><span>Plano, limites e situação.</span></a>
   <a class="sp-option" href="/suporte"><strong>Meus chamados<?= $panelUnread > 0 ? ' (' . (int) $panelUnread . ' novidades)' : '' ?></strong><span>Acompanhe situação, respostas e histórico.</span></a>
   <a class="sp-option" href="<?= V::e($siteUrl) ?>/blog" target="_blank" rel="noopener"><strong>Atualizações</strong><span>Acompanhe as novidades da plataforma.</span></a>
   <?php if ($suggestionCategory !== ''): ?><button type="button" class="sp-option" data-sp-go="form" data-sp-category="<?= V::e($suggestionCategory) ?>"><strong>Sugestões</strong><span>Envie uma ideia de novo recurso.</span></button><?php endif; ?>
@@ -41,7 +43,7 @@ $modules = ['Geral', 'Receber', 'Pagar', 'Movimentações', 'Cartões', 'Relató
  <section data-sp-view="service" hidden>
   <h3>Tipo de atendimento</h3><div class="sp-toggle" role="group" aria-label="Tipo de atendimento"><button type="button" aria-pressed="true" data-sp-type="technical"><strong>Técnico</strong><span>Dúvidas e problemas de uso</span></button><button type="button" aria-pressed="false" data-sp-type="billing"><strong>Financeiro</strong><span>Assinatura e cobrança</span></button></div>
   <h3>Em qual módulo e tela?</h3><div class="sp-chips" role="group" aria-label="Módulo"><?php foreach ($modules as $i => $module): ?><button type="button" aria-pressed="<?= $i === 0 ? 'true' : 'false' ?>" data-sp-module="<?= V::e($module) ?>"><?= V::e($module) ?></button><?php endforeach; ?></div>
-  <h3>Veja os artigos relacionados</h3><p><a href="<?= V::e($siteUrl) ?>/#perguntas" target="_blank" rel="noopener">Perguntas frequentes</a></p>
+  <h3>Veja os artigos relacionados</h3><p><a href="/suporte/ajuda" data-sp-help>Artigos de ajuda</a></p>
   <button type="button" class="sp-btn sp-btn-primary" data-sp-go="form">Abrir chamado</button>
  </section>
  <section data-sp-view="form" hidden><?php $formId = 'sp-panel-form'; $supportOld = null; require __DIR__ . '/support-form.php'; ?></section>
