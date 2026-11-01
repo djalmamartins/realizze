@@ -34,12 +34,12 @@ $menu = [
  <?php foreach ($menu as $name => $items):
     $visible = array_filter($items, static fn (array $item): bool => CmsAuth::can($admin ?? null, $item[4]));
     if ($visible === []) { continue; }
-    $isOpen = ($group ?? '') === $name || $name === 'Visão geral'; ?>
-  <details class="cms-nav-group"<?= $isOpen ? ' open' : '' ?>><summary><?= V::e($name) ?></summary>
+ ?>
+  <section class="cms-nav-group"><h2><?= V::e($name) ?></h2>
   <?php foreach ($visible as [$key, $href, $label, $symbol]): ?>
    <a href="<?= V::e($href) ?>"<?= $key === ($section ?? '') ? ' class="selected" aria-current="page"' : '' ?>><?= $cmsIcon($symbol) ?><span><?= V::e($label) ?></span></a>
   <?php endforeach; ?>
-  </details>
+  </section>
  <?php endforeach; ?>
  </nav>
  <div class="cms-sidebar-foot"><a href="<?= V::e(getenv('APP_URL') ?: '/') ?>" target="_blank" rel="noopener"><?= $cmsIcon('globe') ?><span>Visualizar site</span></a><form method="post" action="/sair"><?= V::csrf() ?><button type="submit"><?= $cmsIcon('logout') ?><span>Sair</span></button></form></div>

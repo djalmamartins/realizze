@@ -300,3 +300,8 @@ textarea{resize:vertical}
 .cms-list-controls{flex:1 1 0;min-width:0}
 .cms-search-box{flex:1 1 200px;max-width:280px}
 @media(min-width:1101px){.cms-search:not(:has(select:nth-of-type(3))){flex-wrap:nowrap}}
+/* Menu sempre aberto, com grupos identificados por rótulos. */
+.cms-nav-group{margin-bottom:12px}
+.cms-nav-group h2{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--rz-muted);padding:6px 10px;margin:0 0 2px}
+.cms-nav a{padding:8px 10px;gap:12px;color:var(--rz-ink-2);font-weight:500}
+.cms-nav a.selected{box-shadow:none}
