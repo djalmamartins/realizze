@@ -1379,3 +1379,7 @@ body[data-context="pj"]{--app-header-bg:#eef8f2}
 .finance-account-list li>.card-network{position:absolute;right:18px;bottom:5px;display:inline-flex;align-items:center;justify-content:center;min-width:40px;max-width:95px;min-height:19px;padding:2px 5px;border-radius:5px;background:#fff;border:1px solid #e3ebe6;color:#52635a;font-size:10px;font-weight:750;line-height:1.2}
 .finance-account-list li>.card-network img{display:block;width:42px;max-width:100%;height:24px;object-fit:contain}
 .finance-account-list li:has(>.card-network){padding-bottom:29px}
+
+/* UI-INTEGRACAO-004: identidade visual de assinaturas com fallback local. */
+.recurring-brand{background:var(--recurring-bg,#e7f5ed);color:var(--recurring-fg,#06703d);overflow:hidden}
+.recurring-brand img{display:block;width:28px;height:28px;object-fit:contain}
