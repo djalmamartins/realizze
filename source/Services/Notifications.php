@@ -195,7 +195,7 @@ final class Notifications
             if ($budget['budget'] > 0 && $budget['spent'] > $budget['budget']) {
                 $notes['finance:budget:' . $budget['category_id'] . ':' . $month] = [
                     'event_type' => 'finance.budget_exceeded', 'priority' => 'warning', 'title' => 'Orçamento ultrapassado: ' . mb_substr((string) $budget['name'], 0, 120),
-                    'body' => 'Gasto de ' . Finance::money($budget['spent']) . ' para um orçamento de ' . Finance::money($budget['budget']) . ' no mês.',
+                    'body' => 'Gasto e previsto de ' . Finance::money($budget['spent']) . ' para um orçamento de ' . Finance::money($budget['budget']) . ' no mês.',
                     'target' => ['screen' => 'planejamento', 'entity' => 'finance_budget', 'id' => (int) $budget['category_id'], 'params' => ['mes' => $month]],
                 ];
             }

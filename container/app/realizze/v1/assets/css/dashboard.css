@@ -1501,3 +1501,41 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .goal-menu div{min-width:210px}
 .goal-history small.goal-operation-id{color:#94a39b;font-size:11px}
 .finance-dialog input[type=color]{height:42px;padding:4px;cursor:pointer}
+.budget-alert{margin:16px 28px 0}
+.budget-track{display:flex;overflow:hidden}
+.budget-list .track-live span{flex:none;padding:0;border-radius:0}
+.budget-list .track-live span.is-pending{background:repeating-linear-gradient(135deg,#a8c8b6 0 4px,#c9dfd2 4px 8px)}
+.budget-item.is-near .track-live span:not(.is-pending){background:linear-gradient(90deg,#f2c572,#d98e04)}
+.budget-state{font-size:12.5px;font-weight:600;color:#066f3e}
+.budget-item.is-near .budget-state{color:#8a5200}
+.budget-item.is-over .budget-state{color:#d92d36}
+.budget-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 12px;margin-top:8px;font-size:13px}
+.budget-left{display:inline-flex;align-items:center;gap:10px}
+.budget-left .red,.budget-result .red{color:#d92d36}
+.budget-edit{border:0;background:none;padding:0;color:#066f3e;font:inherit;font-weight:600;cursor:pointer;text-decoration:underline}
+.budget-outside{margin:0 28px 28px}
+.budget-note{margin:12px 0 0;font-size:13px}
+.budget-result{min-width:440px}
+.budget-result tfoot th,.budget-result tfoot td{border-bottom:0;font-weight:600}
+.budget-delete{padding:0 24px 20px;text-align:right}
+@media(max-width:760px){.budget-alert,.budget-outside{margin-inline:20px}}
+.debt-progress{margin-top:16px}
+.debt-track{height:10px;border-radius:999px;background:#eef2f0}
+.debt-upcoming{margin-top:16px}
+.debt-upcoming h3{margin:0 0 8px;font-size:14px}
+.debt-upcoming ul{display:grid;gap:6px;margin:0;padding:0;list-style:none;font-size:14px}
+.debt-upcoming li{display:grid;grid-template-columns:96px 1fr auto;gap:10px;padding:6px 0;border-bottom:1px solid #eef3f0}
+.debt-reversed{color:#6b7a72;text-decoration:line-through}
+.debt-reversed strong:last-child{text-decoration:none}
+.debt-reverse{display:inline;margin-left:8px}
+.profile-check{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:13px}
+.finance-workspace>h2,.finance-workspace>.muted,.finance-workspace>.debt-alert,.finance-workspace>.debt-details,.finance-workspace>.debt-list,.finance-workspace>.debt-scenario,.finance-workspace>.debt-table-wrap,.finance-workspace>.debt-assumptions,.finance-workspace>.debt-progress,.finance-workspace>.debt-upcoming,.finance-workspace>.debt-summary{margin-inline:28px}
+.finance-workspace>h2:first-child{margin-top:24px}
+.finance-workspace>:last-child:not(.finance-toolbar):not(.budget-list){margin-bottom:24px}
+.finance-workspace>.budget-alert{margin-bottom:16px}
+.debt-answers>.debt-summary{margin-top:24px}
+.debt-scenario input,.debt-scenario select,.debt-form input,.debt-form select,.debt-inline-form select{min-height:38px;padding:0 10px;border:1px solid #d6e2dc;border-radius:9px;background:#fff;font:inherit}
+.debt-scenario button,.debt-form button,.debt-inline-form button,.finance-toolbar-actions form button{min-height:calc(40px - var(--app-button-trim));padding:0 14px;border:1px solid #cfe3d8;border-radius:10px;background:#fff;color:#066f3e;font:inherit;font-weight:600;cursor:pointer}
+.finance-toolbar-actions form{margin:0}
+.finance-toolbar-actions form button{height:100%;width:100%}
+@media(max-width:760px){.finance-workspace>h2,.finance-workspace>.muted,.finance-workspace>.debt-alert,.finance-workspace>.debt-details,.finance-workspace>.debt-list,.finance-workspace>.debt-scenario,.finance-workspace>.debt-table-wrap,.finance-workspace>.debt-assumptions,.finance-workspace>.debt-progress,.finance-workspace>.debt-upcoming,.finance-workspace>.debt-summary{margin-inline:20px}.debt-upcoming li{grid-template-columns:84px 1fr auto}}

@@ -47,6 +47,8 @@ final class FinanceActions
                 'category' => [$finance->createCategory($_POST) > 0 ? 'success' : 'error', 'Categoria criada.'],
                 'category_delete' => $finance->deleteCategory($id) ? ['success', 'Categoria excluída. Os lançamentos ficaram sem categoria.'] : ['error', 'Categoria não encontrada.'],
                 'budget' => $this->budget($finance),
+                'budget_delete' => $finance->deleteBudget($_POST['category_id'] ?? null, (string) ($_POST['mes'] ?? '')) ? ['success', 'Orçamento excluído. Os lançamentos não mudaram.'] : ['error', 'Orçamento não encontrado.'],
+                'budget_copy' => $this->budgetCopy($finance),
                 'goal' => [$finance->createGoal($_POST, $_FILES['photo'] ?? null, (int) $user['id']) > 0 ? 'success' : 'error', 'Meta criada.'],
                 'goal_update' => $finance->updateGoal($id, $_POST, $_FILES['photo'] ?? null) ? ['success', 'Meta atualizada.'] : ['error', 'Meta não encontrada.'],
                 'goal_add' => $finance->addToGoal($id, $_POST['amount'] ?? null, (int) $user['id'], $_POST['date'] ?? null) ? ['success', 'Valor adicionado à meta.'] : ['error', 'Meta não encontrada.'],
@@ -112,6 +114,13 @@ final class FinanceActions
     {
         $finance->saveBudget($_POST);
         return ['success', 'Orçamento salvo.'];
+    }
+
+    /** @return array{0:string,1:string} */
+    private function budgetCopy(Finance $finance): array
+    {
+        $count = $finance->copyPreviousBudgets((string) ($_POST['mes'] ?? ''));
+        return $count > 0 ? ['success', $count === 1 ? '1 limite copiado do mês anterior.' : $count . ' limites copiados do mês anterior.'] : ['warning', 'Não há limites novos para copiar do mês anterior.'];
     }
 
     /** Exporta os lançamentos do período em CSV, abrível em planilhas. */

@@ -508,6 +508,14 @@ final class Finance
 
     public function delete(int $entryId, ?int $userId = null): bool
     {
+        // Apagar aqui deixaria a dívida com o saldo abatido e sem a saída correspondente.
+        if ($this->pdo->query("SHOW TABLES LIKE 'finance_debt_payments'")->fetchColumn() !== false) {
+            $statement = $this->pdo->prepare('SELECT 1 FROM finance_debt_payments WHERE entry_id = ? AND financial_context_id = ?');
+            $statement->execute([$entryId, $this->contextId]);
+            if ($statement->fetchColumn() !== false) {
+                throw new InvalidArgumentException('Este lançamento é o pagamento de uma dívida. Estorne-o em Sair das dívidas.');
+            }
+        }
         $files = [];
         if ($this->supportsEntryExtras()) {
             $statement = $this->pdo->prepare('SELECT stored_path FROM finance_entry_attachments WHERE entry_id = ? AND financial_context_id = ?');
@@ -925,33 +933,122 @@ final class Finance
         return $statement->rowCount() === 1;
     }
 
-    /** Orçamento por categoria de despesa no mês, com o gasto até agora. */
+    /**
+     * Orçamento por categoria de despesa no mês, pela data de vencimento, como em Relatórios.
+     * realized = já pago; pending = a pagar; spent = os dois, o que já compromete o limite.
+     * Cancelados ficam de fora, e transferências não têm kind expense.
+     */
     public function budgets(string $month): array
     {
         $statement = $this->pdo->prepare(
             "SELECT c.id AS category_id, c.name, c.color, COALESCE(b.amount_cents, 0) AS budget,
-                    (SELECT COALESCE(SUM(e.amount_cents), 0) FROM finance_entries AS e
-                     WHERE e.category_id = c.id AND e.due_date BETWEEN ? AND LAST_DAY(?)) AS spent
+                    COALESCE(SUM(CASE WHEN e.paid_at IS NOT NULL THEN e.amount_cents END), 0) AS realized,
+                    COALESCE(SUM(CASE WHEN e.paid_at IS NULL THEN e.amount_cents END), 0) AS pending
              FROM finance_categories AS c
              LEFT JOIN finance_budgets AS b ON b.category_id = c.id AND b.month = ?
+             LEFT JOIN finance_entries AS e ON e.category_id = c.id AND e.financial_context_id = c.financial_context_id
+                  AND e.kind = 'expense' AND (e.status IS NULL OR e.status <> 'cancelled') AND e.due_date BETWEEN ? AND LAST_DAY(?)
              WHERE c.financial_context_id = ? AND c.kind = 'expense'
+             GROUP BY c.id, c.name, c.color, b.amount_cents
              ORDER BY budget DESC, c.name"
         );
-        $statement->execute([$month . '-01', $month . '-01', $month, $this->contextId]);
-        return array_map(static fn (array $row): array => ['budget' => (int) $row['budget'], 'spent' => (int) $row['spent']] + $row, $statement->fetchAll(PDO::FETCH_ASSOC));
+        $statement->execute([$month, $month . '-01', $month . '-01', $this->contextId]);
+        return array_map(static fn (array $row): array => [
+            'budget' => (int) $row['budget'], 'realized' => (int) $row['realized'], 'pending' => (int) $row['pending'],
+            'spent' => (int) $row['realized'] + (int) $row['pending'],
+        ] + $row, $statement->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /** Situação do limite: dentro, perto (a partir de 80%) ou acima. Sem limite, null. */
+    public static function budgetState(int $budget, int $spent): ?string
+    {
+        if ($budget <= 0) {
+            return null;
+        }
+        return $spent > $budget ? 'over' : ($spent * 100 >= $budget * 80 ? 'near' : 'ok');
     }
 
     public function saveBudget(array $data): void
     {
-        $category = $this->ownedId('finance_categories', $data['category_id'] ?? null);
+        $category = $this->expenseCategoryId($data['category_id'] ?? null);
         $month = (string) ($data['mes'] ?? '');
-        if ($category === null || !preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/', $month)) {
+        if ($category === null || !self::validMonth($month)) {
             throw new InvalidArgumentException('Escolha a categoria e o mês.');
         }
         $this->pdo->prepare(
             'INSERT INTO finance_budgets (financial_context_id, category_id, month, amount_cents) VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE amount_cents = VALUES(amount_cents)'
         )->execute([$this->contextId, $category, $month, self::parseCents($data['amount'] ?? null)]);
+    }
+
+    public function deleteBudget(mixed $categoryId, string $month): bool
+    {
+        $statement = $this->pdo->prepare('DELETE FROM finance_budgets WHERE financial_context_id = ? AND category_id = ? AND month = ?');
+        $statement->execute([$this->contextId, (int) filter_var($categoryId, FILTER_VALIDATE_INT), $month]);
+        return $statement->rowCount() === 1;
+    }
+
+    /** Copia os limites do mês anterior sem mexer nos que já existem. Devolve quantos criou. */
+    public function copyPreviousBudgets(string $month): int
+    {
+        if (!self::validMonth($month)) {
+            throw new InvalidArgumentException('Escolha o mês.');
+        }
+        $previous = (new DateTimeImmutable($month . '-01'))->modify('-1 month')->format('Y-m');
+        $statement = $this->pdo->prepare(
+            'INSERT IGNORE INTO finance_budgets (financial_context_id, category_id, month, amount_cents)
+             SELECT financial_context_id, category_id, ?, amount_cents FROM finance_budgets WHERE financial_context_id = ? AND month = ?'
+        );
+        $statement->execute([$month, $this->contextId, $previous]);
+        return $statement->rowCount();
+    }
+
+    /**
+     * Resultado do período, separando o que já aconteceu do que é previsão. Sem transferências e sem cancelados.
+     * Receita conta pelas baixas, inclusive parciais. Recorrências entram só antes de virarem lançamento.
+     *
+     * @return array{income_realized:int,income_expected:int,expense_realized:int,expense_expected:int,result_realized:int,result_projected:int}
+     */
+    public function planProjection(string $start, string $end): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT e.kind, e.amount_cents, e.paid_at, COALESCE(s.received, 0) AS received, s.entry_id AS settled
+             FROM finance_entries AS e
+             LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS received FROM finance_entry_settlements WHERE financial_context_id = ? GROUP BY entry_id) AS s ON s.entry_id = e.id
+             WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND (e.status IS NULL OR e.status <> 'cancelled') AND e.due_date BETWEEN ? AND ?"
+        );
+        $statement->execute([$this->contextId, $this->contextId, $start, $end]);
+        $totals = ['income_realized' => 0, 'income_expected' => 0, 'expense_realized' => 0, 'expense_expected' => 0];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $amount = (int) $row['amount_cents'];
+            $done = $row['kind'] === 'income' && $row['settled'] !== null ? min($amount, (int) $row['received']) : ($row['paid_at'] !== null ? $amount : 0);
+            $totals[$row['kind'] . '_realized'] += $done;
+            $totals[$row['kind'] . '_expected'] += $amount - $done;
+        }
+        $recurring = new RecurringFinance($this->contextId);
+        foreach (['income', 'expense'] as $kind) {
+            $totals[$kind . '_expected'] += array_sum(array_map(static fn (array $item): int => (int) $item['amount_cents'], $recurring->planned($kind, $start, $end)));
+        }
+        return $totals + [
+            'result_realized' => $totals['income_realized'] - $totals['expense_realized'],
+            'result_projected' => $totals['income_realized'] + $totals['income_expected'] - $totals['expense_realized'] - $totals['expense_expected'],
+        ];
+    }
+
+    private function expenseCategoryId(mixed $id): ?int
+    {
+        $owned = $this->ownedId('finance_categories', $id);
+        if ($owned === null) {
+            return null;
+        }
+        $statement = $this->pdo->prepare("SELECT 1 FROM finance_categories WHERE id = ? AND kind = 'expense'");
+        $statement->execute([$owned]);
+        return $statement->fetchColumn() === false ? null : $owned;
+    }
+
+    private static function validMonth(string $month): bool
+    {
+        return preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/D', $month) === 1;
     }
 
     public const GOAL_CATEGORIES = ['transporte' => 'Transporte', 'viagem' => 'Viagem', 'casa' => 'Casa', 'educacao' => 'Educação', 'investimento' => 'Investimento', 'outra' => 'Outra'];
