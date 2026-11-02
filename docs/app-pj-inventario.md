@@ -113,3 +113,9 @@ Todo contrato deve trazer testes de isolamento entre empresas e de permissão ne
 **C26. Recebimento parcial fora do saldo (defeito).** `Receivables::settle` só preenche `paid_at` na quitação total. Por isso `Finance::accountsWithBalance`, `movements` e o Fluxo de caixa ignoram o dinheiro de baixas parciais até a última parcela, e na quitação contam o valor inteiro na conta do lançamento, mesmo que a baixa tenha ido para outra conta. Saldo e realizado devem somar `finance_entry_settlements`, sem contar duas vezes. O saldo projetado do Fluxo de caixa continua correto porque soma o valor inteiro do que está em aberto.
 
 **C27. Cancelados nos totais (defeito).** `Finance::summary`, `entries`, `overview`, `openCount` e `monthlySeries` não excluem lançamentos com `status = 'cancelled'`, então um recebimento cancelado continua somando em "A receber" no dashboard e em Pagar/Receber da PF. Teste real: cobrança de R$ 999,00 cancelada seguiu em aberto. `entries` também deveria devolver `status`.
+
+## Situação dos contratos em 02/11/2026
+
+**C2, C3 e C4 implementados** em `source/Services/OrganizationTeam.php` e `source/App/TeamActions.php`, sem migration: usam as tabelas `organization_roles`, `organization_role_permissions`, `organization_members` e `organization_invitations`. Os papéis padrão são criados quando a primeira pessoa é convidada. Teste: `tests/enterprise-002-team.php` (SQLite).
+
+Pendente: validar no MySQL real e por navegador; histórico administrativo em `organization_audit_logs`; permissões por operação mais finas que as dez do catálogo; voltar ao convite automaticamente depois do login.

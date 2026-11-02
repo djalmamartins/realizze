@@ -18,6 +18,8 @@ final class ContactActions
         if ($user === null || !Csrf::validate($_POST['csrf_token'] ?? null)) { \Moves\Services\AppError::render(403); return; }
         $context = FinanceContext::currentId();
         if (!$context) { \Moves\Services\AppError::render(403); return; }
+        $organization = \Moves\Services\OrganizationContext::current();
+        if ($organization !== null && !\Moves\Services\OrganizationTeam::can((int) $user['id'], (int) $organization['id'], 'contacts.manage')) { \Moves\Services\AppError::render(403); return; }
         try {
             $contacts = new Contacts($context);
             $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);

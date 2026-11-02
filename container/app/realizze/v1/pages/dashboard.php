@@ -103,7 +103,7 @@ $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
     : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
 // Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
-$pendingSections = ['faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
+$pendingSections = ['faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'seguranca', 'auditoria'];
 $navGroups = null;
 if ($activeOrganization !== null) {
     $items['overview'][1] = 'Dashboard';
@@ -121,6 +121,12 @@ if ($activeOrganization !== null) {
         ['Administração', 'settings', ['equipe', 'permissoes', 'empresa', 'seguranca', 'auditoria']],
         ['Plataforma', 'message-circle', ['integracoes', 'notificacoes', 'suporte']],
     ];
+    // Esconder é só conveniência: as rotas e as ações validam a permissão de novo.
+    $navPermission = ['overview' => 'finance.view', 'receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'categorias' => 'finance.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view'];
+    $ownPermissions = \Moves\Services\OrganizationTeam::permissionsFor((int) $user['id'], (int) $activeOrganization['id']);
+    foreach ($navGroups as $groupIndex => $group) {
+        $navGroups[$groupIndex][2] = array_values(array_filter($group[2], static fn (string $key): bool => !isset($navPermission[$key]) || in_array($navPermission[$key], $ownPermissions, true)));
+    }
 }
 $iconPaths = [
     'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -216,13 +222,13 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
         'title' => $sections[$section][0],
         'description' => $sections[$section][1],
         'context' => $activeOrganization !== null || $section === 'empresarial' ? 'enterprise' : 'personal',
-        'live' => in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true),
+        'live' => in_array($section, ['permissoes', 'receber', 'sair-das-dividas', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true),
     ],
     'appView' => $appView,
     'name' => $name,
     'user' => $user,
 ]) ?>
-<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'contato-detalhe'], true)): ?>
+<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'permissoes', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
 <?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>
@@ -230,7 +236,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
 <section class="card section-workspace"><div class="workspace-icon"><?= $icon($items[$section][0]) ?></div><h2><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?></h2><p>Esta área está pronta para receber os recursos e dados financeiros do Realizze. Nenhuma informação financeira foi cadastrada.</p><div class="workspace-actions"><a href="/minha-conta?pagina=overview" class="primary">Voltar ao painel</a></div></section>
 <?php endif; ?>
 <?php endif; ?>
-<?php if (!in_array($section, ['overview', 'receber', 'sair-das-dividas', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true)): ?>
+<?php if (!in_array($section, ['overview', 'permissoes', 'receber', 'sair-das-dividas', 'pagar', 'contas', 'movimentacoes', 'relatorios', 'planejamento', 'metas', 'categorias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'contato-detalhe', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'recorrencias', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'], true)): ?>
 <p class="muted" style="text-align:center;margin-top:20px">Prévia de interface · Dados financeiros ainda não integrados · Nenhuma movimentação real é exibida</p>
 <?php endif; ?>
 </main>

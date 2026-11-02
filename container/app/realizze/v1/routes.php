@@ -82,6 +82,14 @@ return [
                 $renderError(404);
                 return;
             }
+            if ($organization !== null) {
+                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view'][$section] ?? null;
+                $sessionUser = \Moves\Services\SessionAuth::current();
+                if ($sectionPermission !== null && !\Moves\Services\OrganizationTeam::can((int) $sessionUser['id'], (int) $organization['id'], $sectionPermission)) {
+                    $renderError(403);
+                    return;
+                }
+            }
             // Sair das Dívidas é um módulo PF: não existe dentro de uma empresa.
             if ($section === 'sair-das-dividas' && $organization !== null) {
                 $renderError(404);
@@ -363,6 +371,49 @@ return [
             $_SESSION['profile_pending_invite_token'] = $token;
             header('Location: /p/perfil?aba=permissoes&convite=1', true, 302);
         }, 'app.profile.invite.accept');
+
+        foreach (['invite' => 'convidar', 'resend' => 'reenviar', 'revoke' => 'cancelar-convite', 'role' => 'papel', 'suspend' => 'suspender', 'activate' => 'reativar', 'remove' => 'remover'] as $action => $slug) {
+            $router->post('/minha-conta/equipe/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\TeamActions())->handle($action);
+            }, 'app.team.' . $action);
+        }
+
+        // Convite de empresa: o token sai da URL na primeira abertura e fica só na sessão.
+        $router->get('/convite-empresa', static function () use ($requirePreview): void {
+            if (!$requirePreview()) return;
+            if (is_string($_GET['token'] ?? null)) {
+                $_SESSION['team_pending_invite'] = $_GET['token'];
+                header('Cache-Control: no-store');
+                header('Location: /convite-empresa', true, 302);
+                return;
+            }
+            header('Cache-Control: no-store');
+            $invitation = \Moves\Services\OrganizationTeam::invitationByToken((string) ($_SESSION['team_pending_invite'] ?? ''));
+            require __DIR__ . '/pages/convite-empresa.php';
+        }, 'app.team.invitation');
+        foreach (['aceitar', 'recusar'] as $inviteAction) {
+            $router->post('/convite-empresa/' . $inviteAction, static function () use ($requirePreview, $renderError, $inviteAction): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                $user = \Moves\Services\SessionAuth::current();
+                if ($user === null || !\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) { $renderError(403); return; }
+                $token = (string) ($_SESSION['team_pending_invite'] ?? '');
+                unset($_SESSION['team_pending_invite']);
+                header('Cache-Control: no-store');
+                try {
+                    if ($inviteAction === 'recusar') {
+                        \Moves\Services\OrganizationTeam::decline($token, (string) $user['email']);
+                        header('Location: /p', true, 303);
+                        return;
+                    }
+                    $organizationId = \Moves\Services\OrganizationTeam::accept($token, (int) $user['id'], (string) $user['email']);
+                    $organization = \Moves\Services\OrganizationAccess::authorizedOrganization($organizationId);
+                    header('Location: ' . ($organization === null ? '/p' : \Moves\Services\AppUrl::base($organization)), true, 303);
+                } catch (\InvalidArgumentException) {
+                    header('Location: /convite-empresa', true, 303);
+                }
+            }, 'app.team.invitation.' . $inviteAction);
+        }
 
         (require __DIR__ . '/components/support-routes.php')($router, $requirePreview);
 

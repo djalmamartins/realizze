@@ -117,7 +117,13 @@ final class FinanceActions
     /** Exporta os lançamentos do período em CSV, abrível em planilhas. */
     public function export(): void
     {
-        if (SessionAuth::current() === null) {
+        $user = SessionAuth::current();
+        if ($user === null) {
+            \Moves\Services\AppError::render(403);
+            return;
+        }
+        $organization = OrganizationContext::current();
+        if ($organization !== null && !\Moves\Services\OrganizationTeam::can((int) $user['id'], (int) $organization['id'], 'reports.export')) {
             \Moves\Services\AppError::render(403);
             return;
         }

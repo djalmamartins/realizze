@@ -26,6 +26,12 @@ final class ReceivableActions
             return;
         }
 
+        $organization = \Moves\Services\OrganizationContext::current();
+        if ($organization !== null && !\Moves\Services\OrganizationTeam::can((int) $user['id'], (int) $organization['id'], 'finance.manage')) {
+            \Moves\Services\AppError::render(403);
+            return;
+        }
+
         try {
             $receivables = new Receivables($contextId);
             $entryId = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
