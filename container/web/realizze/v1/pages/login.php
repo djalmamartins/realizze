@@ -9,7 +9,7 @@ $this->stop();
 <h1>Acesse sua conta</h1>
 <p>Entre para continuar sua experiência.</p>
 <?php if (($loginError ?? false) === true): ?>
-<p class="form-feedback" role="alert">Não foi possível entrar. Confira suas credenciais e a confirmação do e-mail.</p>
+<p class="form-feedback" role="alert">Não foi possível entrar. Confira suas credenciais e a confirmação do e-mail. <a href="/reenviar-confirmacao">Reenviar confirmação</a></p>
 <?php endif; ?>
 <form class="demo-form" method="post" action="/entrar">
 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(\Moves\Services\Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">

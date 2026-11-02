@@ -31,7 +31,6 @@ return [
             '/sobre' => ['about', 'web.about'],
             '/solucoes' => ['solutions', 'web.solutions'],
             '/contato' => ['contact', 'web.contact'],
-            '/cadastrar' => ['register', 'web.register'],
             '/termos' => ['terms', 'web.terms'],
             '/privacidade' => ['privacy', 'web.privacy'],
         ];
@@ -147,6 +146,21 @@ return [
             $render('login', ['loginError' => false]);
         }, 'web.login');
 
+        $router->get('/cadastrar', static function () use ($render, $redirectToApp): void {
+            if ($redirectToApp('/cadastrar')) {
+                return;
+            }
+            header('Cache-Control: no-store');
+            $render('app-register', ['registerError' => null, 'registerSuccess' => isset($_GET['enviado'])]);
+        }, 'web.register');
+
+        $router->post('/cadastrar', static function () use ($view, $redirectToApp): void {
+            if ($redirectToApp('/cadastrar', 303)) {
+                return;
+            }
+            \Moves\App\Register::handle($view);
+        }, 'web.register.submit');
+
         $router->post('/entrar', static function () use ($render, $redirectToApp): void {
             if ($redirectToApp('/entrar', 303)) {
                 return;
@@ -221,7 +235,24 @@ return [
             header('Location: /entrar', true, 302);
         }, 'web.logout');
 
+        $router->get('/reenviar-confirmacao', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            $render('email-resend', ['requested' => false]);
+        }, 'web.email.resend');
+
+        $router->post('/reenviar-confirmacao', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) {
+                http_response_code(403);
+                return;
+            }
+            (new \Moves\App\Register())->resend();
+            $render('email-resend', ['requested' => true]);
+        }, 'web.email.resend.submit');
+
         $router->get('/confirmar-email', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            header('Referrer-Policy: no-referrer');
             $token = $_GET['token'] ?? '';
 
             $render('email-confirmation', [
@@ -233,6 +264,8 @@ return [
         }, 'web.email.confirm');
 
         $router->post('/confirmar-email', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            header('Referrer-Policy: no-referrer');
             $confirmed = (new \Moves\App\EmailConfirmation())->confirm();
 
             $render('email-confirmation', [
@@ -330,7 +363,7 @@ return [
 
         $router->get('/robots.txt', static function (): void {
             header('Content-Type: text/plain; charset=utf-8');
-            echo "User-agent: *\nDisallow: /entrar\nDisallow: /minha-conta\nDisallow: /recuperar-senha\nDisallow: /redefinir-senha\nSitemap: " . rtrim((string) (getenv('APP_URL') ?: ''), '/') . "/sitemap.xml\n";
+            echo "User-agent: *\nDisallow: /entrar\nDisallow: /minha-conta\nDisallow: /recuperar-senha\nDisallow: /redefinir-senha\nDisallow: /confirmar-email\nDisallow: /reenviar-confirmacao\nSitemap: " . rtrim((string) (getenv('APP_URL') ?: ''), '/') . "/sitemap.xml\n";
         }, 'web.robots');
 
         // Páginas criadas no CMS. Fica por último: rotas fixas têm precedência.

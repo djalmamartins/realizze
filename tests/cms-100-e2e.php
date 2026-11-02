@@ -783,7 +783,7 @@ try {
     $ok(\Moves\Services\HelpdeskNotifier::unread($users['common']['id'], 'customer') === 0, 'Marcar notificações como lidas');
 
     // ---- Site e App seguem funcionando ----
-    foreach (['/', '/sobre', '/solucoes', '/contato', '/termos', '/privacidade', '/cadastrar'] as $path) {
+    foreach (['/', '/sobre', '/solucoes', '/contato', '/termos', '/privacidade'] as $path) {
         $web->get($path);
         $ok($web->status === 200, "Site {$path}");
     }

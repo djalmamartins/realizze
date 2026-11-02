@@ -130,3 +130,4 @@ section[id]{scroll-margin-top:96px}
 .feature-card>a{grid-column:2;margin-top:8px}
 }
 @media(prefers-reduced-motion:reduce){.rz-faq-list details{transition:none}html{scroll-behavior:auto}}
+.demo-form .form-check{display:flex;align-items:flex-start;gap:10px;font-weight:500}.demo-form .form-check input{flex:none;width:18px;height:18px;margin-top:3px;padding:0}

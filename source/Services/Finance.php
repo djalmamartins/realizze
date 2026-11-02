@@ -115,7 +115,8 @@ final class Finance
                     COALESCE(SUM(CASE WHEN paid_at IS NULL AND due_date < CURDATE() THEN amount_cents END), 0) AS overdue,
                     COUNT(*) AS count
              FROM finance_entries
-             WHERE financial_context_id = ? AND kind = ? AND due_date BETWEEN ? AND ?'
+             WHERE financial_context_id = ? AND kind = ? AND due_date BETWEEN ? AND ?
+               AND (status IS NULL OR status <> \'cancelled\')'
         );
         $statement->execute([$this->contextId, $kind, $start, $end]);
         return array_map('intval', $statement->fetch(PDO::FETCH_ASSOC));
@@ -572,7 +573,7 @@ final class Finance
                     COALESCE(SUM(CASE WHEN due_date > CURDATE() + INTERVAL 7 DAY THEN amount_cents END), 0) AS later_total,
                     COUNT(CASE WHEN due_date > CURDATE() + INTERVAL 7 DAY THEN 1 END) AS later_count
              FROM finance_entries
-             WHERE financial_context_id = ? AND kind = 'expense' AND paid_at IS NULL AND due_date <= LAST_DAY(CURDATE() + INTERVAL 1 MONTH)"
+             WHERE financial_context_id = ? AND kind = 'expense' AND paid_at IS NULL AND (status IS NULL OR status <> 'cancelled') AND due_date <= LAST_DAY(CURDATE() + INTERVAL 1 MONTH)"
         );
         $due->execute([$this->contextId]);
 
@@ -1102,7 +1103,7 @@ final class Finance
     private function openCount(string $kind, string $start, string $end): int
     {
         $statement = $this->pdo->prepare(
-            'SELECT COUNT(*) FROM finance_entries WHERE financial_context_id = ? AND kind = ? AND paid_at IS NULL AND due_date BETWEEN ? AND ?'
+            'SELECT COUNT(*) FROM finance_entries WHERE financial_context_id = ? AND kind = ? AND paid_at IS NULL AND (status IS NULL OR status <> \'cancelled\') AND due_date BETWEEN ? AND ?'
         );
         $statement->execute([$this->contextId, $kind, $start, $end]);
         return (int) $statement->fetchColumn();

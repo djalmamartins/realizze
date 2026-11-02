@@ -1314,19 +1314,22 @@ a.avatar{text-decoration:none}
 @media(max-width:620px){.profile-permissions{grid-template-columns:1fr}.profile-pref-grid{grid-template-columns:minmax(120px,1fr) 95px 85px;font-size:12px}.profile-heading form,.profile-heading .finance-button{width:100%}.profile-recovery ul{grid-template-columns:1fr}}
 
 /* APP — gráfico de área da visão geral */
-.area-chart{display:block;width:100%;height:auto;overflow:visible}
-.area-grid{stroke:#e9efec;stroke-width:1}
-.area-tick{fill:#6b7a73;font-size:11.5px}
-.area-line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.area-line.is-income,.area-point.is-income{stroke:#078b4c}
-.area-line.is-expense,.area-point.is-expense{stroke:#e5484d}
-.area-point{fill:#fff;stroke-width:2;animation:area-fade .4s .5s both}
-.area-point:hover{r:6}
+.area-chart{padding:0 14px 0 38px;max-width:100%}
+.area-plot{position:relative;height:200px}
+.area-plot svg{display:block;width:100%;height:100%;overflow:hidden}
+.area-grid{stroke:#e9efec;stroke-width:1;vector-effect:non-scaling-stroke}
+.area-tick{position:absolute;right:100%;margin-right:10px;transform:translateY(-50%);color:#6b7a73;font-size:11.5px;line-height:1;white-space:nowrap}
+.area-line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.area-line.is-income{stroke:#078b4c}
+.area-line.is-expense{stroke:#e5484d}
+.area-point{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border:2px solid;border-radius:50%;background:#fff;box-sizing:border-box;animation:area-fade .4s .5s both}
+.area-point.is-income{border-color:#078b4c}
+.area-point.is-expense{border-color:#e5484d}
+.area-point:hover{transform:scale(1.35)}
+.area-months{position:relative;height:18px;margin-top:8px}
+.area-months span{position:absolute;transform:translateX(-50%);color:#6b7a73;font-size:11.5px;line-height:18px}
 .area-reveal{animation:area-reveal .8s cubic-bezier(.2,.7,.2,1) both}
 @keyframes area-reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes area-fade{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.area-reveal,.area-point{animation:none}}
-
-/* Assinaturas e recorrências — usa o mesmo shell e controles do financeiro. */
-.recurring-card{padding:0;overflow:hidden}.recurring-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 26px 16px}.recurring-head h2{margin:0 0 4px;font-size:18px}.recurring-head p{margin:0}.recurring-tabs{display:flex;gap:28px;padding:0 26px;border-bottom:1px solid #e7eee9;overflow-x:auto}.recurring-tabs a{flex:none;padding:12px 0 11px;border-bottom:2px solid transparent;color:#253d31;font-size:13px;font-weight:600}.recurring-tabs a.is-active{border-color:#079550;color:#078b4c}.recurring-table-wrap{overflow-x:auto}.recurring-table{width:100%;min-width:850px;border-collapse:collapse;font-size:13px}.recurring-table th{padding:12px 24px;color:#5d6f66;font-size:11px;text-align:left;text-transform:uppercase;letter-spacing:.04em}.recurring-table td{padding:11px 24px;border-top:1px solid #edf2ef;vertical-align:middle}.recurring-table td:first-child{display:grid;grid-template-columns:34px minmax(0,1fr);gap:1px 10px}.recurring-table td:first-child strong{align-self:end}.recurring-table td:first-child small{grid-column:2;color:#6b7a73}.recurring-brand{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#e7f5ed;color:#06703d;font-weight:800}.recurring-category{padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--category-color) 13%,white);color:color-mix(in srgb,var(--category-color) 80%,#17251e);font-size:12px;font-weight:600}.recurring-menu{position:relative}.recurring-menu summary{display:grid;place-items:center;width:34px;height:32px;border:1px solid #dce6e0;border-radius:8px;list-style:none;cursor:pointer}.recurring-menu summary::-webkit-details-marker{display:none}.recurring-menu div{position:absolute;z-index:4;right:0;display:grid;min-width:120px;padding:4px;border:1px solid #dce6e0;border-radius:9px;background:#fff;box-shadow:0 10px 24px #173d2924}.recurring-menu button{width:100%;padding:8px;border:0;border-radius:6px;background:transparent;font:inherit;text-align:left;cursor:pointer}.recurring-menu button:hover{background:#eef7f2}.recurring-empty{padding:54px 26px;text-align:center}.recurring-empty p{margin:6px 0;color:#6b7a73}.recurring-check{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px}.recurring-check input{width:auto!important;min-height:0!important}.recurring-dialog{width:min(590px,calc(100vw - 32px))}
-@media(max-width:650px){.recurring-head{align-items:stretch;flex-direction:column;padding:18px 20px}.recurring-head .finance-button{width:100%}.recurring-tabs{padding-inline:20px;gap:22px}.recurring-table th,.recurring-table td{padding-inline:16px}}
+@media(max-width:560px){.area-plot{height:170px}.area-months.is-year span:nth-child(even){display:none}}

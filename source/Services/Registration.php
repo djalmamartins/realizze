@@ -58,7 +58,7 @@ final class Registration
         $existing->execute([$email]);
 
         if ($existing->fetchColumn() !== false) {
-            throw new InvalidArgumentException('E-mail já cadastrado.');
+            throw new EmailAlreadyRegistered();
         }
 
         $ownsTransaction = !$pdo->inTransaction();
@@ -115,6 +115,11 @@ final class Registration
         } catch (Throwable $exception) {
             if ($ownsTransaction && $pdo->inTransaction()) {
                 $pdo->rollBack();
+            }
+
+            // Dois envios simultâneos: o índice único decide qual conta fica.
+            if ($exception instanceof \PDOException && (int) ($exception->errorInfo[1] ?? 0) === 1062) {
+                throw new EmailAlreadyRegistered();
             }
 
             throw $exception;

@@ -24,8 +24,8 @@ if ($chartPeak > 0) {
     }
 }
 $chartTop = $chartStep * 4;
-// O gráfico ocupa cartões largos; uma área de desenho panorâmica evita altura excessiva no desktop.
-[$chartLeft, $chartRight, $chartHigh, $chartLow] = [58, 1188, 14, 214];
+// Coordenadas em % da área do gráfico: a altura é fixa no CSS e a largura acompanha o card.
+[$chartLeft, $chartRight, $chartHigh, $chartLow] = [0, 100, 4, 98];
 $chartX = static fn (int $index): float => $chartLeft + ($chartCount > 1 ? $index * ($chartRight - $chartLeft) / ($chartCount - 1) : 0);
 $chartY = static fn (int $cents): float => $chartLow - ($cents / $chartTop) * ($chartLow - $chartHigh);
 $chartPoints = static function (string $kind) use ($chartDrawn, $chartKeys, $chartSeries, $chartX, $chartY): array {
@@ -54,27 +54,35 @@ $expense = $chartPoints('expense');
 <?php if ($chartPeak === 0): ?>
 <p class="muted">Sem receitas ou despesas pagas neste período.</p>
 <?php else: $incomeLine = $chartLine($income, false); $expenseLine = $chartLine($expense, true); ?>
-<svg class="area-chart" viewBox="0 0 1200 244" role="img" aria-label="Gráfico de receitas e despesas pagas por mês">
-  <defs>
-    <linearGradient id="chart-income-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#078b4c" stop-opacity=".22"/><stop offset="1" stop-color="#078b4c" stop-opacity=".02"/></linearGradient>
-    <linearGradient id="chart-expense-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e5484d" stop-opacity=".2"/><stop offset="1" stop-color="#e5484d" stop-opacity=".02"/></linearGradient>
-  </defs>
-  <?php for ($tick = 0; $tick <= 4; $tick++): $tickY = round($chartY($chartStep * $tick), 1); ?>
-  <line class="area-grid" x1="<?= $chartLeft ?>" x2="<?= $chartRight ?>" y1="<?= $tickY ?>" y2="<?= $tickY ?>"/>
-  <text class="area-tick" x="<?= $chartLeft - 10 ?>" y="<?= $tickY + 4 ?>" text-anchor="end"><?= $chartEscape($chartLabel($chartStep * $tick)) ?></text>
-  <?php endfor; ?>
-  <?php foreach ($chartKeys as $index => $key): ?>
-  <text class="area-tick" x="<?= round($chartX($index), 1) ?>" y="236" text-anchor="<?= $index === 0 ? 'start' : ($index === $chartCount - 1 ? 'end' : 'middle') ?>"><?= $chartEscape($chartMonths[substr($key, 5)]) ?></text>
-  <?php endforeach; ?>
-  <g class="area-reveal">
-    <path d="<?= $chartEscape($chartArea($income, $incomeLine)) ?>" fill="url(#chart-income-fill)"/>
-    <path d="<?= $chartEscape($chartArea($expense, $expenseLine)) ?>" fill="url(#chart-expense-fill)"/>
-    <path class="area-line is-income" d="<?= $chartEscape($incomeLine) ?>"/>
-    <path class="area-line is-expense" d="<?= $chartEscape($expenseLine) ?>"/>
-  </g>
-  <?php foreach ([[$income, 'is-income', 'Receitas'], [$expense, 'is-expense', 'Despesas']] as [$points, $class, $name]): foreach ($points as [$x, $y, $key, $cents]): ?>
-  <circle class="area-point <?= $class ?>" cx="<?= $x ?>" cy="<?= $y ?>" r="4"><title><?= $chartEscape($name . ' de ' . $chartMonths[substr($key, 5)] . '/' . substr($key, 0, 4) . ': ' . Finance::money($cents)) ?></title></circle>
-  <?php endforeach; endforeach; ?>
-</svg>
+<div class="area-chart" role="img" aria-label="Gráfico de receitas e despesas pagas por mês">
+  <div class="area-plot">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="chart-income-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#078b4c" stop-opacity=".22"/><stop offset="1" stop-color="#078b4c" stop-opacity=".02"/></linearGradient>
+        <linearGradient id="chart-expense-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e5484d" stop-opacity=".2"/><stop offset="1" stop-color="#e5484d" stop-opacity=".02"/></linearGradient>
+      </defs>
+      <?php for ($tick = 0; $tick <= 4; $tick++): $tickY = round($chartY($chartStep * $tick), 1); ?>
+      <line class="area-grid" x1="0" x2="100" y1="<?= $tickY ?>" y2="<?= $tickY ?>"/>
+      <?php endfor; ?>
+      <g class="area-reveal">
+        <path d="<?= $chartEscape($chartArea($income, $incomeLine)) ?>" fill="url(#chart-income-fill)"/>
+        <path d="<?= $chartEscape($chartArea($expense, $expenseLine)) ?>" fill="url(#chart-expense-fill)"/>
+        <path class="area-line is-income" d="<?= $chartEscape($incomeLine) ?>"/>
+        <path class="area-line is-expense" d="<?= $chartEscape($expenseLine) ?>"/>
+      </g>
+    </svg>
+    <?php for ($tick = 0; $tick <= 4; $tick++): ?>
+    <span class="area-tick" style="top:<?= round($chartY($chartStep * $tick), 1) ?>%"><?= $chartEscape($chartLabel($chartStep * $tick)) ?></span>
+    <?php endfor; ?>
+    <?php foreach ([[$income, 'is-income', 'Receitas'], [$expense, 'is-expense', 'Despesas']] as [$points, $class, $name]): foreach ($points as [$x, $y, $key, $cents]): ?>
+    <span class="area-point <?= $class ?>" style="left:<?= $x ?>%;top:<?= $y ?>%" title="<?= $chartEscape($name . ' de ' . $chartMonths[substr($key, 5)] . '/' . substr($key, 0, 4) . ': ' . Finance::money($cents)) ?>"></span>
+    <?php endforeach; endforeach; ?>
+  </div>
+  <div class="area-months<?= $chartCount > 6 ? ' is-year' : '' ?>">
+    <?php foreach ($chartKeys as $index => $key): ?>
+    <span style="left:<?= round($chartX($index), 1) ?>%"><?= $chartEscape($chartMonths[substr($key, 5)]) ?></span>
+    <?php endforeach; ?>
+  </div>
+</div>
 <p class="bars-legend"><span class="finance-dot" style="background:#078b4c"></span>Receitas <span class="finance-dot" style="background:#e5484d;margin-left:12px"></span>Despesas</p>
 <?php endif; ?>

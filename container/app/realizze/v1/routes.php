@@ -156,15 +156,22 @@ return [
         $router->get('/cadastrar', static function () use ($requirePreview,$webView): void {
             if(!$requirePreview())return;
             if(\Moves\Services\SessionAuth::current()!==null){header('Location: /p',true,302);return;}
-            echo $webView->render('pages/app-register',['registerError'=>null,'registerSuccess'=>false]);
+            header('Cache-Control: no-store');
+            echo $webView->render('pages/app-register',['registerError'=>null,'registerSuccess'=>isset($_GET['enviado'])]);
         },'app.register');
 
         $router->post('/cadastrar', static function () use ($requirePreview,$webView): void {
             if(!$requirePreview())return;
-            try{(new \Moves\App\Register())->submit();echo $webView->render('pages/app-register',['registerError'=>null,'registerSuccess'=>true]);}
-            catch(\InvalidArgumentException $e){http_response_code(422);echo $webView->render('pages/app-register',['registerError'=>$e->getMessage(),'registerSuccess'=>false]);}
-            catch(\Throwable $e){error_log('Realizze cadastro: '.$e->getMessage());http_response_code(500);echo $webView->render('pages/app-register',['registerError'=>'Não foi possível concluir o cadastro.','registerSuccess'=>false]);}
+            \Moves\App\Register::handle($webView);
         },'app.register.submit');
+
+        // Estas páginas ficam no site; os links do acesso continuam funcionando no App.
+        foreach (['/recuperar-senha', '/reenviar-confirmacao'] as $sitePath) {
+            $router->get($sitePath, static function () use ($sitePath): void {
+                header('Cache-Control: no-store');
+                header('Location: ' . rtrim((string) getenv('APP_URL'), '/') . $sitePath, true, 302);
+            });
+        }
 
         $router->post('/entrar', static function () use ($requirePreview, $renderLogin): void {
             if (!$requirePreview()) {
