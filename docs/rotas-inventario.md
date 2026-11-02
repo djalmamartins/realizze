@@ -2,7 +2,7 @@
 
 Auditoria de 02/11/2026 no branch `feat/realizze-integracao-ui-20261101`. Nenhuma rota foi alterada. As tabelas saem das 276 rotas que o MovesCode Router registra de fato com `APP_ENV=local`, incluindo as alterações ainda não commitadas de Metas. A coluna "Rota proposta" registra a proposta da auditoria.
 
-**Situação em 02/11/2026:** o período na URL foi implementado em PF e PJ. `AppUrl` gera os links, as rotas ficam em `container/app/realizze/v1/routes.php`, e os endereços antigos com `?mes`, `?visao=anual&ano` e `?inicio&fim` respondem 302. Formatos aceitos: visão geral, Receber, Pagar e Movimentações com mês, ano e datas; Relatórios, Categorias e Planejamento com mês e ano; Fluxo de caixa, só na empresa, com mês. Metas ficou sem período, porque a tela não filtra por ele, ao contrário do que a tabela abaixo propõe. Os achados 1, 2, 3, 4, 5, 6, 8 e 14 foram resolvidos. Continuam abertos os achados 7, 9, 10, 15 e 16.
+**Situação em 02/11/2026:** o período na URL foi implementado em PF e PJ. `AppUrl` gera os links, as rotas ficam em `container/app/realizze/v1/routes.php`, e os endereços antigos com `?mes`, `?visao=anual&ano` e `?inicio&fim` respondem 302. Formatos aceitos: visão geral, Receber, Pagar e Movimentações com mês, ano e datas; Relatórios, Categorias e Planejamento com mês e ano; Fluxo de caixa, só na empresa, com mês. Metas ficou sem período, porque a tela não filtra por ele, ao contrário do que a tabela abaixo propõe. Os achados 1 a 8 e 14 foram resolvidos, e `/configuracao-inicial` saiu do site junto com a página. O achado 9 foi revisto e não é duplicidade. `/cartoes` fica como está (achado 10). ERP e Send não têm o que padronizar agora (achado 16).
 
 ## Como o roteamento funciona
 
@@ -54,7 +54,7 @@ Tudo está em `container/app/realizze/v1/assets/js/dashboard.js`.
 6. **Web tem cópias de rotas do App.** `POST /minha-conta/contexto` e `POST /sair` não têm formulário em nenhuma tela do site. Em `GET /minha-conta`, o ramo que renderiza o painel só roda sem `ROUTE_APP_HOST`, e esse valor está definido no `.env`. Pelo código, o cookie de sessão não define domínio e o login acontece no host do App. Portanto, a sessão não deve valer no host do site, mas não testei isso em uma requisição real.
 7. **`/configuracao-inicial` no site não tem nenhum link** e exige acesso do App, o que esbarra no mesmo ponto da sessão.
 8. **Nomes fora do ambiente.** Rotas do site usam os nomes `app.account`, `app.context.switch` e `app.onboarding.preview`.
-9. **Dois caminhos salvam preferências de notificação:** `/minha-conta/perfil/notificacoes` e `/minha-conta/notificacoes/preferencias`. Os dois têm formulário ativo.
+9. **Preferências de notificação têm dois caminhos, e os dois ficam.** `/minha-conta/perfil/notificacoes` define canais por categoria, e `/minha-conta/notificacoes/preferencias` define os avisos automáticos. São ajustes diferentes.
 10. **Slug e seção divergem em Contas.** A tela se chama "Contas e Cartões", a seção é `contas` e a URL é `/cartoes`. Só faz sentido mudar se você quiser.
 
 ### Conflitos entre rotas estáticas e dinâmicas
