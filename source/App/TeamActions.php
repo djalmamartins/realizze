@@ -75,7 +75,7 @@ final class TeamActions
         $safeCompany = htmlspecialchars($company, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeLink = htmlspecialchars($link, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         try {
-            (new MailQueue())->enqueue(
+            (new MailQueue(\MovesCode\Model\Connection::get()))->enqueue(
                 $email,
                 'Convite para a empresa ' . mb_substr($company, 0, 200) . ' no Realizze',
                 '<p>Você foi convidado para acessar <strong>' . $safeCompany . '</strong> no Realizze.</p><p><a href="' . $safeLink . '">Abrir convite</a></p><p>O convite vale por 7 dias.</p>',
