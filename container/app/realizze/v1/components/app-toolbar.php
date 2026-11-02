@@ -13,9 +13,11 @@ use Moves\Services\SessionAuth;
 
 $toolbarSection = (string) ($toolbarSection ?? 'overview');
 $toolbarEscape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-$toolbarHasPeriod = in_array($toolbarSection, ['overview', 'pagar', 'movimentacoes', 'relatorios', 'planejamento', 'categorias', 'fluxo-de-caixa'], true);
-$toolbarHasYear = in_array($toolbarSection, ['overview', 'pagar', 'movimentacoes', 'relatorios', 'planejamento', 'categorias'], true);
-$toolbarPeriod = Finance::period($toolbarHasYear ? $_GET : array_diff_key($_GET, ['visao' => 1, 'ano' => 1]));
+$toolbarHasPeriod = in_array($toolbarSection, ['overview', 'receber', 'pagar', 'movimentacoes', 'relatorios', 'planejamento', 'categorias', 'fluxo-de-caixa'], true);
+$toolbarHasYear = in_array($toolbarSection, ['overview', 'receber', 'pagar', 'movimentacoes', 'relatorios', 'planejamento', 'categorias'], true);
+// Receber filtra por inicio/fim e recebe também mes na URL do mês: aqui vale o mês, para a barra não virar período personalizado.
+$toolbarQuery = $toolbarSection === 'receber' && isset($_GET['mes']) ? array_diff_key($_GET, ['inicio' => 1, 'fim' => 1]) : $_GET;
+$toolbarPeriod = Finance::period($toolbarHasYear ? $toolbarQuery : array_diff_key($toolbarQuery, ['visao' => 1, 'ano' => 1]));
 $toolbarKeep = array_diff_key($_GET, ['pagina' => 1, 'mes' => 1, 'visao' => 1, 'ano' => 1, 'inicio' => 1, 'fim' => 1, 'page' => 1]);
 $toolbarLink = static fn (array $query): string => $toolbarEscape(AppUrl::section($toolbarSection, null, $toolbarKeep + $query));
 $toolbarAlerts = [];
