@@ -91,7 +91,7 @@ final class RecurringFinance
                 $link->execute([$this->contextId,$id,$due,$entryId]);
             }
             $this->pdo->commit();
-        } catch (\\Throwable $error) {
+        } catch (\Throwable $error) {
             $this->pdo->rollBack();
             throw $error;
         }
