@@ -221,7 +221,7 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
               <label>Data<input name="paid_on" type="date" value="<?= $e(date('Y-m-d')) ?>" required></label>
             </div>
             <label>Lançamento já existente (opcional)<select name="entry_id"><option value="">Não vincular</option><?php foreach ($entries as $entry): ?><option value="<?= (int) $entry['id'] ?>"><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m') . ' · ' . $entry['description'] . ' · ' . Finance::money((int) $entry['amount_cents'])) ?></option><?php endforeach; ?></select></label>
-            <p class="muted">Vincular evita contar a mesma parcela duas vezes. O lançamento continua em Pagar.</p>
+            <p class="muted">Ao vincular, o lançamento é baixado na data informada. Sem vínculo, uma saída é criada automaticamente quando a dívida tem uma conta associada.</p>
             <button type="submit">Registrar</button>
           </form>
           <form method="post" action="/minha-conta/dividas/negociacao" class="debt-form" data-finance-form>

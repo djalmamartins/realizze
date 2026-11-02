@@ -125,7 +125,7 @@ final class Debts
         $entryId = null;
         if (($data['entry_id'] ?? '') !== '' && ($data['entry_id'] ?? null) !== null) {
             $entryId = filter_var($data['entry_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-            if ($entryId === false || !$this->linkableEntry($entryId)) {
+            if ($entryId === false) {
                 throw new InvalidArgumentException('Escolha um lançamento de despesa seu que ainda não esteja vinculado a outra dívida.');
             }
         }
@@ -133,14 +133,39 @@ final class Debts
 
         $this->pdo->beginTransaction();
         try {
-            $statement = $this->pdo->prepare("SELECT balance_cents, status FROM finance_debts WHERE id = ? AND financial_context_id = ? AND archived_at IS NULL FOR UPDATE");
+            $statement = $this->pdo->prepare("SELECT balance_cents, status, account_id, creditor_name FROM finance_debts WHERE id = ? AND financial_context_id = ? AND archived_at IS NULL FOR UPDATE");
             $statement->execute([$debtId, $this->contextId]);
             $debt = $statement->fetch(PDO::FETCH_ASSOC);
             if ($debt === false || in_array($debt['status'], ['paid', 'cancelled'], true)) {
                 throw new InvalidArgumentException('Dívida não encontrada ou já encerrada.');
             }
             $before = (int) $debt['balance_cents'];
-            $after = max(0, $before - $amount);
+            if ($amount > $before) {
+                throw new InvalidArgumentException('O pagamento não pode ser maior que o saldo atual da dívida.');
+            }
+            if ($entryId !== null) {
+                $entry = $this->linkableEntry($entryId, true);
+                if ($entry === null) {
+                    throw new InvalidArgumentException('Escolha um lançamento de despesa seu que ainda não esteja vinculado a outra dívida.');
+                }
+                if ((int) $entry['amount_cents'] !== $amount) {
+                    throw new InvalidArgumentException('O valor do lançamento deve ser igual ao valor pago.');
+                }
+                if ($entry['paid_at'] === null) {
+                    $this->pdo->prepare("UPDATE finance_entries SET paid_at = ?, status = 'received' WHERE id = ? AND financial_context_id = ?")
+                        ->execute([$paidOn, $entryId, $this->contextId]);
+                }
+            } elseif ($debt['account_id'] !== null) {
+                $this->pdo->prepare(
+                    "INSERT INTO finance_entries (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, created_by, notes, status)
+                     VALUES (?, 'expense', ?, ?, ?, ?, ?, ?, ?, 'received')"
+                )->execute([
+                    $this->contextId, 'Pagamento de dívida · ' . $debt['creditor_name'], $amount, $paidOn, $paidOn,
+                    (int) $debt['account_id'], $userId, $notes,
+                ]);
+                $entryId = (int) $this->pdo->lastInsertId();
+            }
+            $after = $before - $amount;
             $this->pdo->prepare(
                 'INSERT INTO finance_debt_payments (debt_id, financial_context_id, amount_cents, paid_on, entry_id, balance_before_cents, balance_after_cents, notes, created_by)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -302,14 +327,17 @@ final class Debts
         }
     }
 
-    private function linkableEntry(int $entryId): bool
+    /** @return array<string,mixed>|null */
+    private function linkableEntry(int $entryId, bool $lock = false): ?array
     {
         $statement = $this->pdo->prepare(
-            "SELECT e.id FROM finance_entries e LEFT JOIN finance_debt_payments p ON p.entry_id = e.id
-             WHERE e.id = ? AND e.financial_context_id = ? AND e.kind = 'expense' AND p.id IS NULL"
+            "SELECT e.id, e.amount_cents, e.paid_at, e.account_id FROM finance_entries e LEFT JOIN finance_debt_payments p ON p.entry_id = e.id
+             WHERE e.id = ? AND e.financial_context_id = ? AND e.kind = 'expense' AND p.id IS NULL
+               AND (e.status IS NULL OR e.status <> 'cancelled')" . ($lock ? ' FOR UPDATE' : '')
         );
         $statement->execute([$entryId, $this->contextId]);
-        return $statement->fetchColumn() !== false;
+        $entry = $statement->fetch(PDO::FETCH_ASSOC);
+        return $entry === false ? null : $entry;
     }
 
     /** @return array<string,mixed> colunas na ordem do INSERT */

@@ -19,6 +19,11 @@ $check = static function (bool $ok, string $message): void {
     echo "OK - {$message}\n";
 };
 $pdo = Connection::get();
+$tableReady = $pdo->query("SHOW TABLES LIKE 'finance_debts'")->fetchColumn() !== false;
+if (!$tableReady) {
+    echo "SKIP - migration 007 de dívidas ainda não foi aplicada.\n";
+    exit(0);
+}
 $users = [];
 try {
     foreach (['a', 'b'] as $suffix) {
@@ -58,10 +63,12 @@ try {
 
     // Pagamento parcial vinculado a lançamento existente, sem duplicar.
     $finance = new Finance(FinanceContext::forUser($users['a']));
-    $account = $finance->createAccount(['name' => 'Conta', 'type' => 'checking']);
+    $account = $finance->createAccount(['name' => 'Conta', 'type' => 'checking', 'opening_balance' => '1.000,00']);
     $entry = $finance->createEntry('expense', ['description' => 'Fatura cartão', 'amount' => '300,00', 'due_date' => date('Y-m-d'), 'account_id' => $account], $users['a']);
     $a->registerPayment($card, ['amount' => '300,00', 'paid_on' => date('Y-m-d'), 'entry_id' => (string) $entry], $users['a']);
     $check($a->find($card)['balance_cents'] === 470000 && $a->find($card)['paid_cents'] === 30000, 'Pagamento parcial abate o saldo');
+    $balances = array_column($finance->accountsWithBalance(), 'balance_cents', 'id');
+    $check($balances[$account] === 70000, 'Pagamento vinculado baixa a despesa e reduz a conta uma vez');
     try {
         $a->registerPayment($loan, ['amount' => '300,00', 'paid_on' => date('Y-m-d'), 'entry_id' => (string) $entry], $users['a']);
         $check(false, 'Mesmo lançamento usado duas vezes');
@@ -78,8 +85,14 @@ try {
     } catch (InvalidArgumentException) {
         echo "OK - Lançamento de outro usuário não pode ser vinculado\n";
     }
-    $a->registerPayment($card, ['amount' => '10.000,00', 'paid_on' => date('Y-m-d')], $users['a']);
-    $check($a->find($card)['balance_cents'] === 0 && $a->find($card)['status'] === 'paid', 'Pagamento acima do saldo quita sem saldo negativo');
+    try {
+        $a->registerPayment($card, ['amount' => '10.000,00', 'paid_on' => date('Y-m-d')], $users['a']);
+        $check(false, 'Pagamento acima do saldo aceito');
+    } catch (InvalidArgumentException) {
+        echo "OK - Pagamento acima do saldo recusado\n";
+    }
+    $a->registerPayment($card, ['amount' => '4.700,00', 'paid_on' => date('Y-m-d')], $users['a']);
+    $check($a->find($card)['balance_cents'] === 0 && $a->find($card)['status'] === 'paid', 'Pagamento total quita sem saldo negativo');
     $check(count($a->payments($card)) === 2 && (int) $a->payments($card)[0]['balance_after_cents'] === 0, 'Histórico guarda saldo antes e depois');
 
     // Negociações.
