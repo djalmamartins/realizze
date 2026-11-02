@@ -1060,7 +1060,7 @@ syncAppFavicon();
     const place = [state.value('savings_place').trim(), state.form.elements.institution_id?.value ? bank.textContent : state.value('institution').trim()].filter(Boolean).join(' · ');
     const finish = goalFinish(state, state.monthly);
     review.replaceChildren();
-    [['Meta', state.value('name').trim()], ['Categoria', categoryLabel], ['Descrição', state.value('purpose').trim()], ['Valor da meta', goalMoney(state.target)], ['Já guardado', state.initial ? goalMoney(state.initial) : ''], ['Prazo', state.deadline ? state.deadline.toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'A definir'], ['Contribuição mensal', state.monthly ? goalMoney(state.monthly) : ''], ['Previsão com essa contribuição', finish ? `${goalDuration(finish.months)} · ${finish.label}` : ''], ['Guardando em', place]].forEach(([label, text]) => {
+    [['Meta', state.value('name').trim()], ['Categoria', categoryLabel], ['Descrição', state.value('purpose').trim()], ['Valor da meta', goalMoney(state.target)], ['Conta de referência', state.form.elements.account_id?.value ? state.form.elements.account_id.selectedOptions[0].textContent.split(' · ')[0] : ''], [state.form.elements.account_id?.value ? 'Reservar agora' : 'Já guardado', state.initial ? goalMoney(state.initial) : ''], ['Prazo', state.deadline ? state.deadline.toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : 'A definir'], ['Contribuição mensal', state.monthly ? goalMoney(state.monthly) : ''], ['Previsão com essa contribuição', finish ? `${goalDuration(finish.months)} · ${finish.label}` : ''], ['Guardando em', place]].forEach(([label, text]) => {
       if (!text) return;
       const row = goalEl('div');
       row.append(goalEl('dt', '', label), goalEl('dd', '', text));

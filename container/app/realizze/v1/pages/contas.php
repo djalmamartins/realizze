@@ -17,21 +17,24 @@ try {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
 }
-$available = array_sum(array_map(static fn (array $a): int => $a['type'] === 'credit_card' ? 0 : $a['balance_cents'], $accounts));
+$balances = (new Finance((int) FinanceContext::currentId()))->balanceSummary($accounts);
+$available = $balances['available_cents'];
 $cards = array_sum(array_map(static fn (array $a): int => $a['type'] === 'credit_card' ? $a['balance_cents'] : 0, $accounts));
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
+<?= $appView->render('components::reservation-alert', ['shortfalls' => $balances['shortfalls'], 'e' => $e]) ?>
 <section class="card finance-workspace" aria-labelledby="accounts-title">
   <div class="finance-toolbar">
     <div><h2 id="accounts-title">Contas e cartões</h2><p class="muted">Saldos calculados com o que já foi pago, recebido e transferido.</p></div>
     <button type="button" class="primary" data-finance-open="account-dialog">+ Adicionar conta</button>
   </div>
-  <div class="finance-goal-summary" aria-label="Resumo das contas">
-    <div class="finance-goal-stat finance-indicator <?= $available > 0 ? 'is-positive' : ($available < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo disponível</span><strong><?= $e(Finance::money($available)) ?></strong><small>Contas e carteiras</small></div>
+  <div class="finance-goal-summary cash-summary" aria-label="Resumo das contas">
+    <div class="finance-goal-stat finance-indicator <?= $balances['total_cents'] > 0 ? 'is-positive' : ($balances['total_cents'] < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo total</span><strong><?= $e(Finance::money($balances['total_cents'])) ?></strong><small>Contas e carteiras</small></div>
+    <div class="finance-goal-stat finance-indicator is-neutral"><span>Reservado em metas</span><strong><?= $e(Finance::money($balances['reserved_cents'])) ?></strong><small>Continua na conta</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $available > 0 ? 'is-positive' : ($available < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo disponível</span><strong><?= $e(Finance::money($available)) ?></strong><small>Total menos reservado</small></div>
     <div class="finance-goal-stat finance-indicator <?= $cards < 0 ? 'is-negative' : 'is-neutral' ?>"><span>Cartões de crédito</span><strong><?= $e(Finance::money($cards)) ?></strong><small>Fora do saldo disponível</small></div>
-    <div class="finance-goal-stat finance-indicator is-neutral"><span>Contas ativas</span><strong><?= count($accounts) ?></strong><small>Neste contexto</small></div>
   </div>
   <?php if ($loadFailed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar as contas</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
@@ -50,7 +53,7 @@ unset($_SESSION['finance_flash']);
           <?php else: ?><?= $e(CardBrands::label($cardBrand)) ?><?php endif; ?>
         </span><?php endif; ?>
       <?php endif; ?>
-      <strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong>
+      <span class="account-balance"><strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong><?php if ($account['reserved_cents'] > 0): ?><small>Reservado <?= $e(Finance::money($account['reserved_cents'])) ?> · Disponível <b class="<?= $account['available_cents'] < 0 ? 'red' : '' ?>"><?= $e(Finance::money($account['available_cents'])) ?></b></small><?php endif; ?></span>
     </li>
     <?php endforeach; ?>
   </ul>

@@ -12,6 +12,9 @@ $loadFailed = false;
 $goals = $history = $institutions = [];
 $baseline = ['months' => 0, 'income_cents' => 0, 'expense_cents' => 0, 'committed_cents' => 0, 'categories' => []];
 $details = false;
+$wallets = false;
+$accounts = $categories = $walletHistory = $goalAccounts = $schedules = [];
+$balances = ['total_cents' => 0, 'reserved_cents' => 0, 'available_cents' => 0, 'shortfalls' => []];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $goals = $finance->goals();
@@ -19,19 +22,39 @@ try {
     $details = $finance->supportsGoalDetails();
     $baseline = $finance->goalBaseline();
     $institutions = $details ? \Moves\Services\FinancialInstitutions::active() : [];
+    $wallets = \Moves\Services\GoalWallets::ready();
+    $accounts = $finance->accountsWithBalance();
+    $balances = $finance->balanceSummary($accounts);
+    if ($wallets) {
+        $service = new \Moves\Services\GoalWallets((int) FinanceContext::currentId());
+        $walletHistory = $service->history();
+        $goalAccounts = $service->goalAccounts();
+        $schedules = $service->schedules();
+        $categories = $finance->categories('expense');
+    }
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
 }
 $today = date('Y-m-d');
 $free = $baseline['months'] > 0 ? $baseline['income_cents'] - $baseline['expense_cents'] - $baseline['committed_cents'] : 0;
-$rows = array_map(static function (array $goal) use ($history, $free, $today): array {
+$rows = array_map(static function (array $goal) use ($history, $walletHistory, $schedules, $free, $today): array {
+    // O ritmo soma as reservas ainda válidas aos valores registrados fora das contas.
     $list = $history[(int) $goal['id']] ?? [];
+    foreach ($walletHistory[(int) $goal['id']] ?? [] as $operation) {
+        if ($operation['type'] === 'reserve' && !$operation['reversed']) {
+            $list[] = ['amount_cents' => $operation['delta_cents'], 'contributed_at' => $operation['occurred_on']];
+        }
+    }
+    usort($list, static fn (array $x, array $y): int => $y['contributed_at'] <=> $x['contributed_at']);
+    $goal['flow'] = $list;
+    $schedule = $schedules[(int) $goal['id']] ?? null;
+    $planned = $goal['monthly_contribution_cents'] ?? ($schedule !== null && $schedule['status'] === 'active' ? $schedule['amount_cents'] : null);
     // O valor lançado ao criar a meta é o que já estava guardado, não o ritmo de aportes.
     $created = substr((string) $goal['created_at'], 0, 10);
     $paced = array_values(array_filter($list, static fn (array $c): bool => $c['contributed_at'] !== $created));
     $goal['term'] = Finance::goalTerm($goal['deadline'] ?: null, $today);
-    $goal['forecast'] = Finance::goalForecast((int) $goal['target_cents'], (int) $goal['saved_cents'], $goal['deadline'] ?: null, $goal['monthly_contribution_cents'] === null ? null : (int) $goal['monthly_contribution_cents'], $paced, $free, $today);
+    $goal['forecast'] = Finance::goalForecast((int) $goal['target_cents'], (int) $goal['saved_cents'], $goal['deadline'] ?: null, $planned === null ? null : (int) $planned, $paced, $free, $today);
     $goal['last_contribution'] = $list[0]['contributed_at'] ?? null;
     $goal['done'] = (int) $goal['saved_cents'] >= (int) $goal['target_cents'];
     return $goal;
@@ -84,6 +107,7 @@ foreach ($tip === null ? $rows : [] as $goal) {
 $money = static fn (int $cents): string => Finance::money($cents);
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
+<?= $appView->render('components::reservation-alert', ['shortfalls' => $balances['shortfalls'], 'e' => $e]) ?>
 <section class="card finance-workspace" aria-labelledby="goals-title">
   <div class="finance-toolbar">
     <div><h2 id="goals-title">Acompanhe a evolução dos seus sonhos</h2><p class="muted">Defina metas a curto, médio e longo prazo e conte com o Realizze para alcançar.</p></div>
@@ -112,7 +136,7 @@ $money = static fn (int $cents): string => Finance::money($cents);
       <?php else: ?>
       <ul class="goal-list">
         <?php foreach ($visible as $goal): ?>
-        <?= $appView->render('components::goal-card', ['goal' => $goal, 'today' => $today, 'history' => $history[(int) $goal['id']] ?? [], 'forecast' => $goal['forecast'], 'term' => $goal['term'], 'institutions' => $institutions, 'details' => $details, 'csrf' => $csrf, 'appView' => $appView, 'e' => $e]) ?>
+        <?= $appView->render('components::goal-card', ['goal' => $goal, 'today' => $today, 'history' => $history[(int) $goal['id']] ?? [], 'flow' => $goal['flow'], 'forecast' => $goal['forecast'], 'term' => $goal['term'], 'institutions' => $institutions, 'details' => $details, 'csrf' => $csrf, 'appView' => $appView, 'e' => $e, 'wallets' => $wallets, 'accounts' => $accounts, 'wallet' => $walletHistory[(int) $goal['id']] ?? [], 'goalAccounts' => $goalAccounts[(int) $goal['id']] ?? [], 'otherGoals' => array_values(array_filter($goals, static fn (array $g): bool => (int) $g['id'] !== (int) $goal['id'] && $g['status'] !== 'paused')), 'categories' => $categories, 'schedule' => $schedules[(int) $goal['id']] ?? null]) ?>
         <?php endforeach; ?>
       </ul>
       <?php endif; ?>
@@ -123,6 +147,12 @@ $money = static fn (int $cents): string => Finance::money($cents);
         <dl><div><dt>Total das metas</dt><dd><?= $e($money($target)) ?></dd></div><div><dt>Total acumulado</dt><dd class="green"><?= $e($money($saved)) ?></dd></div><div><dt>Progresso geral</dt><dd><?= $overall ?>%</dd></div></dl>
         <div class="track track-live goal-bar is-success" role="progressbar" aria-valuenow="<?= $overall ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Progresso geral"><span data-width="<?= $overall ?>"></span></div>
       </div>
+      <?php if ($wallets): ?>
+      <div class="goal-side-card">
+        <h3>Suas contas</h3>
+        <dl><div><dt>Patrimônio nas contas</dt><dd><?= $e($money($balances['total_cents'])) ?></dd></div><div><dt>Reservado em metas</dt><dd><?= $e($money($balances['reserved_cents'])) ?></dd></div><div><dt>Disponível</dt><dd class="<?= $balances['available_cents'] < 0 ? 'red' : 'green' ?>"><?= $e($money($balances['available_cents'])) ?></dd></div></dl>
+      </div>
+      <?php endif; ?>
       <div class="goal-side-card">
         <h3>Metas por prazo</h3>
         <div class="goal-donut-row">
@@ -156,4 +186,4 @@ $money = static fn (int $cents): string => Finance::money($cents);
   </div>
   <?php endif; ?>
 </section>
-<?= $appView->render('components::goal-wizard', ['institutions' => $institutions, 'details' => $details, 'baseline' => $baseline, 'today' => $today, 'csrf' => $csrf, 'e' => $e]) ?>
+<?= $appView->render('components::goal-wizard', ['institutions' => $institutions, 'details' => $details, 'baseline' => $baseline, 'today' => $today, 'csrf' => $csrf, 'e' => $e, 'wallets' => $wallets, 'accounts' => $accounts]) ?>

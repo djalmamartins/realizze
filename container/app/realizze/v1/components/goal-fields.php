@@ -1,7 +1,7 @@
 <?php
 /**
  * Campos da edição da meta.
- * Parâmetros: $goal, $institutions, $details (migration 009 aplicada), $e, $photoUrl (ou null).
+ * Parâmetros: $goal, $institutions, $details (migration 009 aplicada), $e, $photoUrl (ou null), $wallets (migration 012 aplicada), $accounts.
  */
 $value = static fn (string $key): string => $e($goal[$key] ?? '');
 $amount = number_format((int) $goal['target_cents'] / 100, 2, ',', '');
@@ -17,6 +17,12 @@ $iconLabels = ['carro' => 'Carro', 'aviao' => 'Avião', 'casa' => 'Casa', 'educa
 </div>
 <?php endif; ?>
 <label>Nome<input name="name" maxlength="120" required value="<?= $value('name') ?>" placeholder="Ex.: Carro novo"></label>
+<?php if ($wallets ?? false): ?>
+<div class="finance-dialog-row">
+  <label>Conta de referência<select name="account_id"><option value="">Nenhuma</option><?php foreach ($accounts as $account): if ($account['type'] === 'credit_card') continue; ?><option value="<?= (int) $account['id'] ?>"<?= (int) $goal['account_id'] === (int) $account['id'] ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
+  <label>Cor<input type="color" name="color" value="<?= $e($goal['color'] ?: '#078b4c') ?>"></label>
+</div>
+<?php endif; ?>
 <div class="finance-dialog-row">
   <label>Valor da meta (R$)<input name="amount" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?" required value="<?= $e($amount) ?>"></label>
   <label>Prazo<input name="deadline" type="date" value="<?= $value('deadline') ?>"></label>

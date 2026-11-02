@@ -21,7 +21,8 @@ $balance = 0;
 $failed = false;
 try {
     $finance = new Finance((int) FinanceContext::currentId());
-    $balance = $finance->availableBalance();
+    $balances = $finance->balanceSummary();
+    $balance = $balances['total_cents'];
     $bucketOf = static function (DateTimeImmutable $date) use ($grouping): string {
         if ($grouping === 'dia') return $date->format('d/m');
         $week = (int) ceil((int) $date->format('j') / 7);
@@ -69,7 +70,7 @@ $projected = $balance + $totals['in_open'] - $totals['out_open'];
     <div><h2 id="cash-title">Fluxo de caixa</h2><p class="muted">Realizado é o que já foi pago ou recebido. Previsto é o que continua em aberto no mês.</p></div>
   </div>
   <div class="finance-goal-summary cash-summary" aria-label="Resumo do mês">
-    <div class="finance-goal-stat finance-indicator <?= $balance > 0 ? 'is-positive' : ($balance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo atual</span><strong><?= $e(Finance::money($balance)) ?></strong><small>Contas e carteiras, sem cartões</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $balance > 0 ? 'is-positive' : ($balance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo atual</span><strong><?= $e(Finance::money($balance)) ?></strong><small><?= ($balances['reserved_cents'] ?? 0) > 0 ? 'Disponível ' . $e(Finance::money($balances['available_cents'])) . ' · reservado em metas ' . $e(Finance::money($balances['reserved_cents'])) : 'Contas e carteiras, sem cartões' ?></small></div>
     <?php $realized = $totals['in_done'] - $totals['out_done']; ?><div class="finance-goal-stat finance-indicator <?= $realized > 0 ? 'is-positive' : ($realized < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Realizado no mês</span><strong><?= $e(Finance::money($realized)) ?></strong><small>Entradas menos saídas</small></div>
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Previsto em aberto</span><strong><?= $e(Finance::money($totals['in_open'] - $totals['out_open'])) ?></strong><small><?= $overdue > 0 ? $e(Finance::money($overdue)) . ' já vencidos' : 'A receber menos a pagar' ?></small></div>
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Saldo projetado</span><strong><?= $e(Finance::money($projected)) ?></strong><small>Se tudo em aberto se confirmar</small></div>

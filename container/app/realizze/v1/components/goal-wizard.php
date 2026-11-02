@@ -1,11 +1,13 @@
 <?php
 /**
  * Criação de meta em cinco passos, com resumo ao vivo e análise pelo histórico.
- * Parâmetros: $institutions, $details (migration 009 aplicada), $baseline (Finance::goalBaseline), $today, $csrf, $e.
+ * Parâmetros: $institutions, $details (migration 009 aplicada), $baseline (Finance::goalBaseline), $today, $csrf, $e, $wallets (migration 012 aplicada), $accounts.
  */
 use Moves\Services\Finance;
 
 $goalIcon = require __DIR__ . '/goal-icon.php';
+$wallets ??= false;
+$cash = array_filter($accounts ?? [], static fn (array $a): bool => $a['type'] !== 'credit_card');
 $steps = [['Objetivo', 'O que você quer alcançar?'], ['Detalhes', 'Quanto e quando?'], ['Contribuição', 'Quanto você pode guardar?'], ['Análise', 'Vamos calcular seu cenário'], ['Revisão', 'Confirme sua meta']];
 $categoryIcons = ['transporte' => 'carro', 'viagem' => 'aviao', 'casa' => 'casa', 'educacao' => 'educacao', 'investimento' => 'guardar', 'outra' => 'alvo'];
 $iconLabels = ['carro' => 'Carro', 'aviao' => 'Avião', 'casa' => 'Casa', 'educacao' => 'Educação', 'coracao' => 'Coração', 'maleta' => 'Trabalho', 'guardar' => 'Guardar', 'jogo' => 'Lazer', 'camera' => 'Câmera', 'carteira' => 'Carteira', 'alvo' => 'Alvo', 'mais' => 'Outro'];
@@ -16,7 +18,7 @@ $iconLabels = ['carro' => 'Carro', 'aviao' => 'Avião', 'casa' => 'Casa', 'educa
       <div><h2 id="goal-dialog-title">Nova meta</h2><p class="muted">Defina seu objetivo financeiro. O Realizze ajuda você a acompanhá-lo.</p></div>
       <button type="button" data-finance-close aria-label="Fechar">×</button>
     </header>
-    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="metas">
+    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="metas"><input type="hidden" name="idempotency_key" value="<?= $e(bin2hex(random_bytes(16))) ?>">
     <div class="goal-wizard-grid">
       <aside class="goal-steps">
         <ol>
@@ -65,7 +67,15 @@ $iconLabels = ['carro' => 'Carro', 'aviao' => 'Avião', 'casa' => 'Casa', 'educa
             <label>Valor da meta (R$)<input name="amount" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?" required></label>
             <label>Prazo (opcional)<input name="deadline" type="date" min="<?= $e($today) ?>"></label>
           </div>
+          <?php if ($wallets): ?>
+          <div class="finance-dialog-row">
+            <label>Conta de referência<select name="account_id"><option value="">Nenhuma</option><?php foreach ($cash as $account): ?><option value="<?= (int) $account['id'] ?>"><?= $e($account['name']) ?> · disponível <?= $e(Finance::money($account['available_cents'])) ?></option><?php endforeach; ?></select></label>
+            <label>Cor da meta<input type="color" name="color" value="#078b4c"></label>
+          </div>
+          <label>Reservar agora (R$, opcional)<input name="initial" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?"><small class="muted">Com uma conta escolhida, o valor sai do disponível dela. Sem conta, conta como já guardado fora do Realizze.</small></label>
+          <?php else: ?>
           <label>Já tenho guardado (R$, opcional)<input name="initial" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?"></label>
+          <?php endif; ?>
         </section>
 
         <section data-goal-panel="2" hidden>
@@ -92,7 +102,7 @@ $iconLabels = ['carro' => 'Carro', 'aviao' => 'Avião', 'casa' => 'Casa', 'educa
         <section data-goal-panel="4" hidden>
           <h3>5. Confirme sua meta</h3>
           <dl class="goal-review" data-goal-review></dl>
-          <p class="muted">Você pode alterar tudo isso depois, em Editar. O Realizze não movimenta seu dinheiro.</p>
+          <p class="muted">Você pode alterar tudo isso depois, em Editar. O Realizze não movimenta dinheiro no banco.</p>
         </section>
       </div>
 

@@ -53,8 +53,9 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
   <button type="button" class="primary" data-entry-open="income"<?= $manual === [] ? ' disabled' : '' ?>>+ Nova receita</button>
   <button type="button" class="primary is-outline" data-entry-open="expense"<?= $manual === [] ? ' disabled' : '' ?>>+ Nova despesa</button>
 </div>
+<?= $appView->render('components::reservation-alert', ['shortfalls' => $data['shortfalls'], 'e' => $e]) ?>
 <section aria-label="Indicadores financeiros" class="cards">
-  <article class="card balance finance-indicator <?= $data['balance'] > 0 ? 'is-positive' : ($data['balance'] < 0 ? 'is-negative' : 'is-neutral') ?>"><span class="label">Saldo disponível</span><div class="value"><?= $money($data['balance']) ?></div><span class="muted">Em contas e carteiras</span></article>
+  <article class="card balance finance-indicator <?= $data['balance'] > 0 ? 'is-positive' : ($data['balance'] < 0 ? 'is-negative' : 'is-neutral') ?>"><span class="label">Saldo disponível</span><div class="value"><?= $money($data['available']) ?></div><span class="muted"><?= $data['reserved'] > 0 ? 'Total ' . $e(Finance::money($data['balance'])) . ' · reservado ' . $e(Finance::money($data['reserved'])) : 'Em contas e carteiras' ?></span></article>
   <?php foreach ([
     ['Resultado de ' . $period['short'], $data['result'], 'Receitas − despesas pagas', $data['result'] > 0 ? 'is-positive' : ($data['result'] < 0 ? 'is-negative' : 'is-neutral'), '<path d="M3 12h4l3-7 4 14 3-7h4"/>', \Moves\Services\AppUrl::section('movimentacoes')],
     ['A receber', $data['receivable'], $data['receivable_count'] . ' título' . ($data['receivable_count'] === 1 ? '' : 's') . ' em aberto', $data['receivable'] > 0 ? 'is-pending' : 'is-neutral', '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>', \Moves\Services\AppUrl::section('receber', null, ['situacao' => 'open'])],
@@ -127,7 +128,7 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
     <?php if ($data['accounts'] === []): ?><p class="muted">Nenhuma conta cadastrada.</p><?php else: ?>
     <ul class="overview-list">
       <?php foreach ($data['accounts'] as $account): ?>
-      <li><span><strong><?= $e($account['name']) ?></strong><small><?= $account['type'] === 'credit_card' ? 'Cartão de crédito' : 'Conta' ?></small></span><strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong></li>
+      <li><span><strong><?= $e($account['name']) ?></strong><small><?= $account['type'] === 'credit_card' ? 'Cartão de crédito' : 'Conta' ?></small></span><strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?><?php if ($account['reserved_cents'] > 0): ?><small>Disponível <?= $e(Finance::money($account['available_cents'])) ?></small><?php endif; ?></strong></li>
       <?php endforeach; ?>
     </ul><?php endif; ?>
   </article>

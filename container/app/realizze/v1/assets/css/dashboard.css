@@ -1471,3 +1471,18 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .forecast.finance-indicator{background:var(--indicator-bg)}
 .forecast.finance-indicator>span,.forecast.finance-indicator>strong{color:var(--indicator-color)}
 @media(forced-colors:active){.finance-indicator{border:1px solid CanvasText}.finance-indicator>strong,.finance-indicator .value{color:CanvasText}}
+
+/* Carteiras virtuais das metas */
+.finance-flash-warning{background:#fff4e0;color:#8a5200}
+.finance-flash-warning a{color:inherit;text-decoration:underline}
+.account-balance{display:grid;justify-items:end;gap:2px;text-align:right}
+.account-balance b{font-weight:600}
+.overview-list strong small{display:block;color:#6b7a73;font-size:11.5px;font-weight:500}
+.goal-row[style*="--goal-color"]{border-left:4px solid var(--goal-color)}
+.goal-row.is-paused{opacity:.72}
+.goal-term.is-paused{background:#eef1ef;color:#55645c}
+.goal-actions-col .goal-secondary{min-height:calc(36px - var(--app-button-trim));padding:0 12px;border:1px solid #d6e2dc;border-radius:9px;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.goal-actions-col .primary:disabled{opacity:.5;cursor:not-allowed}
+.goal-menu div{min-width:210px}
+.goal-history small.goal-operation-id{color:#94a39b;font-size:11px}
+.finance-dialog input[type=color]{height:42px;padding:4px;cursor:pointer}
