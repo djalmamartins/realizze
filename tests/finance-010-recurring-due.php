@@ -29,4 +29,4 @@ try{
     $ok(count(array_filter($receivables['rows'],static fn(array $row):bool=>$row['description']==='Receita recorrente'))===1,'Receita recorrente aparece em Contas a Receber');
     $item=$service->listing('active');$next=array_values(array_filter($item,static fn(array $row):bool=>(int)$row['id']===$expense))[0]['next_due_date']??'';
     $ok($next>$today,'Próximo vencimento mensal avança para o futuro');
-}finally{if($userId>0)$pdo->prepare('DELETE FROM users WHERE id=?')->execute([$userId]);}
+}finally{if($userId>0){$pdo->prepare('DELETE r FROM finance_recurring_items r JOIN financial_contexts c ON c.id=r.financial_context_id WHERE c.personal_user_id=?')->execute([$userId]);$pdo->prepare('DELETE FROM users WHERE id=?')->execute([$userId]);}}

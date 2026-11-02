@@ -10,6 +10,9 @@ use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\OrganizationContext;
 use Moves\Services\Organizations;
+use Moves\Services\PersonalAccessContext;
+use Moves\Services\Receivables;
+use Moves\Services\RecurringFinance;
 use Moves\Services\SessionAuth;
 use Throwable;
 
@@ -33,10 +36,12 @@ final class FinanceActions
                 \Moves\Services\AppError::render(403);
                 return;
             }
-            $finance = new Finance((int) FinanceContext::currentId());
+            $contextId = (int) FinanceContext::currentId();
+            $finance = new Finance($contextId);
             $id = (int) filter_var($_POST['id'] ?? 0, FILTER_VALIDATE_INT);
             $message = match ($action) {
-                'create' => $this->create($finance, $kind, (int) $user['id']),
+                'create' => $this->create($finance, $contextId, $kind, (int) $user['id']),
+                'update' => $this->update($finance, $contextId, $kind, $id, (int) $user['id']),
                 'company' => $this->company((int) $user['id']),
                 'category' => [$finance->createCategory($_POST) > 0 ? 'success' : 'error', 'Categoria criada.'],
                 'category_delete' => $finance->deleteCategory($id) ? ['success', 'Categoria excluída. Os lançamentos ficaram sem categoria.'] : ['error', 'Categoria não encontrada.'],
@@ -58,10 +63,25 @@ final class FinanceActions
             error_log('Realizze finance: ' . $exception->getMessage());
             $message = ['error', 'Não foi possível salvar. Tente novamente.'];
         }
-        $_SESSION['finance_flash'] = $message;
+        $back = $_POST['back'] ?? null;
+        $_SESSION[$back === 'receber' ? 'receivables_flash' : 'finance_flash'] = $message;
         $month = is_string($_POST['mes'] ?? null) && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $_POST['mes']) ? $_POST['mes'] : date('Y-m');
         header('Cache-Control: no-store');
-        $page = in_array($_POST['back'] ?? null, ['contas', 'movimentacoes', 'overview', 'categorias', 'planejamento', 'metas'], true) ? $_POST['back'] : self::PAGES[$kind];
+        if ($back === 'recorrencias') {
+            header('Location: ' . \Moves\Services\AppUrl::section('recorrencias', OrganizationContext::current()), true, 303);
+            return;
+        }
+        if ($back === 'receber') {
+            $query = ['pagina' => 'receber'];
+            foreach (['inicio', 'fim', 'situacao', 'busca', 'categoria', 'cliente', 'contato', 'page'] as $name) {
+                if (is_string($_POST[$name] ?? null) && $_POST[$name] !== '') {
+                    $query[$name] = mb_substr($_POST[$name], 0, 160);
+                }
+            }
+            header('Location: /minha-conta?' . http_build_query($query), true, 303);
+            return;
+        }
+        $page = in_array($back, ['contas', 'movimentacoes', 'overview', 'categorias', 'planejamento', 'metas', 'pagar'], true) ? $back : self::PAGES[$kind];
         header('Location: /minha-conta?' . ($page === 'overview' ? '' : 'pagina=' . $page . '&') . 'mes=' . $month, true, 303);
     }
 
@@ -107,14 +127,111 @@ final class FinanceActions
         return ['success', 'Empresa cadastrada. Você já está nela.'];
     }
 
-    /** @return array{0:string,1:string} */
-    private function create(Finance $finance, string $kind, int $userId): array
+    /**
+     * Destino único da modal de lançamento; cada caso segue pelo service que já cuida dele.
+     *
+     * @return array{0:string,1:string}
+     */
+    private function create(Finance $finance, int $contextId, string $kind, int $userId): array
     {
-        $finance->createEntry($kind, $_POST, $userId, \Moves\Services\Helpdesk::uploadedFiles('attachments'));
-        if (in_array($_POST['repeat'] ?? '', ['fixed', 'installment'], true)) {
-            return ['success', (int) $_POST['repeat_count'] . ' lançamentos criados.'];
+        $files = \Moves\Services\Helpdesk::uploadedFiles('attachments');
+        if (($_POST['repeat_mode'] ?? '') === 'subscription') {
+            return $this->createRecurring($finance, $contextId, $kind, $userId, $files);
         }
-        return ['success', $kind === 'income' ? 'Recebimento registrado.' : 'Despesa registrada.'];
+        $data = $_POST;
+        $data['repeat'] = ($_POST['repeat_mode'] ?? '') === 'term' ? (string) ($_POST['repeat_value'] ?? '') : '';
+        if ($kind === 'income') {
+            $result = (new Receivables($contextId))->createWithOptions($this->incomeData($data), $userId, $files);
+            return ['success', $result['duplicate'] ? 'Esta receita já havia sido registrada.' : ($result['count'] > 1 ? $result['count'] . ' receitas criadas.' : 'Receita registrada.')];
+        }
+        $finance->createEntry($kind, $data, $userId, $files);
+        return ['success', $data['repeat'] !== '' ? (int) $data['repeat_count'] . ' despesas criadas.' : 'Despesa registrada.'];
+    }
+
+    /**
+     * @param list<array<string,mixed>> $files
+     * @return array{0:string,1:string}
+     */
+    private function createRecurring(Finance $finance, int $contextId, string $kind, int $userId, array $files): array
+    {
+        $this->requireOwner();
+        // finance_recurring_items não tem chave de envio: a sessão segura o duplo clique.
+        $key = (string) ($_POST['idempotency_key'] ?? '');
+        if ($key !== '' && isset($_SESSION['entry_recurring_keys'][$key])) {
+            return ['success', 'Esta assinatura já havia sido registrada.'];
+        }
+        $tags = Finance::parseTags($_POST['tags'] ?? '');
+        \Moves\Services\FinanceAttachments::validate($files);
+        $service = new RecurringFinance($contextId);
+        $auto = isset($_POST['auto_create']) && $service->occurrencesReady();
+        if (!$auto && ($tags !== [] || $files !== [])) {
+            throw new InvalidArgumentException('Tags e anexos ficam no primeiro lançamento gerado: ative a criação automática ou retire-os.');
+        }
+        $id = $service->create($this->recurringData($kind, $auto), $userId);
+        $_SESSION['entry_recurring_keys'][$key] = true;
+        $entryId = $service->firstEntryId($id);
+        if ($entryId !== null) {
+            $finance->updateEntryExtras($entryId, ['tags' => $_POST['tags'] ?? ''], $userId, $files);
+            if (!empty($_POST['paid'])) {
+                $this->settleFirst($finance, $contextId, $kind, $entryId, $userId);
+            }
+        }
+        return ['success', $auto ? 'Assinatura criada. Os lançamentos seguem até o cancelamento.' : 'Assinatura criada. A cobrança aparece como prevista.'];
+    }
+
+    private function settleFirst(Finance $finance, int $contextId, string $kind, int $entryId, int $userId): void
+    {
+        if ($kind === 'expense') {
+            $finance->settle($entryId);
+            return;
+        }
+        $amount = (string) ($_POST['amount'] ?? '');
+        (new Receivables($contextId))->settle($entryId, [
+            'amount' => $amount, 'received_at' => min((string) $_POST['due_date'], date('Y-m-d')), 'account_id' => $_POST['account_id'] ?? null,
+            'payment_method' => $_POST['payment_method'] ?? 'other', 'idempotency_key' => bin2hex(random_bytes(16)),
+        ], $userId);
+    }
+
+    /** @return array{0:string,1:string} */
+    private function update(Finance $finance, int $contextId, string $kind, int $id, int $userId): array
+    {
+        if (($_POST['source'] ?? '') === 'recurring') {
+            $this->requireOwner();
+            (new RecurringFinance($contextId))->update($id, $this->recurringData($kind, isset($_POST['auto_create'])));
+            return ['success', 'Assinatura atualizada.'];
+        }
+        $files = \Moves\Services\Helpdesk::uploadedFiles('attachments');
+        if ($kind === 'income') {
+            \Moves\Services\FinanceAttachments::validate($files);
+            (new Receivables($contextId))->update($id, $this->incomeData($_POST), $userId);
+            $finance->updateEntryExtras($id, $_POST, $userId, $files);
+            return ['success', 'Receita atualizada.'];
+        }
+        $finance->updateExpense($id, $_POST, $userId, $files);
+        return ['success', 'Despesa atualizada.'];
+    }
+
+    /** Acesso compartilhado não gerencia recorrências, como nas rotas de pausar e cancelar. */
+    private function requireOwner(): void
+    {
+        if (PersonalAccessContext::ownerId() !== null) {
+            throw new InvalidArgumentException('Somente o titular da conta pode gerenciar assinaturas.');
+        }
+    }
+
+    /** Competência e forma ficam recolhidas na modal: sem preenchimento, seguem a data do lançamento. */
+    private function incomeData(array $data): array
+    {
+        $data['competence'] = ($data['competence'] ?? '') !== '' ? $data['competence'] : substr((string) ($data['due_date'] ?? ''), 0, 7);
+        $data['payment_method'] = ($data['payment_method'] ?? '') !== '' ? $data['payment_method'] : 'other';
+        return $data;
+    }
+
+    private function recurringData(string $kind, bool $auto): array
+    {
+        $data = ['kind' => $kind, 'name' => $_POST['description'] ?? '', 'next_due_date' => $_POST['due_date'] ?? ''] + $_POST;
+        unset($data['auto_create']);
+        return $auto ? $data + ['auto_create' => '1'] : $data;
     }
 
     /** Baixa um anexo; só encontra arquivos do contexto atual. */
@@ -130,7 +247,7 @@ final class FinanceActions
             \Moves\Services\AppError::render(404);
             return;
         }
-        \Moves\Services\FinanceAttachments::stream($attachment);
+        \Moves\Services\FinanceAttachments::stream($attachment, ($_GET['ver'] ?? '') === '1');
     }
 
     /** Entrega a foto de uma meta; só encontra metas do contexto atual. */

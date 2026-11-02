@@ -229,11 +229,16 @@ final class Finance
             throw new InvalidArgumentException('Tags, anexos e repetição ainda não estão disponíveis.');
         }
 
+        // A chave do envio impede que um duplo clique registre o mesmo lançamento duas vezes.
+        $key = is_string($data['idempotency_key'] ?? null) && preg_match('/^[a-zA-Z0-9_-]{16,64}$/', $data['idempotency_key']) === 1 ? $data['idempotency_key'] : null;
+        if ($key !== null && ($existing = $this->entryByKey($key)) !== null) {
+            return $existing;
+        }
         $seriesId = $total > 1 ? bin2hex(random_bytes(16)) : null;
         $insert = $this->pdo->prepare(
             'INSERT INTO finance_entries
-             (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, created_by, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, created_by, notes, idempotency_key)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stored = [];
         $firstId = 0;
@@ -243,6 +248,7 @@ final class Finance
                 $insert->execute([
                     $this->contextId, $kind, $occurrence['description'], $occurrence['amount'], $occurrence['due'],
                     $index === 0 ? $paidAt : null, $accountId, $categoryId, $userId, $notes === '' ? null : $notes,
+                    $key === null ? null : ($index === 0 ? $key : hash('sha256', $key . '-' . $index)),
                 ]);
                 $entryId = (int) $this->pdo->lastInsertId();
                 $firstId = $firstId ?: $entryId;
@@ -261,6 +267,120 @@ final class Finance
             throw $error;
         }
         return $firstId;
+    }
+
+    private function entryByKey(string $key): ?int
+    {
+        $statement = $this->pdo->prepare('SELECT id FROM finance_entries WHERE financial_context_id = ? AND idempotency_key = ?');
+        $statement->execute([$this->contextId, $key]);
+        $id = $statement->fetchColumn();
+        return $id === false ? null : (int) $id;
+    }
+
+    /**
+     * Edita uma despesa, só desta ocorrência. A baixa fica como está: o saldo sai do próprio lançamento.
+     *
+     * @param list<array<string,mixed>> $files
+     */
+    public function updateExpense(int $entryId, array $data, ?int $userId, array $files = []): void
+    {
+        $description = trim((string) ($data['description'] ?? ''));
+        if ($description === '' || mb_strlen($description) > 160) {
+            throw new InvalidArgumentException('Informe uma descrição de até 160 caracteres.');
+        }
+        $due = self::date($data['due_date'] ?? null);
+        $accountId = $this->ownedId('finance_accounts', $data['account_id'] ?? null);
+        if ($accountId === null) {
+            throw new InvalidArgumentException('Escolha uma conta.');
+        }
+        $categoryId = $this->ownedId('finance_categories', $data['category_id'] ?? null);
+        $amount = self::parseCents($data['amount'] ?? null);
+        $notes = trim((string) ($data['notes'] ?? ''));
+        if (mb_strlen($notes) > 5000) {
+            throw new InvalidArgumentException('Use até 5000 caracteres na observação.');
+        }
+        self::parseTags($data['tags'] ?? '');
+        FinanceAttachments::validate($files);
+        $statement = $this->pdo->prepare("SELECT id FROM finance_entries WHERE id = ? AND financial_context_id = ? AND kind = 'expense'");
+        $statement->execute([$entryId, $this->contextId]);
+        if ($statement->fetchColumn() === false) {
+            throw new InvalidArgumentException('Lançamento não encontrado.');
+        }
+        if ($this->pdo->query("SHOW TABLES LIKE 'finance_debt_payments'")->fetchColumn() !== false) {
+            $statement = $this->pdo->prepare('SELECT 1 FROM finance_debt_payments WHERE entry_id = ? AND financial_context_id = ?');
+            $statement->execute([$entryId, $this->contextId]);
+            if ($statement->fetchColumn() !== false) {
+                throw new InvalidArgumentException('Este lançamento é o pagamento de uma dívida. Altere-o em Sair das dívidas.');
+            }
+        }
+        $this->pdo->prepare('UPDATE finance_entries SET description = ?, amount_cents = ?, due_date = ?, account_id = ?, category_id = ?, notes = ? WHERE id = ? AND financial_context_id = ?')
+            ->execute([$description, $amount, $due, $accountId, $categoryId, $notes === '' ? null : $notes, $entryId, $this->contextId]);
+        $this->updateEntryExtras($entryId, $data, $userId, $files);
+    }
+
+    /**
+     * Grava tags e anexos editados de um lançamento, sempre dentro do contexto atual.
+     *
+     * @param list<array<string,mixed>> $files
+     */
+    public function updateEntryExtras(int $entryId, array $data, ?int $userId, array $files = []): void
+    {
+        if (!$this->supportsEntryExtras()) {
+            return;
+        }
+        $tags = self::parseTags($data['tags'] ?? '');
+        $remove = array_values(array_filter(array_map('intval', is_array($data['remove_attachments'] ?? null) ? $data['remove_attachments'] : []), static fn (int $id): bool => $id > 0));
+        $statement = $this->pdo->prepare('SELECT id, stored_path FROM finance_entry_attachments WHERE entry_id = ? AND financial_context_id = ?');
+        $statement->execute([$entryId, $this->contextId]);
+        $current = $statement->fetchAll(PDO::FETCH_KEY_PAIR);
+        $gone = array_intersect_key($current, array_flip($remove));
+        FinanceAttachments::validate($files);
+        if (count($current) - count($gone) + count($files) > 5) {
+            throw new InvalidArgumentException('Mantenha no máximo 5 anexos por lançamento.');
+        }
+        $this->pdo->prepare('DELETE FROM finance_entry_tags WHERE entry_id = ?')->execute([$entryId]);
+        $this->attachTags($entryId, $tags);
+        foreach ($gone as $id => $path) {
+            $this->pdo->prepare('DELETE FROM finance_entry_attachments WHERE id = ? AND financial_context_id = ?')->execute([$id, $this->contextId]);
+            FinanceAttachments::remove($path);
+        }
+        $this->addAttachments($entryId, $files, $userId);
+    }
+
+    /**
+     * Dados de cada lançamento para abrir a modal em modo de edição.
+     *
+     * @param list<int> $entryIds
+     * @return array<int,array<string,mixed>>
+     */
+    public function entryEditData(array $entryIds): array
+    {
+        if ($entryIds === []) {
+            return [];
+        }
+        $marks = implode(',', array_fill(0, count($entryIds), '?'));
+        $statement = $this->pdo->prepare(
+            "SELECT id, kind, description, amount_cents, due_date, competency_date, counterparty_name, contact_id, notes, document_number, payment_method, account_id, category_id
+             FROM finance_entries WHERE financial_context_id = ? AND kind IN ('income','expense') AND id IN ({$marks})"
+        );
+        $statement->execute([$this->contextId, ...$entryIds]);
+        $details = $this->entryDetails($entryIds);
+        $result = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $id = (int) $row['id'];
+            $detail = $details[$id] ?? null;
+            $result[$id] = [
+                'id' => $id, 'source' => 'entry', 'kind' => $row['kind'], 'description' => $row['description'],
+                'amount' => number_format((int) $row['amount_cents'] / 100, 2, ',', '.'), 'due_date' => $row['due_date'],
+                'account_id' => (int) $row['account_id'], 'category_id' => (int) $row['category_id'], 'notes' => (string) $row['notes'],
+                'competence' => substr((string) ($row['competency_date'] ?? $row['due_date']), 0, 7), 'contact_id' => (int) $row['contact_id'],
+                'counterparty_name' => (string) $row['counterparty_name'], 'document_number' => (string) $row['document_number'],
+                'payment_method' => (string) ($row['payment_method'] ?: 'other'),
+                'tags' => $detail['tags'] ?? [], 'attachments' => $detail['attachments'] ?? [],
+                'series' => $detail !== null && $detail['series_total'] !== null ? $detail['series_index'] . '/' . $detail['series_total'] : '',
+            ];
+        }
+        return $result;
     }
 
     /** Contas a receber calcula o saldo pelas baixas, então a receita já recebida precisa de uma. */

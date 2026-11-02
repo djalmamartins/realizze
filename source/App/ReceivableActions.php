@@ -30,8 +30,6 @@ final class ReceivableActions
             $receivables = new Receivables($contextId);
             $entryId = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
             $message = match ($action) {
-                'create' => $this->create($receivables, (int) $user['id']),
-                'update' => $this->update($receivables, $entryId, (int) $user['id']),
                 'settle' => $this->settle($receivables, $entryId, (int) $user['id']),
                 'cancel' => $this->cancel($receivables, $entryId, (int) $user['id']),
                 default => throw new InvalidArgumentException('Ação inválida.'),
@@ -52,21 +50,6 @@ final class ReceivableActions
         }
         header('Cache-Control: no-store');
         header('Location: /minha-conta?' . http_build_query($query), true, 303);
-    }
-
-    private function create(Receivables $receivables, int $userId): array
-    {
-        $result = $receivables->createWithOptions($_POST, $userId, \Moves\Services\Helpdesk::uploadedFiles('attachments'));
-        if ($result['duplicate']) {
-            return ['success', 'Este recebimento já havia sido registrado.'];
-        }
-        return ['success', $result['count'] > 1 ? $result['count'] . ' recebimentos criados.' : 'Recebimento registrado.'];
-    }
-
-    private function update(Receivables $receivables, int|false $entryId, int $userId): array
-    {
-        $receivables->update($this->requiredId($entryId), $_POST, $userId);
-        return ['success', 'Recebimento atualizado.'];
     }
 
     private function settle(Receivables $receivables, int|false $entryId, int $userId): array

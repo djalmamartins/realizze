@@ -131,6 +131,11 @@ final class Receivables
             }
             $status = $this->statusFor($fields['amount_cents'], $received);
             $paidAt = $status === 'received' ? $this->lastSettlementDate($entryId) : null;
+            // Receita liquidada sem baixa registrada continua liquidada: editar não pode mudar o saldo.
+            if ($received === 0 && $entry['paid_at'] !== null) {
+                $status = $entry['status'];
+                $paidAt = $entry['paid_at'];
+            }
             $statement = $this->pdo->prepare(
                 'UPDATE finance_entries SET description = ?, amount_cents = ?, due_date = ?, competency_date = ?,
                  counterparty_name = ?, contact_id = ?, notes = ?, document_number = ?, payment_method = ?, account_id = ?,
@@ -378,14 +383,14 @@ final class Receivables
             'document_number' => $this->optionalText($data['document_number'] ?? null, 80, 'O número do documento'),
             'payment_method' => $this->paymentMethod($data['payment_method'] ?? null),
             'account_id' => $this->ownedId('finance_accounts', $data['account_id'] ?? null, true),
-            'category_id' => $this->ownedId('finance_categories', $data['category_id'] ?? null, true, 'income'),
+            'category_id' => $this->ownedId('finance_categories', $data['category_id'] ?? null, false, 'income'),
         ];
     }
 
     private function lockedEntry(int $entryId): array
     {
         $statement = $this->pdo->prepare(
-            "SELECT id, amount_cents, status, contact_id FROM finance_entries
+            "SELECT id, amount_cents, status, contact_id, paid_at FROM finance_entries
              WHERE id = ? AND financial_context_id = ? AND kind = 'income' FOR UPDATE"
         );
         $statement->execute([$entryId, $this->contextId]);

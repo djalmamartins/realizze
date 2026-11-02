@@ -47,7 +47,8 @@ final class RecurringFinance
         $statement->execute([$this->contextId, $kind, $to]);
         $planned = [];
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $item) {
-            for ($due = $item['next_due_date']; $due <= $to; $due = $this->nextDue($due, $item['frequency'])) {
+            $anchor = $this->anchorDay((int) $item['id'], $item['next_due_date']);
+            for ($due = $item['next_due_date']; $due <= $to; $due = $this->nextDue($due, $item['frequency'], $anchor)) {
                 if ($due >= $from) $planned[] = ['due_date' => $due] + $item;
             }
         }
@@ -87,7 +88,35 @@ final class RecurringFinance
         return $recurringId;
     }
 
-    private function occurrencesReady(): bool
+    /** Altera a recorrência. Lançamentos já gerados ficam como estão; o controle de ocorrências evita duplicar. */
+    public function update(int $id, array $data): void
+    {
+        $type = in_array($data['item_type'] ?? null, ['subscription', 'recurring'], true) ? $data['item_type'] : 'subscription';
+        $frequency = in_array($data['frequency'] ?? null, ['weekly', 'monthly', 'quarterly', 'yearly'], true) ? $data['frequency'] : 'monthly';
+        $name = trim((string) ($data['name'] ?? ''));
+        if ($name === '' || mb_strlen($name) > 160) throw new InvalidArgumentException('Informe um nome com até 160 caracteres.');
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($data['next_due_date'] ?? ''));
+        if (!$date || $date->format('Y-m-d') !== ($data['next_due_date'] ?? '')) throw new InvalidArgumentException('Informe a próxima cobrança.');
+        $account = $this->ownedId('finance_accounts', $data['account_id'] ?? null, false);
+        $category = $this->ownedId('finance_categories', $data['category_id'] ?? null, true);
+        $statement = $this->pdo->prepare('SELECT id FROM finance_recurring_items WHERE id=? AND financial_context_id=?');
+        $statement->execute([$id, $this->contextId]);
+        if ($statement->fetchColumn() === false) throw new InvalidArgumentException('Recorrência não encontrada.');
+        $this->pdo->prepare('UPDATE finance_recurring_items SET item_type=?,name=?,provider=?,amount_cents=?,frequency=?,next_due_date=?,account_id=?,category_id=?,auto_create=?,notes=? WHERE id=? AND financial_context_id=?')
+            ->execute([$type,$name,$this->optional($data['provider']??'',120),Finance::parseCents($data['amount']??''),$frequency,$date->format('Y-m-d'),$account,$category,isset($data['auto_create'])&&$this->occurrencesReady()?1:0,$this->optional($data['notes']??'',500),$id,$this->contextId]);
+    }
+
+    /** Lançamento gerado na primeira cobrança, para receber tags, anexos e baixa informados na modal. */
+    public function firstEntryId(int $id): ?int
+    {
+        if (!$this->occurrencesReady()) return null;
+        $statement = $this->pdo->prepare('SELECT entry_id FROM finance_recurring_occurrences WHERE recurring_item_id=? AND financial_context_id=? ORDER BY due_date LIMIT 1');
+        $statement->execute([$id, $this->contextId]);
+        $entry = $statement->fetchColumn();
+        return $entry === false ? null : (int) $entry;
+    }
+
+    public function occurrencesReady(): bool
     {
         return $this->pdo->query("SHOW TABLES LIKE 'finance_recurring_occurrences'")->fetchColumn() !== false;
     }
@@ -113,7 +142,7 @@ final class RecurringFinance
                 $link = $this->pdo->prepare('INSERT INTO finance_recurring_occurrences (financial_context_id,recurring_item_id,due_date,entry_id) VALUES (?,?,?,?)');
                 $link->execute([$this->contextId,$id,$due,$entryId]);
             }
-            $this->advanceNextDue($id, $due, $item['frequency']);
+            $this->advanceNextDue($id, $due, $item['frequency'], $this->anchorDay($id, $due));
             $this->pdo->commit();
         } catch (\Throwable $error) {
             $this->pdo->rollBack();
@@ -121,13 +150,24 @@ final class RecurringFinance
         }
     }
 
-    private function advanceNextDue(int $id, string $due, string $frequency): void
+    private function advanceNextDue(int $id, string $due, string $frequency, int $anchor): void
     {
         $update = $this->pdo->prepare('UPDATE finance_recurring_items SET next_due_date=? WHERE id=? AND financial_context_id=?');
-        $update->execute([$this->nextDue($due, $frequency), $id, $this->contextId]);
+        $update->execute([$this->nextDue($due, $frequency, $anchor), $id, $this->contextId]);
     }
 
-    private function nextDue(string $due, string $frequency): string
+    /** Dia original da cobrança: quem vence dia 31 passa por 28 em fevereiro e volta a 31 em março. */
+    private function anchorDay(int $id, string $due): int
+    {
+        $date = new DateTimeImmutable($due);
+        $day = (int) $date->format('j');
+        if ($day !== (int) $date->format('t') || !$this->occurrencesReady()) return $day;
+        $statement = $this->pdo->prepare('SELECT DAY(due_date) FROM finance_recurring_occurrences WHERE recurring_item_id=? AND financial_context_id=? ORDER BY due_date LIMIT 1');
+        $statement->execute([$id, $this->contextId]);
+        return max($day, (int) $statement->fetchColumn());
+    }
+
+    private function nextDue(string $due, string $frequency, int $anchor): string
     {
         $date = new DateTimeImmutable($due);
         if ($frequency === 'weekly') {
@@ -139,7 +179,7 @@ final class RecurringFinance
                 default => 1,
             };
             $first = $date->modify('first day of this month')->modify('+' . $months . ' months');
-            $day = min((int) $date->format('j'), (int) $first->format('t'));
+            $day = min($anchor, (int) $first->format('t'));
             $next = $first->setDate((int) $first->format('Y'), (int) $first->format('n'), $day);
         }
         return $next->format('Y-m-d');
@@ -185,7 +225,7 @@ final class RecurringFinance
     private function optional(mixed $value, int $limit): ?string
     {
         $value = trim((string) $value);
-        if (mb_strlen($value) > $limit) throw new InvalidArgumentException('Texto acima do limite permitido.');
+        if (mb_strlen($value) > $limit) throw new InvalidArgumentException('Use até ' . $limit . ' caracteres nos textos da recorrência.');
         return $value === '' ? null : $value;
     }
 }

@@ -67,7 +67,7 @@ final class FinanceAttachments
     }
 
     /** @param array{stored_path:string,original_name:string,mime_type:string} $attachment */
-    public static function stream(array $attachment): void
+    public static function stream(array $attachment, bool $inline = false): void
     {
         $root = realpath(self::root());
         $path = realpath(self::root() . '/' . $attachment['stored_path']);
@@ -77,9 +77,12 @@ final class FinanceAttachments
         }
         $name = str_replace(['"', '\\', "\r", "\n"], '', $attachment['original_name']);
         header('Content-Type: ' . (in_array($attachment['mime_type'], self::MIMES, true) ? $attachment['mime_type'] : 'application/octet-stream'));
-        header('Content-Disposition: attachment; filename="' . $name . '"');
+        header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $name . '"');
         header('X-Content-Type-Options: nosniff');
-        header('Content-Security-Policy: sandbox');
+        // O leitor de PDF do navegador não abre em sandbox; os demais formatos seguem isolados.
+        if (!$inline || $attachment['mime_type'] !== 'application/pdf') {
+            header('Content-Security-Policy: sandbox');
+        }
         header('Cache-Control: private, no-store');
         header('Content-Length: ' . (int) filesize($path));
         readfile($path);
