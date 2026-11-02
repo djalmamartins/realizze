@@ -6,7 +6,7 @@ use Moves\Services\FinanceContext;
 
 $e = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $rawMonth = is_string($_GET['mes'] ?? null) ? $_GET['mes'] : '';
-$month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $rawMonth) ? $rawMonth : date('Y-m');
+$month = preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/', $rawMonth) ? $rawMonth : date('Y-m');
 $grouping = in_array($_GET['visao'] ?? '', ['dia', 'semana'], true) ? $_GET['visao'] : 'semana';
 $start = new DateTimeImmutable($month . '-01');
 $end = $start->modify('last day of this month');

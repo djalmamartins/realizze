@@ -62,7 +62,7 @@ return [
         };
 
         $organizationSections = ['contatos', 'clientes', 'fornecedores', 'equipe', 'empresa', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'permissoes', 'seguranca', 'auditoria'];
-        $renderContextDashboard = static function (string $context, string $section = 'overview', ?string $organizationSlug = null) use ($renderDashboard, $renderError, $organizationSections): void {
+        $renderContextDashboard = static function (string $context, string $section = 'overview', ?string $organizationSlug = null, ?array $period = null) use ($renderDashboard, $renderError, $organizationSections): void {
             if (\Moves\Services\SessionAuth::current() === null) {
                 header('Location: /entrar', true, 302);
                 return;
@@ -90,6 +90,16 @@ return [
             if ($organization === null && \Moves\Services\PersonalAccessContext::ownerId() !== null) {
                 $permission = ['overview'=>'dashboard.view','receber'=>'income.view','pagar'=>'expenses.view','contas'=>'accounts.view','relatorios'=>'reports.view','metas'=>'goals.manage','categorias'=>'categories.manage'][$section] ?? null;
                 if ($permission === null || !\Moves\Services\PersonalAccessContext::can($permission)) { $renderError(403); return; }
+            }
+            if ($period !== null) {
+                // A URL define o período; a tela continua lendo os mesmos parâmetros.
+                // Em Fluxo de caixa, visao=dia|semana é agrupamento, não período, e continua valendo.
+                $stale = ['mes' => 1, 'ano' => 1, 'inicio' => 1, 'fim' => 1] + (($_GET['visao'] ?? '') === 'anual' ? ['visao' => 1] : []);
+                $_GET = $period + array_diff_key($_GET, $stale);
+            } elseif (AppUrl::hasPeriodQuery($section, $_GET)) {
+                header('Cache-Control: no-store');
+                header('Location: ' . AppUrl::section($section, $organization, array_diff_key($_GET, ['pagina' => 1])), true, 302);
+                return;
             }
             $_GET['pagina'] = $section;
             if ($section === 'clientes') $_GET['papel'] = 'customer';
@@ -355,6 +365,27 @@ return [
         }, 'app.profile.invite.accept');
 
         (require __DIR__ . '/components/support-routes.php')($router, $requirePreview);
+
+        // Período na URL. Fica depois das rotas fixas de /p e /e: a primeira que casa vence,
+        // e a visão geral, por não ter slug, vem por último.
+        $periodRoute = static function (string $context, string $section, array $params) use ($renderContextDashboard, $renderError): void {
+            $period = AppUrl::periodFromSegments($section, (string) ($params['a'] ?? ''), isset($params['b']) ? (string) $params['b'] : null);
+            if ($period === null) {
+                $renderError(404);
+                return;
+            }
+            $renderContextDashboard($context, $section, isset($params['organization']) ? (string) $params['organization'] : null, $period);
+        };
+        $periodSlugs = ['fluxo-de-caixa' => 'fluxo-de-caixa', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'categorias' => 'categorias', '' => 'overview'];
+        foreach ($periodSlugs as $slug => $section) {
+            $path = $slug === '' ? '' : '/' . $slug;
+            foreach (['/{a}', '/{a}/{b}'] as $segments) {
+                if ($section !== 'fluxo-de-caixa') {
+                    $router->get('/p' . $path . $segments, static fn (array $params) => $periodRoute('personal', $section, $params));
+                }
+                $router->get('/e/{organization}' . $path . $segments, static fn (array $params) => $periodRoute('organization', $section, $params));
+            }
+        }
 
         $router->post('/sair', static function () use ($requirePreview, $renderError): void {
             if (!$requirePreview()) {

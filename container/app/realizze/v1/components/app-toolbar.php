@@ -14,9 +14,9 @@ use Moves\Services\SessionAuth;
 $toolbarSection = (string) ($toolbarSection ?? 'overview');
 $toolbarEscape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $toolbarHasPeriod = in_array($toolbarSection, ['overview', 'pagar', 'movimentacoes', 'relatorios', 'planejamento', 'categorias', 'fluxo-de-caixa'], true);
-$toolbarHasYear = in_array($toolbarSection, ['overview', 'relatorios', 'categorias'], true);
+$toolbarHasYear = in_array($toolbarSection, ['overview', 'pagar', 'movimentacoes', 'relatorios', 'planejamento', 'categorias'], true);
 $toolbarPeriod = Finance::period($toolbarHasYear ? $_GET : array_diff_key($_GET, ['visao' => 1, 'ano' => 1]));
-$toolbarKeep = array_diff_key($_GET, ['pagina' => 1, 'mes' => 1, 'visao' => 1, 'ano' => 1, 'page' => 1]);
+$toolbarKeep = array_diff_key($_GET, ['pagina' => 1, 'mes' => 1, 'visao' => 1, 'ano' => 1, 'inicio' => 1, 'fim' => 1, 'page' => 1]);
 $toolbarLink = static fn (array $query): string => $toolbarEscape(AppUrl::section($toolbarSection, null, $toolbarKeep + $query));
 $toolbarAlerts = [];
 $toolbarUnread = 0;
@@ -53,7 +53,7 @@ $user = is_array($user ?? null) ? $user + (array) $toolbarSession : (array) $too
 <?php if ($toolbarHasYear): ?>
 <nav class="period period-live" aria-label="Visão">
 <a href="<?= $toolbarLink($toolbarPeriod['view'] === 'mensal' ? [] : $toolbarPeriod['other']) ?>"<?= $toolbarPeriod['view'] === 'mensal' ? ' aria-current="true"' : '' ?>>Mensal</a>
-<a href="<?= $toolbarLink($toolbarPeriod['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $toolbarPeriod['start']->format('Y')] : $toolbarPeriod['other']) ?>"<?= $toolbarPeriod['view'] === 'anual' ? ' aria-current="true"' : '' ?>>Anual</a>
+<a href="<?= $toolbarLink(['visao' => 'anual', 'ano' => $toolbarPeriod['start']->format('Y')]) ?>"<?= $toolbarPeriod['view'] === 'anual' ? ' aria-current="true"' : '' ?>>Anual</a>
 </nav>
 <?php endif; ?>
 <?php endif; ?>

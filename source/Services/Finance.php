@@ -704,6 +704,22 @@ final class Finance
                 'compareStart' => $start->modify('-1 year'), 'compareEnd' => $end->modify('-1 year'),
             ];
         }
+        $date = static fn (mixed $value): ?DateTimeImmutable => is_string($value) && preg_match('/^20\d{2}-\d{2}-\d{2}$/D', $value) === 1
+            && ($parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $value)) !== false && $parsed->format('Y-m-d') === $value ? $parsed : null;
+        $from = $date($query['inicio'] ?? null);
+        $to = $date($query['fim'] ?? null);
+        if ($from !== null && $to !== null && $from <= $to) {
+            $days = (int) $from->diff($to)->days + 1;
+            $label = $from->format('d/m/Y') . ' a ' . $to->format('d/m/Y');
+            $previous = ['inicio' => $from->modify('-' . $days . ' days')->format('Y-m-d'), 'fim' => $from->modify('-1 day')->format('Y-m-d')];
+            $next = ['inicio' => $to->modify('+1 day')->format('Y-m-d'), 'fim' => $to->modify('+' . $days . ' days')->format('Y-m-d')];
+            return [
+                'view' => 'personalizado', 'start' => $from, 'end' => $to, 'label' => $label, 'long' => $label, 'short' => $label,
+                'previous' => $previous, 'next' => $next, 'previousLabel' => 'Anterior', 'nextLabel' => 'Seguinte',
+                'other' => ['mes' => $from->format('Y-m')],
+                'compareStart' => new DateTimeImmutable($previous['inicio']), 'compareEnd' => new DateTimeImmutable($previous['fim']),
+            ];
+        }
         $month = is_string($query['mes'] ?? null) && preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/', $query['mes']) ? $query['mes'] : $today->format('Y-m');
         $start = new DateTimeImmutable($month . '-01');
         $previous = $start->modify('-1 month');

@@ -12,7 +12,7 @@ $labels = $isIncome
     : ['title' => 'Contas a pagar', 'lead' => 'Despesas, vencimentos e pagamentos do mês.', 'new' => 'Nova despesa', 'expected' => 'A pagar', 'done' => 'Pago', 'settle' => 'Pagar', 'status' => 'Pago', 'empty' => 'Nenhuma despesa neste mês'];
 $page = $isIncome ? 'receber' : 'pagar';
 $rawMonth = is_string($_GET['mes'] ?? null) ? $_GET['mes'] : '';
-$month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $rawMonth) ? $rawMonth : date('Y-m');
+$month = preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/', $rawMonth) ? $rawMonth : date('Y-m');
 $start = new DateTimeImmutable($month . '-01');
 $end = $start->modify('last day of this month');
 $status = in_array($_GET['situacao'] ?? '', ['open', 'paid', 'overdue'], true) ? $_GET['situacao'] : 'all';

@@ -42,14 +42,14 @@ final class ReceivableActions
         }
 
         $_SESSION['receivables_flash'] = $message;
-        $query = ['pagina' => 'receber'];
+        $query = [];
         foreach (['inicio', 'fim', 'situacao', 'busca', 'categoria', 'cliente', 'page'] as $name) {
             if (isset($_POST[$name]) && is_string($_POST[$name]) && $_POST[$name] !== '') {
                 $query[$name] = mb_substr($_POST[$name], 0, 160);
             }
         }
         header('Cache-Control: no-store');
-        header('Location: /minha-conta?' . http_build_query($query), true, 303);
+        header('Location: ' . \Moves\Services\AppUrl::section('receber', null, $query), true, 303);
     }
 
     private function settle(Receivables $receivables, int|false $entryId, int $userId): array

@@ -46,7 +46,7 @@ try {
     $check(Notifications::sync($ids['owner'], $personal) === 0, 'Sincronizar de novo não muda nem duplica');
 
     $url = Notifications::open($ids['owner'], (int) $rows[0]['id']);
-    $check($url === '/p/pagar?mes=' . date('Y-m', strtotime('+3 days')) . '#lancamento-' . $entry, 'Abrir leva ao lançamento em Pagar: ' . $url);
+    $check($url === '/p/pagar/' . date('Y/m', strtotime('+3 days')) . '#lancamento-' . $entry, 'Abrir leva ao lançamento em Pagar: ' . $url);
     $check(Notifications::unreadCount($finance(Notifications::feed($scope))) === 0, 'Abrir marca como lida');
     $check(Notifications::open($ids['other'], (int) $rows[0]['id']) === null, 'Outro usuário não abre');
 
@@ -98,7 +98,7 @@ try {
     $check(!str_contains(json_encode(Notifications::feed($scope), JSON_UNESCAPED_UNICODE), 'Fatura empresa'), 'Aviso da empresa não aparece na área pessoal');
     $check(!str_contains(json_encode(Notifications::feed(['user_id' => $ids['owner'], 'context_id' => 0]), JSON_UNESCAPED_UNICODE), 'Fatura'), 'Sem permissão financeira, a empresa não aparece');
     $companyUrl = Notifications::destination($companyRows[0]);
-    $check(str_contains($companyUrl, '/receber?') && str_starts_with($companyUrl, '/e/'), 'Aviso da empresa leva ao endereço da empresa: ' . $companyUrl);
+    $check(str_contains($companyUrl, '/receber/') && str_starts_with($companyUrl, '/e/'), 'Aviso da empresa leva ao endereço da empresa: ' . $companyUrl);
     $check($finance(Notifications::feed($otherScope)) === [], 'Outro usuário não recebe nada');
     $check(!array_filter(HelpdeskNotifier::inbox($ids['owner'], 'customer', 100), static fn (array $r): bool => str_starts_with($r['event_type'], 'finance.')), 'Caixa do suporte não mistura avisos financeiros');
 

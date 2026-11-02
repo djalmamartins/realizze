@@ -87,17 +87,17 @@ final class FinanceActions
             return;
         }
         if ($back === 'receber') {
-            $query = ['pagina' => 'receber'];
+            $query = [];
             foreach (['inicio', 'fim', 'situacao', 'busca', 'categoria', 'cliente', 'contato', 'page'] as $name) {
                 if (is_string($_POST[$name] ?? null) && $_POST[$name] !== '') {
                     $query[$name] = mb_substr($_POST[$name], 0, 160);
                 }
             }
-            header('Location: /minha-conta?' . http_build_query($query), true, 303);
+            header('Location: ' . \Moves\Services\AppUrl::section('receber', null, $query), true, 303);
             return;
         }
         $page = in_array($back, ['contas', 'movimentacoes', 'overview', 'categorias', 'planejamento', 'metas', 'pagar'], true) ? $back : self::PAGES[$kind];
-        header('Location: /minha-conta?' . ($page === 'overview' ? '' : 'pagina=' . $page . '&') . 'mes=' . $month, true, 303);
+        header('Location: ' . \Moves\Services\AppUrl::backTo($page, \Moves\Services\AppUrl::section($page, null, ['mes' => $month])), true, 303);
     }
 
     /** @return array{0:string,1:string} */

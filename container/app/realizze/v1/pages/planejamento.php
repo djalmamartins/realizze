@@ -9,10 +9,24 @@ $link = static fn (array $query): string => \Moves\Services\AppUrl::section('pla
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 $loadFailed = false;
-$month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : date('Y-m');
+$annual = $period['view'] === 'anual';
+$month = $annual ? date('Y-m') : $period['start']->format('Y-m');
 $rows = [];
 try {
-    $rows = (new Finance((int) FinanceContext::currentId()))->budgets($month);
+    $finance = new Finance((int) FinanceContext::currentId());
+    if ($annual) {
+        // Orçamento é mensal: o ano soma os doze meses e só pode ser editado mês a mês.
+        for ($m = 1; $m <= 12; $m++) {
+            foreach ($finance->budgets($period['start']->format('Y') . '-' . sprintf('%02d', $m)) as $row) {
+                $rows[$row['category_id']] = isset($rows[$row['category_id']])
+                    ? ['budget' => $rows[$row['category_id']]['budget'] + $row['budget'], 'spent' => $rows[$row['category_id']]['spent'] + $row['spent']] + $row
+                    : $row;
+            }
+        }
+        $rows = array_values($rows);
+    } else {
+        $rows = $finance->budgets($month);
+    }
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -24,7 +38,7 @@ $spent = array_sum(array_map(static fn (array $r): int => $r['budget'] > 0 ? $r[
 <section class="card finance-workspace" aria-labelledby="planning-title">
   <div class="finance-toolbar">
     <div><h2 id="planning-title">Planejamento</h2><p class="muted">Defina um limite por categoria e acompanhe o gasto do mês.</p></div>
-    <button type="button" class="primary" data-finance-open="budget-dialog"<?= $rows === [] ? ' disabled title="Crie uma categoria de despesa primeiro"' : '' ?>>+ Definir orçamento</button>
+    <?php if (!$annual): ?><button type="button" class="primary" data-finance-open="budget-dialog"<?= $rows === [] ? ' disabled title="Crie uma categoria de despesa primeiro"' : '' ?>>+ Definir orçamento</button><?php endif; ?>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo do orçamento">
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Orçamento previsto</span><strong><?= $e(Finance::money($planned)) ?></strong><small><?= $e($period['long']) ?></small></div>
