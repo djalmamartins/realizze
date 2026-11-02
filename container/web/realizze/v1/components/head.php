@@ -12,6 +12,6 @@
 <meta property="og:title" content="<?= $this->e($title ?? 'Realizze') ?>">
 <meta property="og:description" content="<?= $this->e($description ?? '') ?>">
 <?php if (!empty($ogImage)): ?><meta property="og:image" content="<?= $this->e((getenv('APP_URL') ?: '') . $ogImage) ?>"><?php endif; ?>
-<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon-realizze.svg">
 <link rel="stylesheet" href="/assets/realizze/v1/css/style.min.css?v=<?= (int) @filemtime(BASE_PATH . '/public/assets/realizze/v1/css/style.min.css') ?>">
 <link rel="stylesheet" href="/assets/realizze/v1/css/responsive-fixes.min.css?v=<?= (int) @filemtime(BASE_PATH . '/public/assets/realizze/v1/css/responsive-fixes.min.css') ?>">

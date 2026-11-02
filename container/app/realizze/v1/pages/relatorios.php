@@ -54,7 +54,7 @@ $situation = static function (array $entry) use ($brDate): array {
 ?>
 <section class="card finance-workspace finance-report" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
   <header class="report-print-head">
-    <img src="/assets/realizze/v1/images/new-logo-realizze.svg" alt="Realizze">
+    <img src="/assets/realizze/v1/images/<?= $activeOrganization !== null ? 'new-logo-realizze-empresa.svg' : 'new-logo-realizze.svg' ?>" alt="Realizze">
     <div><strong>Relatório financeiro: <?= $e($period['long']) ?></strong><span><?= $e($holder) ?> · Período de <?= $e($period['start']->format('d/m/Y')) ?> a <?= $e($period['end']->format('d/m/Y')) ?> · Emitido em <?= $e(date('d/m/Y H:i')) ?></span></div>
   </header>
   <div class="finance-toolbar no-print">

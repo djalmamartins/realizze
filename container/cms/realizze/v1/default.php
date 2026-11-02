@@ -21,7 +21,7 @@ $unread = isset($admin) ? \Moves\Services\HelpdeskNotifier::unread((int) $admin[
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title><?= V::e($title ?? 'CMS') ?> | Realizze CMS</title>
-<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon-realizze.svg">
 <script>try{if(localStorage.getItem('cms-theme')==='dark')document.documentElement.dataset.theme='dark'}catch(e){}</script>
 <link rel="stylesheet" href="/assets/realizze-cms/v1/css/cms.min.css?v=<?= (int) @filemtime($css) ?>">
 </head>
