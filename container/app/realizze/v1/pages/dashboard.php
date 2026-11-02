@@ -228,7 +228,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
     'name' => $name,
     'user' => $user,
 ]) ?>
-<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'permissoes', 'contato-detalhe'], true)): ?>
+<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView, 'activeOrganization' => $activeOrganization]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
 <?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>

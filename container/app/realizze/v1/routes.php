@@ -84,7 +84,7 @@ return [
                 return;
             }
             if ($organization !== null) {
-                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view'][$section] ?? null;
+                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view'][$section] ?? null;
                 $sessionUser = \Moves\Services\SessionAuth::current();
                 if ($sectionPermission !== null && !\Moves\Services\OrganizationTeam::can((int) $sessionUser['id'], (int) $organization['id'], $sectionPermission)) {
                     $renderError(403);
@@ -128,7 +128,7 @@ return [
             header('Location: ' . AppUrl::section($page, null, $query), true, 302);
         }, 'app.account');
 
-        $semantic = ['' => 'overview', 'notificacoes' => 'notificacoes', 'integracoes' => 'integracoes', 'perfil' => 'perfil', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'cartoes' => 'contas', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'recorrencias' => 'recorrencias', 'assistente' => 'assistente', 'sair-das-dividas' => 'sair-das-dividas', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
+        $semantic = ['' => 'overview', 'notificacoes' => 'notificacoes', 'integracoes' => 'integracoes', 'perfil' => 'perfil', 'receber' => 'receber', 'pagar' => 'pagar', 'movimentacoes' => 'movimentacoes', 'cartoes' => 'contas', 'faturas' => 'faturas', 'conciliacao' => 'conciliacao', 'relatorios' => 'relatorios', 'planejamento' => 'planejamento', 'metas' => 'metas', 'categorias' => 'categorias', 'recorrencias' => 'recorrencias', 'assistente' => 'assistente', 'sair-das-dividas' => 'sair-das-dividas', 'configuracoes' => 'configuracoes', 'empresarial' => 'empresarial'];
         foreach ($semantic as $slug => $section) {
             $router->get('/p' . ($slug === '' ? '' : '/' . $slug), static fn () => $renderContextDashboard('personal', $section), 'app.personal.' . $section);
             $router->get('/e/{organization}' . ($slug === '' ? '' : '/' . $slug), static fn (array $params) => $renderContextDashboard('organization', $section, (string) ($params['organization'] ?? '')), 'app.organization.' . $section);
@@ -304,6 +304,13 @@ return [
                 }
                 (new \Moves\App\FinanceActions())->handle($action);
             }, 'app.finance.' . $action);
+        }
+
+        foreach (['card_purchase' => 'cartao-compra', 'card_pay' => 'cartao-pagar-fatura', 'cost_center' => 'centro-de-custo', 'reconciliation_import' => 'conciliacao-importar', 'reconciliation_review' => 'conciliacao-revisar'] as $action => $slug) {
+            $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\CommercialFinanceActions())->handle($action);
+            }, 'app.commercial_finance.' . $action);
         }
 
         foreach (['pause'=>'pausar','activate'=>'reativar','cancel'=>'cancelar'] as $action=>$slug) {
