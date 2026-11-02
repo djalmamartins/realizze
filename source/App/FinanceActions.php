@@ -8,6 +8,7 @@ use Moves\Services\Authorization;
 use Moves\Services\Csrf;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
+use Moves\Services\GoalWallets;
 use Moves\Services\OrganizationContext;
 use Moves\Services\Organizations;
 use Moves\Services\PersonalAccessContext;
@@ -50,13 +51,27 @@ final class FinanceActions
                 'goal_update' => $finance->updateGoal($id, $_POST, $_FILES['photo'] ?? null) ? ['success', 'Meta atualizada.'] : ['error', 'Meta não encontrada.'],
                 'goal_add' => $finance->addToGoal($id, $_POST['amount'] ?? null, (int) $user['id'], $_POST['date'] ?? null) ? ['success', 'Valor adicionado à meta.'] : ['error', 'Meta não encontrada.'],
                 'goal_contribution_delete' => $finance->deleteContribution($id) ? ['success', 'Aporte removido e valor guardado atualizado.'] : ['error', 'Aporte não encontrado.'],
-                'goal_delete' => $finance->deleteGoal($id) ? ['success', 'Meta excluída.'] : ['error', 'Meta não encontrada.'],
+                'goal_delete' => $finance->deleteGoal($id, (int) $user['id']) ? ['success', 'Meta excluída. O que estava reservado voltou para as contas.'] : ['error', 'Meta não encontrada.'],
+                'goal_reserve' => (new GoalWallets($contextId))->reserve($id, $_POST, (int) $user['id'])['duplicate'] ? ['success', 'Este valor já havia sido guardado.'] : ['success', 'Valor guardado na meta. O saldo da conta não mudou.'],
+                'goal_release' => (new GoalWallets($contextId))->release($id, $_POST, (int) $user['id'])['duplicate'] ? ['success', 'Este resgate já havia sido feito.'] : ['success', 'Valor resgatado e disponível na conta.'],
+                'goal_transfer' => (new GoalWallets($contextId))->transfer($id, $_POST, (int) $user['id'])['duplicate'] ? ['success', 'Esta transferência já havia sido feita.'] : ['success', 'Reserva transferida entre as metas.'],
+                'goal_pay' => (new GoalWallets($contextId))->payExpense($id, $_POST, (int) $user['id'])['duplicate'] ? ['success', 'Este pagamento já havia sido registrado.'] : ['success', 'Despesa paga com a reserva da meta.'],
+                'goal_reverse' => (new GoalWallets($contextId))->reverse($id, (int) $user['id']) ? ['success', 'Operação estornada.'] : ['error', 'Operação não encontrada.'],
+                'goal_status' => (new GoalWallets($contextId))->setPaused($id, ($_POST['status'] ?? '') === 'paused') ? ['success', ($_POST['status'] ?? '') === 'paused' ? 'Meta pausada.' : 'Meta retomada.'] : ['error', 'Meta não encontrada.'],
+                'goal_schedule' => $this->goalSchedule($contextId, $id, (int) $user['id']),
+                'goal_schedule_status' => (new GoalWallets($contextId))->setScheduleStatus($id, (string) ($_POST['status'] ?? '')) ? ['success', 'Aporte programado atualizado.'] : ['error', 'Aporte programado não encontrado.'],
                 'account' => [$finance->createAccount($_POST) > 0 ? 'success' : 'error', 'Conta cadastrada.'],
                 'transfer' => [$finance->transfer($_POST, (int) $user['id']) > 0 ? 'success' : 'error', 'Transferência registrada.'],
                 'settle' => $finance->settle($id) ? ['success', $kind === 'income' ? 'Recebimento confirmado.' : 'Pagamento confirmado.'] : ['error', 'Lançamento não encontrado.'],
-                'delete' => $finance->delete($id) ? ['success', 'Lançamento excluído.'] : ['error', 'Lançamento não encontrado.'],
+                'delete' => $finance->delete($id, (int) $user['id']) ? ['success', 'Lançamento excluído.'] : ['error', 'Lançamento não encontrado.'],
                 default => ['error', 'Ação inválida.'],
             };
+            // O pagamento segue a política de saldo da conta; a carteira não muda, e o usuário decide o que resgatar.
+            if ($message[0] === 'success' && in_array($action, ['create', 'update', 'settle', 'transfer'], true)) {
+                foreach ($finance->balanceSummary()['shortfalls'] as $short) {
+                    $message = ['warning', $message[1] . ' Atenção: ' . $short['name'] . ' ficou com ' . Finance::money($short['cents']) . ' a menos que o reservado em metas.'];
+                }
+            }
         } catch (InvalidArgumentException $exception) {
             $message = ['error', $exception->getMessage()];
         } catch (Throwable $exception) {
@@ -83,6 +98,13 @@ final class FinanceActions
         }
         $page = in_array($back, ['contas', 'movimentacoes', 'overview', 'categorias', 'planejamento', 'metas', 'pagar'], true) ? $back : self::PAGES[$kind];
         header('Location: /minha-conta?' . ($page === 'overview' ? '' : 'pagina=' . $page . '&') . 'mes=' . $month, true, 303);
+    }
+
+    /** @return array{0:string,1:string} */
+    private function goalSchedule(int $contextId, int $goalId, int $userId): array
+    {
+        (new GoalWallets($contextId))->saveSchedule($goalId, $_POST, $userId);
+        return ['success', 'Aporte programado salvo.'];
     }
 
     /** @return array{0:string,1:string} */

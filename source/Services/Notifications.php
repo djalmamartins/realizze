@@ -200,9 +200,11 @@ final class Notifications
                 ];
             }
         }
+        // Guardado na meta = registrado fora das contas + reservas da carteira.
+        $saved = GoalWallets::ready() ? 'saved_cents + (SELECT COALESCE(SUM(o.delta_cents),0) FROM finance_goal_wallet_operations AS o WHERE o.goal_id = finance_goals.id)' : 'saved_cents';
         foreach ($preferences['goal_enabled'] ? CmsQuery::all(
-            "SELECT id,name,target_cents,saved_cents,deadline,deadline < CURDATE() AS late FROM finance_goals
-             WHERE financial_context_id=? AND status='active' AND saved_cents < target_cents AND deadline <= CURDATE() + INTERVAL 7 DAY ORDER BY deadline,id LIMIT 50",
+            "SELECT id,name,target_cents,{$saved} AS saved_cents,deadline,deadline < CURDATE() AS late FROM finance_goals
+             WHERE financial_context_id=? AND status='active' AND {$saved} < target_cents AND deadline <= CURDATE() + INTERVAL 7 DAY ORDER BY deadline,id LIMIT 50",
             [$contextId]
         ) : [] as $goal) {
             $notes['finance:goal:' . $goal['id'] . ':' . $goal['deadline']] = [

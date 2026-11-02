@@ -313,6 +313,9 @@ final class Finance
                 throw new InvalidArgumentException('Este lançamento é o pagamento de uma dívida. Altere-o em Sair das dívidas.');
             }
         }
+        if (GoalWallets::ready() && (new GoalWallets($this->contextId))->operationForEntry($entryId) !== null) {
+            throw new InvalidArgumentException('Esta despesa foi paga com uma meta. Para mudar, exclua e lance novamente.');
+        }
         $this->pdo->prepare('UPDATE finance_entries SET description = ?, amount_cents = ?, due_date = ?, account_id = ?, category_id = ?, notes = ? WHERE id = ? AND financial_context_id = ?')
             ->execute([$description, $amount, $due, $accountId, $categoryId, $notes === '' ? null : $notes, $entryId, $this->contextId]);
         $this->updateEntryExtras($entryId, $data, $userId, $files);
@@ -503,13 +506,21 @@ final class Finance
         return $statement->rowCount() === 1;
     }
 
-    public function delete(int $entryId): bool
+    public function delete(int $entryId, ?int $userId = null): bool
     {
         $files = [];
         if ($this->supportsEntryExtras()) {
             $statement = $this->pdo->prepare('SELECT stored_path FROM finance_entry_attachments WHERE entry_id = ? AND financial_context_id = ?');
             $statement->execute([$entryId, $this->contextId]);
             $files = $statement->fetchAll(PDO::FETCH_COLUMN);
+        }
+        // Despesa paga com uma meta: o estorno devolve a reserva junto com a exclusão.
+        $wallets = GoalWallets::ready() ? new GoalWallets($this->contextId) : null;
+        $operation = $wallets?->operationForEntry($entryId);
+        if ($operation !== null) {
+            $wallets->reverse($operation, $userId);
+            array_walk($files, static fn (string $path) => FinanceAttachments::remove($path));
+            return true;
         }
         $statement = $this->pdo->prepare('DELETE FROM finance_entries WHERE id = ? AND financial_context_id = ?');
         $statement->execute([$entryId, $this->contextId]);
@@ -520,7 +531,10 @@ final class Finance
         return true;
     }
 
-    /** Contas com saldo: inicial + entradas pagas - saídas pagas +/- transferências. */
+    /**
+     * Contas com saldo: inicial + entradas pagas - saídas pagas +/- transferências.
+     * Disponível = saldo - reservado em metas. Cartões não guardam reservas.
+     */
     public function accountsWithBalance(): array
     {
         // Sem a migration 006, as colunas do catálogo vêm nulas e não há JOIN.
@@ -547,19 +561,37 @@ final class Finance
              GROUP BY a.id ORDER BY a.type = 'credit_card', a.name"
         );
         $statement->execute([$this->contextId]);
-        return array_map(static function (array $row): array {
+        $reserved = GoalWallets::ready() ? (new GoalWallets($this->contextId))->reservedByAccount() : [];
+        return array_map(static function (array $row) use ($reserved): array {
             $row['balance_cents'] = (int) $row['balance_cents'];
+            $row['reserved_cents'] = $reserved[(int) $row['id']] ?? 0;
+            $row['available_cents'] = $row['balance_cents'] - $row['reserved_cents'];
             return $row;
         }, $statement->fetchAll(PDO::FETCH_ASSOC));
     }
 
-    /** Saldo disponível: soma das contas, sem cartões de crédito. */
+    /**
+     * Fonte única dos indicadores de saldo, sem cartões de crédito.
+     *
+     * @param list<array<string,mixed>>|null $accounts
+     * @return array{total_cents:int,reserved_cents:int,available_cents:int,shortfalls:list<array{name:string,cents:int}>}
+     */
+    public function balanceSummary(?array $accounts = null): array
+    {
+        $cash = array_filter($accounts ?? $this->accountsWithBalance(), static fn (array $account): bool => $account['type'] !== 'credit_card');
+        $total = array_sum(array_column($cash, 'balance_cents'));
+        $reserved = array_sum(array_column($cash, 'reserved_cents'));
+        $short = array_filter($cash, static fn (array $account): bool => $account['reserved_cents'] > 0 && $account['available_cents'] < 0);
+        return [
+            'total_cents' => $total, 'reserved_cents' => $reserved, 'available_cents' => $total - $reserved,
+            'shortfalls' => array_values(array_map(static fn (array $account): array => ['name' => (string) $account['name'], 'cents' => -$account['available_cents']], $short)),
+        ];
+    }
+
+    /** Saldo disponível: saldo das contas menos o reservado em metas. */
     public function availableBalance(): int
     {
-        return array_sum(array_map(
-            static fn (array $account): int => $account['type'] === 'credit_card' ? 0 : $account['balance_cents'],
-            $this->accountsWithBalance()
-        ));
+        return $this->balanceSummary()['available_cents'];
     }
 
     public function createAccount(array $data): int
@@ -694,7 +726,8 @@ final class Finance
         $income = $this->summary('income', ...$range);
         $expense = $this->summary('expense', ...$range);
         $accounts = $this->accountsWithBalance();
-        $balance = array_sum(array_map(static fn (array $a): int => $a['type'] === 'credit_card' ? 0 : $a['balance_cents'], $accounts));
+        $balances = $this->balanceSummary($accounts);
+        $balance = $balances['total_cents'];
 
         $due = $this->pdo->prepare(
             "SELECT COALESCE(SUM(CASE WHEN due_date <= CURDATE() THEN amount_cents END), 0) AS today_total,
@@ -712,6 +745,9 @@ final class Finance
 
         return [
             'balance' => $balance,
+            'reserved' => $balances['reserved_cents'],
+            'available' => $balances['available_cents'],
+            'shortfalls' => $balances['shortfalls'],
             'income_paid' => $income['paid'],
             'expense_paid' => $expense['paid'],
             'result' => $income['paid'] - $expense['paid'],
@@ -913,9 +949,19 @@ final class Finance
             ? "g.category, g.icon, g.monthly_contribution_cents, g.image_path, g.savings_place, g.institution, g.institution_id, i.trade_name AS institution_name, i.logo_file AS institution_logo, i.slug AS institution_slug"
             : "NULL AS category, NULL AS icon, NULL AS monthly_contribution_cents, NULL AS image_path, NULL AS savings_place, NULL AS institution, NULL AS institution_id, NULL AS institution_name, NULL AS institution_logo, NULL AS institution_slug";
         $join = $this->supportsGoalDetails() ? 'LEFT JOIN financial_institutions AS i ON i.id = g.institution_id' : '';
-        $statement = $this->pdo->prepare("SELECT g.id, g.name, g.purpose, g.created_at, g.target_cents, g.saved_cents, g.deadline, g.status, {$details} FROM finance_goals AS g {$join} WHERE g.financial_context_id = ? AND g.status <> 'cancelled' ORDER BY g.status = 'completed', g.deadline IS NULL, g.deadline, g.id");
+        $ready = GoalWallets::ready();
+        $wallet = $ready ? 'g.account_id, g.color, ga.name AS account_name' : 'NULL AS account_id, NULL AS color, NULL AS account_name';
+        $join .= $ready ? ' LEFT JOIN finance_accounts AS ga ON ga.id = g.account_id' : '';
+        $statement = $this->pdo->prepare("SELECT g.id, g.name, g.purpose, g.created_at, g.target_cents, g.saved_cents, g.deadline, g.status, {$wallet}, {$details} FROM finance_goals AS g {$join} WHERE g.financial_context_id = ? AND g.status <> 'cancelled' ORDER BY g.status = 'completed', g.deadline IS NULL, g.deadline, g.id");
         $statement->execute([$this->contextId]);
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
+        // saved_cents continua sendo o que foi registrado fora das contas; o guardado soma esse valor às reservas.
+        $reserved = $ready ? (new GoalWallets($this->contextId))->reservedByGoal() : [];
+        return array_map(static function (array $goal) use ($reserved): array {
+            $goal['external_cents'] = (int) $goal['saved_cents'];
+            $goal['reserved_cents'] = $reserved[(int) $goal['id']] ?? 0;
+            $goal['saved_cents'] = $goal['external_cents'] + $goal['reserved_cents'];
+            return $goal;
+        }, $statement->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /**
@@ -1029,21 +1075,81 @@ final class Finance
         [$name, $purpose, $target, $deadline] = $this->goalFields($data);
         $initial = trim((string) ($data['initial'] ?? ''));
         $initialCents = $initial === '' ? 0 : self::parseCents($initial);
-        if (!$this->supportsGoalDetails()) {
-            $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, target_cents, deadline) VALUES (?, ?, ?, ?, ?)')
-                ->execute([$this->contextId, $name, $purpose, $target, $deadline]);
-        } else {
-            [$place, $institution, $institutionId] = $this->goalPlace($data);
-            [$category, $icon, $monthly] = $this->goalPlan($data);
-            $image = GoalPhotos::store($photo);
-            $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, category, icon, image_path, savings_place, institution, institution_id, target_cents, monthly_contribution_cents, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-                ->execute([$this->contextId, $name, $purpose, $category, $icon, $image, $place, $institution, $institutionId, $target, $monthly, $deadline]);
+        $ready = GoalWallets::ready();
+        $details = $this->supportsGoalDetails();
+        // A mesma submissão não cria uma segunda meta nem uma segunda carteira.
+        $key = $ready && is_string($data['idempotency_key'] ?? null) ? GoalWallets::key($data['idempotency_key']) : null;
+        if ($key !== null && ($existing = $this->goalByKey($key)) !== null) {
+            return $existing;
         }
-        $id = (int) $this->pdo->lastInsertId();
-        if ($initialCents > 0) {
+        [$accountId, $color] = $ready ? $this->goalWallet($data) : [null, null];
+        $image = $details ? GoalPhotos::store($photo) : null;
+        $this->pdo->beginTransaction();
+        try {
+            if (!$details) {
+                $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, target_cents, deadline) VALUES (?, ?, ?, ?, ?)')
+                    ->execute([$this->contextId, $name, $purpose, $target, $deadline]);
+            } else {
+                [$place, $institution, $institutionId] = $this->goalPlace($data);
+                [$category, $icon, $monthly] = $this->goalPlan($data);
+                $this->pdo->prepare('INSERT INTO finance_goals (financial_context_id, name, purpose, category, icon, image_path, savings_place, institution, institution_id, target_cents, monthly_contribution_cents, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+                    ->execute([$this->contextId, $name, $purpose, $category, $icon, $image, $place, $institution, $institutionId, $target, $monthly, $deadline]);
+            }
+            $id = (int) $this->pdo->lastInsertId();
+            if ($ready) {
+                $this->pdo->prepare('UPDATE finance_goals SET account_id = ?, color = ?, idempotency_key = ? WHERE id = ?')->execute([$accountId, $color, $key, $id]);
+            }
+            if ($ready && $initialCents > 0 && $accountId !== null) {
+                (new GoalWallets($this->contextId))->reserve($id, ['account_id' => $accountId, 'amount' => $initial, 'note' => 'Valor inicial'], $userId);
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            GoalPhotos::remove($image);
+            $existing = $key !== null && $error instanceof \PDOException && $error->getCode() === '23000' ? $this->goalByKey($key) : null;
+            if ($existing !== null) {
+                return $existing;
+            }
+            throw $error;
+        }
+        // Sem conta de origem, o valor inicial é o que já está guardado fora das contas.
+        if ($initialCents > 0 && $accountId === null) {
             $this->addToGoal($id, $initial, $userId);
         }
         return $id;
+    }
+
+    private function goalByKey(string $key): ?int
+    {
+        $statement = $this->pdo->prepare('SELECT id FROM finance_goals WHERE financial_context_id = ? AND idempotency_key = ?');
+        $statement->execute([$this->contextId, $key]);
+        $id = $statement->fetchColumn();
+        return $id === false ? null : (int) $id;
+    }
+
+    /** @return array{0:?int,1:?string} Conta de referência da carteira e cor da meta. */
+    private function goalWallet(array $data): array
+    {
+        $accountId = null;
+        if (($data['account_id'] ?? '') !== '') {
+            $accountId = $this->ownedId('finance_accounts', $data['account_id']);
+            $cash = array_column(array_filter($this->accountsWithBalance(), static fn (array $a): bool => $a['type'] !== 'credit_card'), 'id');
+            if ($accountId === null || !in_array($accountId, array_map('intval', $cash), true)) {
+                throw new InvalidArgumentException('Escolha uma conta ativa, sem ser cartão de crédito.');
+            }
+        }
+        $color = (string) ($data['color'] ?? '');
+        return [$accountId, preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1 ? strtolower($color) : null];
+    }
+
+    /** Total guardado na meta: o registrado fora das contas mais as reservas. Pausada só muda quando retomada. */
+    private function goalStatus(int $id, string $current, int $external, int $target): string
+    {
+        if ($current === 'paused') {
+            return 'paused';
+        }
+        $reserved = GoalWallets::ready() ? ((new GoalWallets($this->contextId))->reservedByGoal()[$id] ?? 0) : 0;
+        return $external + $reserved >= $target ? 'completed' : 'active';
     }
 
     /** @param array<string,mixed>|null $photo */
@@ -1054,7 +1160,11 @@ final class Finance
         if ($current === null) {
             return false;
         }
-        $status = (int) $current['saved_cents'] >= $target ? 'completed' : 'active';
+        $status = $this->goalStatus($id, (string) $current['status'], (int) $current['saved_cents'], $target);
+        if (GoalWallets::ready()) {
+            [$accountId, $color] = $this->goalWallet($data);
+            $this->pdo->prepare('UPDATE finance_goals SET account_id = ?, color = ? WHERE id = ? AND financial_context_id = ?')->execute([$accountId, $color, $id, $this->contextId]);
+        }
         if (!$this->supportsGoalDetails()) {
             $this->pdo->prepare('UPDATE finance_goals SET name = ?, purpose = ?, target_cents = ?, deadline = ?, status = ? WHERE id = ? AND financial_context_id = ?')
                 ->execute([$name, $purpose, $target, $deadline, $status, $id, $this->contextId]);
@@ -1157,12 +1267,12 @@ final class Finance
         }
         $this->pdo->beginTransaction();
         try {
-            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled' FOR UPDATE");
+            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents, status FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled' FOR UPDATE");
             $statement->execute([$id, $this->contextId]);
             $goal = $statement->fetch(PDO::FETCH_ASSOC);
             if (!$goal) { $this->pdo->rollBack(); return false; }
             $saved = (int) $goal['saved_cents'] + $cents;
-            $status = $saved >= (int) $goal['target_cents'] ? 'completed' : 'active';
+            $status = $this->goalStatus($id, (string) $goal['status'], $saved, (int) $goal['target_cents']);
             $this->pdo->prepare('UPDATE finance_goals SET saved_cents = ?, status = ? WHERE id = ? AND financial_context_id = ?')->execute([$saved, $status, $id, $this->contextId]);
             $this->pdo->prepare('INSERT INTO finance_goal_contributions (financial_context_id, goal_id, amount_cents, contributed_at, actor_user_id) VALUES (?, ?, ?, ?, ?)')->execute([$this->contextId, $id, $cents, $date, $userId]);
             $this->pdo->commit();
@@ -1203,12 +1313,12 @@ final class Finance
             $statement->execute([$id, $this->contextId]);
             $row = $statement->fetch(PDO::FETCH_ASSOC);
             if (!$row) { $this->pdo->rollBack(); return false; }
-            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled' FOR UPDATE");
+            $statement = $this->pdo->prepare("SELECT target_cents, saved_cents, status FROM finance_goals WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled' FOR UPDATE");
             $statement->execute([$row['goal_id'], $this->contextId]);
             $goal = $statement->fetch(PDO::FETCH_ASSOC);
             if (!$goal) { $this->pdo->rollBack(); return false; }
             $saved = max(0, (int) $goal['saved_cents'] - (int) $row['amount_cents']);
-            $this->pdo->prepare('UPDATE finance_goals SET saved_cents = ?, status = ? WHERE id = ? AND financial_context_id = ?')->execute([$saved, $saved >= (int) $goal['target_cents'] ? 'completed' : 'active', $row['goal_id'], $this->contextId]);
+            $this->pdo->prepare('UPDATE finance_goals SET saved_cents = ?, status = ? WHERE id = ? AND financial_context_id = ?')->execute([$saved, $this->goalStatus((int) $row['goal_id'], (string) $goal['status'], $saved, (int) $goal['target_cents']), $row['goal_id'], $this->contextId]);
             $this->pdo->prepare('DELETE FROM finance_goal_contributions WHERE id = ? AND financial_context_id = ?')->execute([$id, $this->contextId]);
             $this->pdo->commit();
             return true;
@@ -1218,13 +1328,19 @@ final class Finance
         }
     }
 
-    public function deleteGoal(int $id): bool
+    public function deleteGoal(int $id, ?int $userId = null): bool
     {
         $photo = $this->goalPhoto($id);
-        $statement = $this->pdo->prepare("UPDATE finance_goals SET status = 'cancelled' WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled'");
-        $statement->execute([$id, $this->contextId]);
-        if ($statement->rowCount() !== 1) {
-            return false;
+        if (GoalWallets::ready()) {
+            if (!(new GoalWallets($this->contextId))->cancelGoal($id, $userId)) {
+                return false;
+            }
+        } else {
+            $statement = $this->pdo->prepare("UPDATE finance_goals SET status = 'cancelled' WHERE id = ? AND financial_context_id = ? AND status <> 'cancelled'");
+            $statement->execute([$id, $this->contextId]);
+            if ($statement->rowCount() !== 1) {
+                return false;
+            }
         }
         if ($photo !== null) {
             GoalPhotos::remove($photo);
