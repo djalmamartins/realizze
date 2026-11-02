@@ -1358,3 +1358,18 @@ body[data-context="pj"]{--app-header-bg:#eef8f2}
 @media print{
   .main>.top,.main>.page-heading{position:static;background:transparent;border-bottom:0}
 }
+
+/* UI-INTEGRACAO-002: gráfico e vencimentos reais, 75/25. */
+.overview-chart-layout{display:grid;grid-template-columns:minmax(0,3fr) minmax(220px,1fr);gap:22px;align-items:stretch}
+.overview-chart-plot{min-width:0;margin-left:20px;display:flex;align-items:center}
+.overview-chart-plot>*{width:100%;min-width:0}
+.overview-chart-alerts{min-width:0;padding:16px;border:1px solid #e5eee9;border-radius:12px;background:#f7fbf9}
+.overview-chart-alerts h3{margin:0 0 12px;font-size:13px}
+.overview-chart-alert{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 0;border-top:1px solid #e4eee8}
+.overview-chart-alert span{min-width:0}
+.overview-chart-alert strong{display:block;font-size:12px}
+.overview-chart-alert small{display:block;margin-top:3px;color:#687c70;font-size:11px}
+.overview-chart-alert b{font-size:12px;text-align:right;overflow-wrap:anywhere}
+.overview-chart-alert-link{display:inline-block;margin-top:10px;color:#078b4c;font-size:12px;font-weight:700}
+@media(max-width:1050px){.overview-chart-layout{grid-template-columns:minmax(0,1fr)}.overview-chart-alerts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 14px}.overview-chart-alerts h3,.overview-chart-alert-link{grid-column:1/-1}}
+@media(max-width:650px){.overview-chart-plot{margin-left:0}.overview-chart-alerts{display:block}.overview-chart-alert{padding:10px 0}}
