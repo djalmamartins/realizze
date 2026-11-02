@@ -151,8 +151,17 @@ $icon = static function (string $name) use ($iconPaths): string {
 <meta name="theme-color" content="#079550">
 <?php
 $personalFavicon = '/assets/realizze/v1/images/favicon-realizze.svg';
+$personalLogo = '/assets/realizze/v1/images/new-logo-realizze.svg';
+$enterpriseLogo = '/assets/realizze/v1/images/new-logo-realizze-empresa.svg';
+$assetVersion = (string) max(
+    (int) @filemtime(BASE_PATH . '/public' . $personalFavicon),
+    (int) @filemtime(BASE_PATH . '/public/assets/realizze/v1/images/favicon-realizze-empresa.svg'),
+    (int) @filemtime(BASE_PATH . '/public' . $personalLogo),
+    (int) @filemtime(BASE_PATH . '/public' . $enterpriseLogo),
+);
+$personalFavicon .= '?v=' . $assetVersion;
 $enterpriseFavicon = is_file(BASE_PATH . '/public/assets/realizze/v1/images/favicon-realizze-empresa.svg')
-    ? '/assets/realizze/v1/images/favicon-realizze-empresa.svg'
+    ? '/assets/realizze/v1/images/favicon-realizze-empresa.svg?v=' . $assetVersion
     : $personalFavicon;
 $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFavicon;
 ?>
@@ -175,7 +184,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
 </style>
 </noscript>
 </head>
-<body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>" data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>">
+<body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>" data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>" data-logo-pf="<?= htmlspecialchars($personalLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>" data-logo-pj="<?= htmlspecialchars($enterpriseLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>">
 <a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
 <noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros interativos não estão disponíveis nesta prévia.</p></noscript>
 <div class="shell" id="shell">

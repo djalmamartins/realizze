@@ -255,12 +255,12 @@
   const main = () => document.querySelector('#overview');
   const brl = (cents) => (cents < 0 ? '- ' : '') + 'R$ ' + (Math.abs(cents) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const personalFavicon = '/assets/realizze/v1/images/favicon-realizze.svg';
 const faviconFor = (context, doc = document) => {
   const linked = doc.querySelector('link[rel="icon"]');
-  const enterprise = '/assets/realizze/v1/images/favicon-realizze-empresa.svg';
-  if (context === 'pj' && linked && linked.getAttribute('href') === enterprise) return enterprise;
-  return personalFavicon;
+  if (linked) return linked.getAttribute('href');
+  return context === 'pj'
+    ? '/assets/realizze/v1/images/favicon-realizze-empresa.svg'
+    : '/assets/realizze/v1/images/favicon-realizze.svg';
 };
 const loaderLogo = document.createElement('img');
 loaderLogo.alt = '';
@@ -272,7 +272,9 @@ const syncAppFavicon = (nextDocument = document) => {
   const desired = nextIcon?.getAttribute('href') || faviconFor(nextContext, nextDocument);
   const favicon = document.querySelector('link[rel="icon"]');
   if (favicon && favicon.getAttribute('href') !== desired) favicon.setAttribute('href', desired);
-  loaderLogo.src = desired;
+  loaderLogo.src = nextContext === 'pj'
+    ? (nextDocument.body?.dataset.logoPj || document.body.dataset.logoPj)
+    : (nextDocument.body?.dataset.logoPf || document.body.dataset.logoPf);
 };
 const loader = document.createElement('div');
   loader.className = 'app-loader';
@@ -368,12 +370,19 @@ syncAppFavicon();
     // próximo clique muda silenciosamente de contexto.
     const brand = document.querySelector('#app-sidebar .brand');
     const incomingBrand = next.querySelector('#app-sidebar .brand');
-    if (brand && incomingBrand) brand.setAttribute('href', incomingBrand.getAttribute('href') || '/p');
+    if (brand && incomingBrand) {
+      brand.setAttribute('href', incomingBrand.getAttribute('href') || '/p');
+      const brandImage = brand.querySelector('img');
+      const incomingBrandImage = incomingBrand.querySelector('img');
+      if (brandImage && incomingBrandImage) brandImage.setAttribute('src', incomingBrandImage.getAttribute('src') || '');
+    }
     const profile = document.querySelector('#app-sidebar .profile-link');
     const incomingProfile = next.querySelector('#app-sidebar .profile-link');
     if (profile && incomingProfile) profile.setAttribute('href', incomingProfile.getAttribute('href') || '/p/perfil');
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
     document.body.dataset.context = next.body.dataset.context || 'pf';
+    document.body.dataset.logoPf = next.body.dataset.logoPf || document.body.dataset.logoPf || '';
+    document.body.dataset.logoPj = next.body.dataset.logoPj || document.body.dataset.logoPj || '';
     syncAppFavicon(next);
     document.body.dataset.organizationId = next.body.dataset.organizationId || '0';
     const errorStatus = next.body.dataset.appErrorStatus;

@@ -31,7 +31,11 @@ foreach ($items as $index => $item) {
 ?>
 <aside class="sidebar" id="app-sidebar" aria-label="Navegação principal">
 <button type="button" class="sidebar-close" id="sidebar-close" aria-label="Fechar menu"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-<?php $brandLogo = $activeOrganization !== null ? '/assets/realizze/v1/images/new-logo-realizze-empresa.svg' : '/assets/realizze/v1/images/new-logo-realizze.svg'; ?>
+<?php
+$brandLogo = $activeOrganization !== null ? '/assets/realizze/v1/images/new-logo-realizze-empresa.svg' : '/assets/realizze/v1/images/new-logo-realizze.svg';
+$brandRoot = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__, 5);
+$brandLogo .= '?v=' . (int) @filemtime($brandRoot . '/public' . $brandLogo);
+?>
 <a href="<?= $sidebarHref(\Moves\Services\AppUrl::base($activeOrganization)) ?>" class="brand" aria-label="Realizze"><img src="<?= $brandLogo ?>" alt="Realizze" width="152" height="38"></a>
 <?php require __DIR__ . '/context-switch.php'; ?>
 <nav class="nav" aria-label="Menu principal">

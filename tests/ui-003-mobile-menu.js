@@ -208,5 +208,7 @@ console.log('OK - APP-A11Y-073: browsers without native inert retain keyboard-re
 
 // APP-NAV-074: a troca AJAX de contexto must synchronize fixed sidebar URLs.
 assert.match(script, /incomingBrand[\s\S]*brand\.setAttribute\('href'/, 'brand URL is synchronized after PF/PJ swap');
+assert.match(script, /incomingBrandImage[\s\S]*brandImage\.setAttribute\('src'/, 'brand image is synchronized after PF/PJ swap');
+assert.match(script, /dataset\.logoPj[\s\S]*dataset\.logoPf/, 'loader uses the official logo for each financial context');
 assert.match(script, /incomingProfile[\s\S]*profile\.setAttribute\('href'/, 'profile URL is synchronized after PF/PJ swap');
 console.log('OK - APP-NAV-074: AJAX context swap synchronizes fixed sidebar links.');
