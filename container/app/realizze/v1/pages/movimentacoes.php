@@ -113,7 +113,7 @@ unset($_SESSION['finance_flash']);
 <dialog class="finance-dialog" id="transfer-dialog" aria-labelledby="transfer-dialog-title">
   <form method="post" action="/minha-conta/financeiro/transferencia" data-finance-form>
     <header><h2 id="transfer-dialog-title">Transferir entre contas</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="movimentacoes"><input type="hidden" name="mes" value="<?= $e($month) ?>">
+    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="idempotency_key" value="<?= bin2hex(random_bytes(32)) ?>"><input type="hidden" name="back" value="movimentacoes"><input type="hidden" name="mes" value="<?= $e($month) ?>">
     <div class="finance-dialog-row">
       <label>De<select name="account_id" required><?php foreach ($accounts as $account): ?><option value="<?= (int) $account['id'] ?>"><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
       <label>Para<select name="target_account_id" required><?php foreach ($accounts as $index => $account): ?><option value="<?= (int) $account['id'] ?>"<?= $index === 1 ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>

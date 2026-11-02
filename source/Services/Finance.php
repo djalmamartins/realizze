@@ -496,12 +496,25 @@ final class Finance
         }
         $date = self::date($data['date'] ?? null);
         $description = trim((string) ($data['description'] ?? '')) ?: 'Transferência entre contas';
-        $this->pdo->prepare(
-            "INSERT INTO finance_entries
-             (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, target_account_id, created_by)
-             VALUES (?, 'transfer', ?, ?, ?, ?, ?, ?, ?)"
-        )->execute([$this->contextId, mb_substr($description, 0, 160), self::parseCents($data['amount'] ?? null), $date, $date, $from, $to, $userId]);
-        return (int) $this->pdo->lastInsertId();
+        $amount = self::parseCents($data['amount'] ?? null);
+        $idempotency = is_string($data['idempotency_key'] ?? null) && preg_match('/^[a-f0-9]{64}$/', $data['idempotency_key'])
+            ? $data['idempotency_key'] : bin2hex(random_bytes(32));
+        $this->pdo->beginTransaction();
+        try {
+            // A mesma submissão não cria uma segunda transferência. O saldo continua derivado do extrato.
+            $this->pdo->prepare(
+                "INSERT INTO finance_entries
+                 (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, target_account_id, created_by, idempotency_key)
+                 VALUES (?, 'transfer', ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)"
+            )->execute([$this->contextId, mb_substr($description, 0, 160), $amount, $date, $date, $from, $to, $userId, $idempotency]);
+            $id = (int) $this->pdo->lastInsertId();
+            $this->pdo->commit();
+            return $id;
+        } catch (\Throwable $error) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $error;
+        }
     }
 
     /** Extrato do período: somente o que já foi pago, recebido ou transferido. */
