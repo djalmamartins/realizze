@@ -1373,3 +1373,9 @@ body[data-context="pj"]{--app-header-bg:#eef8f2}
 .overview-chart-alert-link{display:inline-block;margin-top:10px;color:#078b4c;font-size:12px;font-weight:700}
 @media(max-width:1050px){.overview-chart-layout{grid-template-columns:minmax(0,1fr)}.overview-chart-alerts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 14px}.overview-chart-alerts h3,.overview-chart-alert-link{grid-column:1/-1}}
 @media(max-width:650px){.overview-chart-plot{margin-left:0}.overview-chart-alerts{display:block}.overview-chart-alert{padding:10px 0}}
+
+/* UI-INTEGRACAO-003: bandeira independente da instituição financeira. */
+.finance-account-list li{position:relative}
+.finance-account-list li>.card-network{position:absolute;right:18px;bottom:5px;display:inline-flex;align-items:center;justify-content:center;min-width:40px;max-width:95px;min-height:19px;padding:2px 5px;border-radius:5px;background:#fff;border:1px solid #e3ebe6;color:#52635a;font-size:10px;font-weight:750;line-height:1.2}
+.finance-account-list li>.card-network img{display:block;width:42px;max-width:100%;height:24px;object-fit:contain}
+.finance-account-list li:has(>.card-network){padding-bottom:29px}
