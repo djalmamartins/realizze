@@ -61,6 +61,39 @@ final class RecurringFinance
         return $recurringId;
     }
 
+    private function occurrencesReady(): bool
+    {
+        return $this->pdo->query("SHOW TABLES LIKE 'finance_recurring_occurrences'")->fetchColumn() !== false;
+    }
+
+    private function generateFirstOccurrence(int $id): void
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $select = $this->pdo->prepare('SELECT * FROM finance_recurring_items WHERE id=? AND financial_context_id=? FOR UPDATE');
+            $select->execute([$id, $this->contextId]);
+            $item = $select->fetch(PDO::FETCH_ASSOC);
+            if (!$item || $item['status'] !== 'active') {
+                $this->pdo->commit();
+                return;
+            }
+            $due = $item['next_due_date'];
+            $check = $this->pdo->prepare('SELECT id FROM finance_recurring_occurrences WHERE recurring_item_id=? AND due_date=?');
+            $check->execute([$id, $due]);
+            if ($check->fetchColumn() === false) {
+                $insert = $this->pdo->prepare('INSERT INTO finance_entries (financial_context_id,kind,description,amount_cents,due_date,paid_at,account_id,category_id,created_by,notes) VALUES (?,?,?,?,?,NULL,?,?,?,?)');
+                $insert->execute([$this->contextId,$item['kind'],$item['name'],$item['amount_cents'],$due,$item['account_id'],$item['category_id'],$item['created_by'],$item['notes']]);
+                $entryId = (int) $this->pdo->lastInsertId();
+                $link = $this->pdo->prepare('INSERT INTO finance_recurring_occurrences (financial_context_id,recurring_item_id,due_date,entry_id) VALUES (?,?,?,?)');
+                $link->execute([$this->contextId,$id,$due,$entryId]);
+            }
+            $this->pdo->commit();
+        } catch (\\Throwable $error) {
+            $this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
     public function changeStatus(int $id, string $status): bool
     {
         if (!in_array($status, ['active', 'paused', 'canceled'], true)) throw new InvalidArgumentException('Situação inválida.');
