@@ -62,6 +62,29 @@ return [
             return $admin;
         };
 
+        // Antes de /usuarios/{id}: a primeira rota que casa vence.
+        $router->get('/usuarios/exportar', static function () use ($guard): void {
+            $admin = $guard('users.view');
+            if ($admin === null) {
+                return;
+            }
+            \Moves\Services\CmsAudit::record((int) $admin['id'], 'users.exported', 'user');
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="usuarios-realizze.csv"');
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Nome', 'E-mail', 'Situação', 'Cadastro'], ';');
+            // Prefixo evita que planilhas executem nomes iniciados por =, +, - ou @.
+            $safe = static fn (string $v): string => preg_match('/^[=+\-@\t\r]/', $v) === 1 ? "'" . $v : $v;
+            foreach (\Moves\Services\CmsQuery::all('SELECT first_name,last_name,email,status,created_at FROM users ORDER BY id') as $u) {
+                fputcsv($out, [$safe(trim($u['first_name'] . ' ' . $u['last_name'])), $safe($u['email']), $u['status'], $u['created_at']], ';');
+            }
+            fclose($out);
+        }, 'cms.users.export');
+        $router->get('/usuarios-exportar', static function (): void {
+            header('Location: /usuarios/exportar', true, 302);
+        });
+
         // caminho => [template, permissão, título, grupo do menu, item do menu]
         $pages = [
             '/' => ['dashboard', 'dashboard.view', 'Dashboard', 'Visão geral', 'dashboard'],
@@ -187,24 +210,6 @@ return [
             \Moves\Services\Helpdesk::streamAttachment($attachment);
         }, 'cms.ticket.attachment');
 
-        $router->get('/usuarios-exportar', static function () use ($guard): void {
-            $admin = $guard('users.view');
-            if ($admin === null) {
-                return;
-            }
-            \Moves\Services\CmsAudit::record((int) $admin['id'], 'users.exported', 'user');
-            header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="usuarios-realizze.csv"');
-            $out = fopen('php://output', 'w');
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Nome', 'E-mail', 'Situação', 'Cadastro'], ';');
-            // Prefixo evita que planilhas executem nomes iniciados por =, +, - ou @.
-            $safe = static fn (string $v): string => preg_match('/^[=+\-@\t\r]/', $v) === 1 ? "'" . $v : $v;
-            foreach (\Moves\Services\CmsQuery::all('SELECT first_name,last_name,email,status,created_at FROM users ORDER BY id') as $u) {
-                fputcsv($out, [$safe(trim($u['first_name'] . ' ' . $u['last_name'])), $safe($u['email']), $u['status'], $u['created_at']], ';');
-            }
-            fclose($out);
-        }, 'cms.users.export');
 
         $router->post('/acao/{name}', static function (array $params) use ($gate): void {
             if ($gate()) {

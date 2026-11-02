@@ -589,9 +589,9 @@ try {
     unset($_SERVER['HTTP_USER_AGENT'], $_SERVER['REQUEST_METHOD'], $_SERVER['REMOTE_ADDR']);
 
     // Exportação e voto na ajuda
-    $super->get('/usuarios-exportar');
+    $super->get('/usuarios/exportar');
     $ok($super->status === 200 && str_contains($super->body, 'Situação') && !str_contains($super->body, $hash), 'Exportação de usuários sem senha');
-    $editor->get('/usuarios-exportar');
+    $editor->get('/usuarios/exportar');
     $ok($editor->status === 403, 'Editor não exporta usuários');
     $other->get('/suporte/ajuda/' . $helpUri);
     $other->post('/suporte/ajuda/' . $helpUri . '/votar', ['helpful' => '1']);
