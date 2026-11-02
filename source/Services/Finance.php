@@ -533,6 +533,7 @@ final class Finance
 
     /**
      * Contas com saldo: inicial + entradas pagas - saídas pagas +/- transferências.
+     * Receita com baixa entra pelas baixas, na conta e no valor de cada uma, mesmo parcial.
      * Disponível = saldo - reservado em metas. Cartões não guardam reservas.
      */
     public function accountsWithBalance(): array
@@ -548,11 +549,14 @@ final class Finance
                     a.status, a.card_kind, a.credit_limit_cents, a.closing_day, a.due_day,
                     a.opening_balance_cents + COALESCE(SUM(CASE
                         WHEN e.paid_at IS NULL THEN 0
-                        WHEN e.kind = 'income' AND e.account_id = a.id THEN e.amount_cents
+                        WHEN e.kind = 'income' AND e.account_id = a.id
+                            AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS es WHERE es.entry_id = e.id) THEN e.amount_cents
                         WHEN e.kind = 'expense' AND e.account_id = a.id THEN -CAST(e.amount_cents AS SIGNED)
                         WHEN e.kind = 'transfer' AND e.account_id = a.id THEN -CAST(e.amount_cents AS SIGNED)
                         WHEN e.kind = 'transfer' AND e.target_account_id = a.id THEN e.amount_cents
-                        ELSE 0 END), 0) AS balance_cents
+                        ELSE 0 END), 0)
+                    + COALESCE((SELECT SUM(s.amount_cents) FROM finance_entry_settlements AS s
+                        WHERE s.account_id = a.id AND s.financial_context_id = a.financial_context_id), 0) AS balance_cents
              FROM finance_accounts AS a
              {$institutionJoin}
              LEFT JOIN finance_entries AS e ON e.financial_context_id = a.financial_context_id
