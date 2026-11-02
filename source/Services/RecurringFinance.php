@@ -52,9 +52,87 @@ final class RecurringFinance
         if (!$date || $date->format('Y-m-d') !== ($data['next_due_date'] ?? '')) throw new InvalidArgumentException('Informe a próxima cobrança.');
         $account = $this->ownedId('finance_accounts', $data['account_id'] ?? null, false);
         $category = $this->ownedId('finance_categories', $data['category_id'] ?? null, true);
+        if (isset($data['auto_create']) && !$this->occurrencesReady()) {
+            throw new InvalidArgumentException('Execute a migration 011 antes de habilitar lançamentos automáticos.');
+        }
         $statement = $this->pdo->prepare('INSERT INTO finance_recurring_items (financial_context_id,item_type,kind,name,provider,amount_cents,frequency,next_due_date,account_id,category_id,auto_create,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $statement->execute([$this->contextId,$type,$kind,$name,$this->optional($data['provider']??'',120),Finance::parseCents($data['amount']??''),$frequency,$date->format('Y-m-d'),$account,$category,isset($data['auto_create'])?1:0,$this->optional($data['notes']??'',500),$userId]);
-        return (int) $this->pdo->lastInsertId();
+        $recurringId = (int) $this->pdo->lastInsertId();
+        if (isset($data['auto_create']) && $this->occurrencesReady()) {
+            $this->generateFirstOccurrence($recurringId);
+        }
+        return $recurringId;
+    }
+
+    private function occurrencesReady(): bool
+    {
+        return $this->pdo->query("SHOW TABLES LIKE 'finance_recurring_occurrences'")->fetchColumn() !== false;
+    }
+
+    private function generateFirstOccurrence(int $id): void
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $select = $this->pdo->prepare('SELECT * FROM finance_recurring_items WHERE id=? AND financial_context_id=? FOR UPDATE');
+            $select->execute([$id, $this->contextId]);
+            $item = $select->fetch(PDO::FETCH_ASSOC);
+            if (!$item || $item['status'] !== 'active') {
+                $this->pdo->commit();
+                return;
+            }
+            $due = $item['next_due_date'];
+            $check = $this->pdo->prepare('SELECT id FROM finance_recurring_occurrences WHERE recurring_item_id=? AND due_date=?');
+            $check->execute([$id, $due]);
+            if ($check->fetchColumn() === false) {
+                $insert = $this->pdo->prepare('INSERT INTO finance_entries (financial_context_id,kind,description,amount_cents,due_date,paid_at,account_id,category_id,created_by,notes) VALUES (?,?,?,?,?,NULL,?,?,?,?)');
+                $insert->execute([$this->contextId,$item['kind'],$item['name'],$item['amount_cents'],$due,$item['account_id'],$item['category_id'],$item['created_by'],$item['notes']]);
+                $entryId = (int) $this->pdo->lastInsertId();
+                $link = $this->pdo->prepare('INSERT INTO finance_recurring_occurrences (financial_context_id,recurring_item_id,due_date,entry_id) VALUES (?,?,?,?)');
+                $link->execute([$this->contextId,$id,$due,$entryId]);
+            }
+            $this->advanceNextDue($id, $due, $item['frequency']);
+            $this->pdo->commit();
+        } catch (\Throwable $error) {
+            $this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
+    private function advanceNextDue(int $id, string $due, string $frequency): void
+    {
+        $date = new DateTimeImmutable($due);
+        if ($frequency === 'weekly') {
+            $next = $date->modify('+7 days');
+        } else {
+            $months = match ($frequency) {
+                'quarterly' => 3,
+                'yearly' => 12,
+                default => 1,
+            };
+            $first = $date->modify('first day of this month')->modify('+' . $months . ' months');
+            $day = min((int) $date->format('j'), (int) $first->format('t'));
+            $next = $first->setDate((int) $first->format('Y'), (int) $first->format('n'), $day);
+        }
+        $update = $this->pdo->prepare('UPDATE finance_recurring_items SET next_due_date=? WHERE id=? AND financial_context_id=?');
+        $update->execute([$next->format('Y-m-d'), $id, $this->contextId]);
+    }
+
+    public function generateDue(?DateTimeImmutable $through = null, int $limit = 30): int
+    {
+        if (!$this->occurrencesReady()) return 0;
+        $through ??= new DateTimeImmutable('today');
+        $limit = max(1, min(100, $limit));
+        $query = $this->pdo->prepare("SELECT id FROM finance_recurring_items WHERE financial_context_id=? AND status='active' AND auto_create=1 AND next_due_date<=? ORDER BY next_due_date,id LIMIT 1");
+        $count = 0;
+        while ($count < $limit) {
+            $query->execute([$this->contextId, $through->format('Y-m-d')]);
+            $id = $query->fetchColumn();
+            $query->closeCursor();
+            if ($id === false) break;
+            $this->generateFirstOccurrence((int) $id);
+            $count++;
+        }
+        return $count;
     }
 
     public function changeStatus(int $id, string $status): bool

@@ -2,6 +2,7 @@
 /** Contas, carteiras e cartões do contexto financeiro atual, com saldo calculado. */
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
+use Moves\Services\CardBrands;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $csrf = (string) ($csrf ?? '');
@@ -42,6 +43,13 @@ unset($_SESSION['finance_flash']);
     <li>
       <?= $appView->render('components::bank-badge', ['name' => $account['institution_name'] ?: ($account['institution'] ?: $account['name']), 'logo' => $account['institution_logo'], 'slug' => $account['institution_slug'], 'type' => $account['type']]) ?>
       <span><strong><?= $e($account['name']) ?></strong><small><?= $e($types[$account['type']] ?? '') ?><?= ($account['institution_name'] ?: $account['institution']) ? ' · ' . $e($account['institution_name'] ?: $account['institution']) : '' ?></small></span>
+      <?php if ($account['type'] === 'credit_card'): ?>
+        <?php $cardBrand = CardBrands::detect((string) $account['name']); $cardBrandLogo = $cardBrand !== null ? CardBrands::logoUrl($cardBrand) : null; ?>
+        <?php if ($cardBrand !== null): ?><span class="card-network" title="Bandeira <?= $e(CardBrands::label($cardBrand)) ?>" aria-label="Bandeira <?= $e(CardBrands::label($cardBrand)) ?>">
+          <?php if ($cardBrandLogo !== null): ?><img src="<?= $e($cardBrandLogo) ?>" alt="" width="42" height="24" loading="lazy">
+          <?php else: ?><?= $e(CardBrands::label($cardBrand)) ?><?php endif; ?>
+        </span><?php endif; ?>
+      <?php endif; ?>
       <strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong>
     </li>
     <?php endforeach; ?>

@@ -74,9 +74,27 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 <?php endforeach; ?>
   <div class="forecast"><span class="green">Fechamento previsto</span><p class="muted">Saldo atual + a receber − a pagar no período.</p><strong class="<?= $data['forecast'] < 0 ? 'red' : 'green' ?>"><?= $money($data['forecast']) ?></strong></div>
 </div></section>
-<section class="card" aria-labelledby="overview-chart-title">
+<section class="card overview-chart-card" aria-labelledby="overview-chart-title">
   <div class="section-head"><h2 id="overview-chart-title"><?= $period['view'] === 'anual' ? 'Receitas e despesas de ' . $e($period['label']) : 'Receitas e despesas, últimos 6 meses' ?></h2><a href="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>">Ver relatórios</a></div>
-  <?= $appView->render('components::overview-chart', ['chartSeries' => $series]) ?>
+  <div class="overview-chart-layout">
+    <div class="overview-chart-plot">
+      <?= $appView->render('components::overview-chart', ['chartSeries' => $series]) ?>
+    </div>
+    <aside class="overview-chart-alerts" aria-label="Resumo de vencimentos">
+      <h3>Vencimentos e alertas</h3>
+      <?php foreach ([
+        ['Hoje e atrasados', 'today', 'pagar'],
+        ['Amanhã', 'tomorrow', 'pagar'],
+        ['Próximos 7 dias', 'week', 'pagar'],
+      ] as [$label, $key, $target]): $count = (int) ($data['due'][$key . '_count'] ?? 0); ?>
+      <a class="overview-chart-alert" href="<?= $e(\Moves\Services\AppUrl::section($target, null, ['situacao' => 'open'])) ?>">
+        <span><strong><?= $e($label) ?></strong><small><?= $count ?> título<?= $count === 1 ? '' : 's' ?></small></span>
+        <b class="<?= $key === 'today' && $count > 0 ? 'red' : '' ?>"><?= $money((int) ($data['due'][$key . '_total'] ?? 0)) ?></b>
+      </a>
+      <?php endforeach; ?>
+      <a class="overview-chart-alert-link" href="<?= $e(\Moves\Services\AppUrl::section('notificacoes')) ?>">Ver notificações</a>
+    </aside>
+  </div>
 </section>
 <section class="content-grid" aria-label="Painéis financeiros">
   <article class="card"><div class="section-head"><h2>Últimas movimentações</h2><a href="<?= $e(\Moves\Services\AppUrl::section('movimentacoes')) ?>">Ver todas</a></div>

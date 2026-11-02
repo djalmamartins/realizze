@@ -255,11 +255,32 @@
   const main = () => document.querySelector('#overview');
   const brl = (cents) => (cents < 0 ? '- ' : '') + 'R$ ' + (Math.abs(cents) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const loader = document.createElement('div');
+  const personalFavicon = '/assets/realizze/v1/images/favicon.svg';
+const faviconFor = (context, doc = document) => {
+  const linked = doc.querySelector('link[rel="icon"]');
+  const enterprise = '/assets/realizze/v1/images/favicon-realizze-empresa.svg';
+  if (context === 'pj' && linked && linked.getAttribute('href') === enterprise) return enterprise;
+  return personalFavicon;
+};
+const loaderLogo = document.createElement('img');
+loaderLogo.alt = '';
+loaderLogo.width = 44;
+loaderLogo.height = 44;
+const syncAppFavicon = (nextDocument = document) => {
+  const nextContext = nextDocument.body?.dataset.context || document.body.dataset.context || 'pf';
+  const nextIcon = nextDocument.querySelector('link[rel="icon"]');
+  const desired = nextIcon?.getAttribute('href') || faviconFor(nextContext, nextDocument);
+  const favicon = document.querySelector('link[rel="icon"]');
+  if (favicon && favicon.getAttribute('href') !== desired) favicon.setAttribute('href', desired);
+  loaderLogo.src = desired;
+};
+const loader = document.createElement('div');
   loader.className = 'app-loader';
   loader.setAttribute('aria-hidden', 'true');
-  loader.innerHTML = '<span class="app-loader-bar"></span><span class="app-loader-mark"><img src="/assets/realizze/v1/images/favicon.svg" alt="" width="44" height="44"></span>';
+  loader.innerHTML = '<span class="app-loader-bar"></span><span class="app-loader-mark"></span>';
+loader.querySelector('.app-loader-mark').append(loaderLogo);
   document.body.append(loader);
+syncAppFavicon();
   let loaderTimer;
   const showLoader = () => {
     loader.classList.add('is-active');
@@ -347,6 +368,7 @@
     if (profile && incomingProfile) profile.setAttribute('href', incomingProfile.getAttribute('href') || '/p/perfil');
     document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
     document.body.dataset.context = next.body.dataset.context || 'pf';
+    syncAppFavicon(next);
     document.body.dataset.organizationId = next.body.dataset.organizationId || '0';
     const errorStatus = next.body.dataset.appErrorStatus;
     if (errorStatus) document.body.dataset.appErrorStatus = errorStatus;
