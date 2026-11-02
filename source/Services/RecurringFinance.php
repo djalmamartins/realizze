@@ -117,6 +117,21 @@ final class RecurringFinance
         $update->execute([$next->format('Y-m-d'), $id, $this->contextId]);
     }
 
+    public function generateDue(?DateTimeImmutable $through = null, int $limit = 30): int
+    {
+        if (!$this->occurrencesReady()) return 0;
+        $through ??= new DateTimeImmutable('today');
+        $limit = max(1, min(100, $limit));
+        $query = $this->pdo->prepare("SELECT id FROM finance_recurring_items WHERE financial_context_id=? AND status='active' AND auto_create=1 AND next_due_date<=? ORDER BY next_due_date,id LIMIT {$limit}");
+        $query->execute([$this->contextId, $through->format('Y-m-d')]);
+        $count = 0;
+        foreach ($query->fetchAll(PDO::FETCH_COLUMN) as $id) {
+            $this->generateFirstOccurrence((int) $id);
+            $count++;
+        }
+        return $count;
+    }
+
     public function changeStatus(int $id, string $status): bool
     {
         if (!in_array($status, ['active', 'paused', 'canceled'], true)) throw new InvalidArgumentException('Situação inválida.');
