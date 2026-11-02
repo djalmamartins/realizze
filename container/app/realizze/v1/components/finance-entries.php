@@ -36,8 +36,8 @@ $extras = false;
 $summary = ['expected' => 0, 'paid' => 0, 'overdue' => 0, 'count' => 0];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
-    // Garante vencimentos do dia mesmo quando o cron local ainda não foi configurado.
-    (new RecurringFinance((int) FinanceContext::currentId()))->generateDue(new DateTimeImmutable('today'), 100);
+    // Assinaturas automáticas do mês já entram como contas a pagar ou receber; a ocorrência única evita duplicar.
+    (new RecurringFinance((int) FinanceContext::currentId()))->generateDue(new DateTimeImmutable('last day of this month'), 100);
     $accounts = $finance->accounts();
     $categories = $finance->categories($kind);
     $entries = $finance->entries($kind, $rangeStart, $rangeEnd, $status, ['search' => $search, 'category_id' => $categoryFilter, 'account_id' => $accountFilter, 'tag' => $tagFilter]);

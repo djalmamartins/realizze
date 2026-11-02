@@ -38,8 +38,8 @@ try {
         throw new RuntimeException('Contexto financeiro indisponível.');
     }
     $finance = new Finance($contextId);
-    // Gera de forma idempotente as receitas recorrentes vencidas até hoje.
-    (new RecurringFinance($contextId))->generateDue(new DateTimeImmutable('today'), 100);
+    // Gera de forma idempotente as receitas recorrentes automáticas do mês.
+    (new RecurringFinance($contextId))->generateDue(new DateTimeImmutable('last day of this month'), 100);
     $receivables = new Receivables($contextId);
     $customers = (new Contacts($contextId))->selectableCustomers();
     $accounts = $finance->accounts();
