@@ -5,6 +5,8 @@ namespace Moves\Support;
 
 use InvalidArgumentException;
 use Moves\Services\Mail;
+use Moves\Services\MailQueue;
+use PDO;
 use RuntimeException;
 
 /**
@@ -58,6 +60,27 @@ final class Email
             'name' => $fileName !== '' ? basename($fileName) : basename($filePath),
         ];
         return $this;
+    }
+
+    /**
+     * Enfileira a mensagem para processamento posterior.
+     * Anexos exigem armazenamento privado persistente (CORE-003).
+     */
+    public function queue(PDO $db): int
+    {
+        if ($this->recipient === '') {
+            throw new RuntimeException('Prepare a mensagem antes de enfileirar.');
+        }
+        if ($this->attachments !== []) {
+            throw new RuntimeException('Fila com anexos ainda não suportada. Use envio imediato.');
+        }
+        return (new MailQueue($db))->enqueue(
+            $this->recipient,
+            $this->subject,
+            $this->html,
+            $this->text,
+            $this->recipientName
+        );
     }
 
     public function send(): void
