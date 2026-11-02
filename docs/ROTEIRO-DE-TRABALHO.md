@@ -29,7 +29,7 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 
 ### P0
 
-- [ ] **PF-01. Baixa parcial não entra no saldo.** `Receivables::settle` só preenche `paid_at` na quitação, e `Finance::accountsWithBalance` só olha `paid_at`. Quem recebe R$ 400 de R$ 1.000 não vê o dinheiro na conta, e se a baixa foi em outra conta, o valor cai na conta errada ao quitar. Contrato C26.
+- [x] **PF-01. Baixa parcial não entra no saldo.** `Receivables::settle` só preenche `paid_at` na quitação, e `Finance::accountsWithBalance` só olha `paid_at`. Quem recebe R$ 400 de R$ 1.000 não vê o dinheiro na conta, e se a baixa foi em outra conta, o valor cai na conta errada ao quitar. Contrato C26.
 - [ ] **PF-02. Baixa parcial some de Movimentações e do realizado.** Mesma causa em `Finance::movements`, `summary` e `monthlySeries`. "A receber" soma o valor inteiro, mesmo com parte recebida.
 - [ ] **PF-03. Conta não pode ser editada nem arquivada.** Só existe `createAccount`. Um nome ou saldo inicial digitado errado não tem conserto, e `archived_at` existe sem uso. Contrato C6.
 - [ ] **PF-04. Baixa não pode ser estornada.** A mensagem de `Receivables::cancel` manda estornar antes de cancelar, mas não existe estorno em `Receivables` nem em `ReceivableActions`. Um recebimento com baixa lançada errada fica sem saída.
@@ -57,7 +57,7 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 
 ### P0
 
-- [ ] **PJ-01. Convite de equipe nunca é enviado.** `TeamActions` coloca o e-mail na fila, mas nada chama `MailQueue::work`: não há script nem cron. Quem é convidado nunca recebe. Vale para tudo que usa `Email::queue`.
+- [x] **PJ-01. Convite de equipe nunca é enviado.** `TeamActions` coloca o e-mail na fila, mas nada chama `MailQueue::work`: não há script nem cron. Quem é convidado nunca recebe. Vale para tudo que usa `Email::queue`.
 - [ ] **PJ-02. Dados da empresa só leitura.** `/e/{empresa}/empresa` não edita nada, e "Alterar logo" está desativado. Contrato C14.
 - [ ] **PJ-03. Validar equipe e permissões no MySQL e no navegador.** O teste `enterprise-002-team` roda em SQLite. Testar membro sem permissão em cada tela e ação.
 
@@ -98,7 +98,7 @@ O rastreador abriu todas as telas sem erro. Faltam verificações mais do que fu
 
 ### P0
 
-- [ ] **WEB-01. `/contato` diz que o formulário é falso.** A página afirma "Nenhuma informação é enviada", enquanto `/suporte/mensagem` já grava em `contact_messages` e o CMS lê. Ligar o formulário a essa rota e tirar o aviso.
+- [x] **WEB-01. `/contato` diz que o formulário é falso.** A página afirma "Nenhuma informação é enviada", enquanto `/suporte/mensagem` já grava em `contact_messages` e o CMS lê. Ligar o formulário a essa rota e tirar o aviso.
 
 ### P1
 
@@ -114,7 +114,7 @@ O rastreador abriu todas as telas sem erro. Faltam verificações mais do que fu
 
 ### P0
 
-- [ ] **INF-01. Script do worker da fila de e-mail.** Parte de PJ-01.
+- [x] **INF-01. Script do worker da fila de e-mail.** Parte de PJ-01.
 - [ ] **INF-02. Agendar os crons em produção:** fila de e-mail, `process-notifications.php`, `finance-recurring-due.php`, `process-goal-schedules.php`. Hoje nenhum está agendado. Djalma.
 
 ### P1
