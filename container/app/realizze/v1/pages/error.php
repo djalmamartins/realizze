@@ -10,7 +10,7 @@ $messages = [
 $publishedCss = BASE_PATH . '/public/assets/realizze-app/v1/css/dashboard.min.css';
 ?>
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#16A34A"><link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon.svg"><link rel="stylesheet" href="/assets/realizze-app/v1/css/dashboard.min.css?v=<?= (int) @filemtime($publishedCss) ?>"><title><?= $status ?> · <?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> | Realizze</title></head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#16A34A"><link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/favicon-realizze.svg"><link rel="stylesheet" href="/assets/realizze-app/v1/css/dashboard.min.css?v=<?= (int) @filemtime($publishedCss) ?>"><title><?= $status ?> · <?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> | Realizze</title></head>
 <body class="app-error-body" data-app-error-status="<?= $status ?>">
 <main class="app-error-page" id="overview" tabindex="-1" aria-labelledby="app-error-title">
   <section class="app-error-card">

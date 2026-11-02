@@ -1390,3 +1390,40 @@ body[data-context="pj"]{--app-header-bg:#eef8f2}
 /* UI-INTEGRACAO-004: identidade visual de assinaturas com fallback local. */
 .recurring-brand{background:var(--recurring-bg,#e7f5ed);color:var(--recurring-fg,#06703d);overflow:hidden}
 .recurring-brand img{display:block;width:28px;height:28px;object-fit:contain}
+
+/* Cabeçalho único: mesmo título, subtítulo e área de ações em todas as páginas. */
+html{scrollbar-gutter:stable}
+.main>.top h1,.main>.page-heading h1{font-size:26px;letter-spacing:-.7px}
+.main>.top .eyebrow{margin:0 0 6px;color:#069451}
+.main>.top>div:first-child>p:not(.eyebrow){font-size:12px}
+.main>.top>.page-heading-meta{display:flex;flex:0 1 auto;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px;min-width:0}
+.main>.top .page-heading-meta .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;width:auto}
+@media(max-width:1100px){
+  .main>.top,.main>.page-heading{flex-direction:row}
+  .main>.top>div:first-child,.main>.page-heading>div:first-child{flex:1 1 100%}
+  .main>.top>.page-heading-meta{flex:1 1 100%;justify-content:flex-start}
+}
+@media(max-width:560px){.main>.top h1,.main>.page-heading h1{font-size:22px}}
+@media(max-width:650px){.main>.top .page-heading-meta .toolbar{width:100%}.main>.top .page-heading-meta .months-live{flex:1 1 100%;justify-content:space-between}.main>.top .page-heading-meta .bell{margin-left:auto}}
+@media(max-width:850px){.shell.menu-open .main>.top,.shell.menu-open .main>.page-heading{z-index:auto}}
+
+/* Loading: identidade PF/PJ e barra visível mesmo sem animação. */
+body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#7fe8b6)}
+@media(prefers-reduced-motion:reduce){.app-loader.is-active .app-loader-bar{transform:scaleX(.9)}}
+
+/* Nome centralizado no selo quando a assinatura não tem fornecedor. */
+.recurring-table td:first-child:not(:has(small)) strong{align-self:center}
+
+/* Recorrências previstas em Pagar e Receber. */
+.finance-planned{margin:0 28px 24px;padding:16px 18px;border:1px solid #e5eee9;border-radius:12px;background:#f7fbf9}
+.finance-planned-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:6px}
+.finance-planned-head h3{margin:0 0 3px;font-size:14px}
+.finance-planned-head p{margin:0}
+.finance-planned-head a{flex:none;color:#078b4c;font-size:12px;font-weight:700}
+.finance-planned-item{display:flex;align-items:center;gap:10px;min-width:0}
+.finance-planned-item .recurring-brand{flex:none}
+@media(max-width:650px){.finance-planned{margin:0 16px 18px;padding:14px}}
+
+/* Cabeçalho em duas linhas ocuparia muito da tela se continuasse fixo. */
+@media(max-width:1100px){.main>.top,.main>.page-heading{position:relative;top:auto}}
+.main .toolbar .bell{margin-right:4px}

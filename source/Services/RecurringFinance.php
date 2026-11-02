@@ -32,6 +32,29 @@ final class RecurringFinance
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Cobranças previstas no período que ainda não viraram lançamento. Só leitura:
+     * next_due_date já avança quando a ocorrência é gerada, então nada aparece em dobro.
+     */
+    public function planned(string $kind, string $from, string $to): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT r.id, r.item_type, r.name, r.provider, r.amount_cents, r.frequency, r.next_due_date, a.name account_name
+             FROM finance_recurring_items r
+             JOIN finance_accounts a ON a.id=r.account_id AND a.financial_context_id=r.financial_context_id
+             WHERE r.financial_context_id=? AND r.status='active' AND r.kind=? AND r.next_due_date<=?"
+        );
+        $statement->execute([$this->contextId, $kind, $to]);
+        $planned = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $item) {
+            for ($due = $item['next_due_date']; $due <= $to; $due = $this->nextDue($due, $item['frequency'])) {
+                if ($due >= $from) $planned[] = ['due_date' => $due] + $item;
+            }
+        }
+        usort($planned, static fn (array $a, array $b): int => [$a['due_date'], $a['name']] <=> [$b['due_date'], $b['name']]);
+        return $planned;
+    }
+
     public function counts(): array
     {
         $result = ['active' => 0, 'paused' => 0, 'canceled' => 0];
@@ -100,6 +123,12 @@ final class RecurringFinance
 
     private function advanceNextDue(int $id, string $due, string $frequency): void
     {
+        $update = $this->pdo->prepare('UPDATE finance_recurring_items SET next_due_date=? WHERE id=? AND financial_context_id=?');
+        $update->execute([$this->nextDue($due, $frequency), $id, $this->contextId]);
+    }
+
+    private function nextDue(string $due, string $frequency): string
+    {
         $date = new DateTimeImmutable($due);
         if ($frequency === 'weekly') {
             $next = $date->modify('+7 days');
@@ -113,8 +142,7 @@ final class RecurringFinance
             $day = min((int) $date->format('j'), (int) $first->format('t'));
             $next = $first->setDate((int) $first->format('Y'), (int) $first->format('n'), $day);
         }
-        $update = $this->pdo->prepare('UPDATE finance_recurring_items SET next_due_date=? WHERE id=? AND financial_context_id=?');
-        $update->execute([$next->format('Y-m-d'), $id, $this->contextId]);
+        return $next->format('Y-m-d');
     }
 
     public function generateDue(?DateTimeImmutable $through = null, int $limit = 30): int

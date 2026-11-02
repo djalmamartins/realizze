@@ -255,7 +255,7 @@
   const main = () => document.querySelector('#overview');
   const brl = (cents) => (cents < 0 ? '- ' : '') + 'R$ ' + (Math.abs(cents) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  const personalFavicon = '/assets/realizze/v1/images/favicon.svg';
+  const personalFavicon = '/assets/realizze/v1/images/favicon-realizze.svg';
 const faviconFor = (context, doc = document) => {
   const linked = doc.querySelector('link[rel="icon"]');
   const enterprise = '/assets/realizze/v1/images/favicon-realizze-empresa.svg';
@@ -281,15 +281,21 @@ const loader = document.createElement('div');
 loader.querySelector('.app-loader-mark').append(loaderLogo);
   document.body.append(loader);
 syncAppFavicon();
-  let loaderTimer;
-  const showLoader = () => {
-    loader.classList.add('is-active');
-    window.clearTimeout(loaderTimer);
-    loaderTimer = window.setTimeout(() => loader.classList.add('is-slow'), 220);
-  };
+  // Navegação rápida não mostra nada; a marca só aparece se demorar; o limite cobre
+  // links que baixam arquivo ou respostas que nunca chegam.
+  const loaderTimers = [];
+  const clearLoaderTimers = () => loaderTimers.splice(0).forEach((timer) => window.clearTimeout(timer));
   const hideLoader = () => {
-    window.clearTimeout(loaderTimer);
+    clearLoaderTimers();
     loader.classList.remove('is-active', 'is-slow');
+  };
+  const showLoader = () => {
+    clearLoaderTimers();
+    loaderTimers.push(
+      window.setTimeout(() => loader.classList.add('is-active'), 120),
+      window.setTimeout(() => loader.classList.add('is-slow'), 420),
+      window.setTimeout(hideLoader, 12000),
+    );
   };
 
   // Seções entram em sequência; números contam e gráficos crescem a partir de zero.
@@ -388,12 +394,16 @@ syncAppFavicon();
     window.setTimeout(() => toast.classList.remove('visible'), 3600);
   };
 
+  let lastNavigation = 0;
   const go = async (url, options = {}, push = true) => {
+    const navigation = ++lastNavigation;
     showLoader();
     try {
       const response = await fetch(url, { credentials: 'same-origin', ...options });
       const finalUrl = new URL(response.url);
       const html = await response.text();
+      // Outro clique veio depois deste: a resposta antiga não pode trocar a tela.
+      if (navigation !== lastNavigation) return false;
       if (!response.ok) {
         const isAppError = [403, 404, 500].includes(response.status)
           && new DOMParser().parseFromString(html, 'text/html').body.dataset.appErrorStatus === String(response.status);
@@ -420,7 +430,7 @@ syncAppFavicon();
       location.href = url;
       return false;
     } finally {
-      hideLoader();
+      if (navigation === lastNavigation) hideLoader();
     }
   };
 

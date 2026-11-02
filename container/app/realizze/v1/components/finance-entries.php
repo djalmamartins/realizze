@@ -2,6 +2,8 @@
 /** Lista, resumo e modal de lançamentos a receber ou a pagar do contexto atual. */
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
+use Moves\Services\RecurringFinance;
+use Moves\Services\SubscriptionBrands;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $isIncome = $kind === 'income';
@@ -44,6 +46,15 @@ try {
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
+}
+// Previstas somem da tela quando o usuário filtra por situação ou busca: não são lançamentos.
+$planned = [];
+if (!$loadFailed && in_array($status, ['all', 'open'], true) && $search === '' && $categoryFilter === 0 && $accountFilter === 0 && $tagFilter === '') {
+    try {
+        $planned = (new RecurringFinance((int) FinanceContext::currentId()))->planned($kind, $rangeStart, $rangeEnd);
+    } catch (Throwable $exception) {
+        error_log('Realizze finance: ' . $exception->getMessage());
+    }
 }
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
@@ -131,6 +142,25 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
       <?php endforeach; ?>
       </tbody>
     </table>
+  </div>
+  <?php endif; ?>
+  <?php if ($planned !== []): ?>
+  <div class="finance-planned" aria-labelledby="planned-title">
+    <div class="finance-planned-head">
+      <div><h3 id="planned-title">Recorrências previstas</h3><p class="muted">Ainda não viraram lançamento e não entram nos totais acima.</p></div>
+      <a href="<?= $e(\Moves\Services\AppUrl::section('recorrencias')) ?>">Ver recorrências</a>
+    </div>
+    <ul class="overview-list">
+      <?php foreach ($planned as $item): $brandLogo = SubscriptionBrands::logoUrl((string) $item['name'], (string) ($item['provider'] ?? '')); $brandVisual = SubscriptionBrands::visual((string) $item['name'], (string) ($item['provider'] ?? '')); ?>
+      <li>
+        <span class="finance-planned-item">
+          <span class="recurring-brand" style="--recurring-bg:<?= $e($brandVisual[0]) ?>;--recurring-fg:<?= $e($brandVisual[1]) ?>" aria-hidden="true"><?php if ($brandLogo !== null): ?><img src="<?= $e($brandLogo) ?>" width="28" height="28" loading="lazy" decoding="async" alt=""><?php else: ?><?= $e($brandVisual[2]) ?><?php endif; ?></span>
+          <span><strong><?= $e($item['name']) ?></strong><small><?= $e((new DateTimeImmutable($item['due_date']))->format('d/m/Y')) ?> · <?= $e($item['account_name']) ?></small></span>
+        </span>
+        <strong><?= $e(Finance::money((int) $item['amount_cents'])) ?></strong>
+      </li>
+      <?php endforeach; ?>
+    </ul>
   </div>
   <?php endif; ?>
 </section>

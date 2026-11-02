@@ -115,9 +115,9 @@ if ($activeOrganization !== null) {
     $items['notificacoes'] = ['list-filter', 'Notificações', $baseUrl . '/notificacoes'];
     $items['suporte'] = ['message-circle', 'Ajuda e chamados', '/suporte'];
     $navGroups = [
-        ['Financeiro', 'arrows-left-right', ['receber', 'pagar', 'movimentacoes', 'fluxo-de-caixa', 'contas', 'faturas', 'conciliacao']],
+        ['Financeiro', 'arrows-left-right', ['receber', 'pagar', 'movimentacoes', 'recorrencias', 'fluxo-de-caixa', 'contas', 'faturas', 'conciliacao']],
         ['Cadastros', 'building', ['clientes', 'fornecedores', 'categorias', 'centros-de-custo']],
-        ['Gestão', 'chart-no-axes-column', ['relatorios', 'dre', 'planejamento', 'metas', 'recorrencias', 'obrigacoes', 'ordens-de-servico']],
+        ['Gestão', 'chart-no-axes-column', ['relatorios', 'dre', 'planejamento', 'metas', 'obrigacoes', 'ordens-de-servico']],
         ['Administração', 'settings', ['equipe', 'permissoes', 'empresa', 'seguranca', 'auditoria']],
         ['Plataforma', 'message-circle', ['integracoes', 'notificacoes', 'suporte']],
     ];
@@ -150,7 +150,7 @@ $icon = static function (string $name) use ($iconPaths): string {
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#079550">
 <?php
-$personalFavicon = '/assets/realizze/v1/images/favicon.svg';
+$personalFavicon = '/assets/realizze/v1/images/favicon-realizze.svg';
 $enterpriseFavicon = is_file(BASE_PATH . '/public/assets/realizze/v1/images/favicon-realizze-empresa.svg')
     ? '/assets/realizze/v1/images/favicon-realizze-empresa.svg'
     : $personalFavicon;

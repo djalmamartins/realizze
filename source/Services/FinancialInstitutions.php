@@ -112,6 +112,26 @@ final class FinancialInstitutions
         return '/minha-conta/bancos/logo/' . $logo;
     }
 
+    /** Logo pelo nome digitado, para contas antigas sem instituição do catálogo. */
+    public static function logoFileForName(string $name): ?string
+    {
+        static $logos = null;
+        if ($logos === null) {
+            $logos = [];
+            foreach (self::active() as $institution) {
+                if (!empty($institution['logo_file'])) {
+                    $logos[self::comparableName((string) $institution['trade_name'])] = (string) $institution['logo_file'];
+                }
+            }
+        }
+        return $logos[self::comparableName($name)] ?? null;
+    }
+
+    private static function comparableName(string $name): string
+    {
+        return (string) preg_replace('/^banco\s+/u', '', mb_strtolower(trim($name), 'UTF-8'));
+    }
+
     /** Iniciais para o fallback visual (ex.: "Banco do Brasil" -> "BB"). */
     public static function initials(string $name): string
     {

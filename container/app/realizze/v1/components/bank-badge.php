@@ -7,7 +7,7 @@
 use Moves\Services\FinancialInstitutions;
 
 $badgeName = trim((string) ($name ?? ''));
-$badgeUrl = FinancialInstitutions::logoUrl(isset($logo) ? (string) $logo : null);
+$badgeUrl = FinancialInstitutions::logoUrl(!empty($logo) ? (string) $logo : FinancialInstitutions::logoFileForName($badgeName));
 $badgeHue = FinancialInstitutions::hue((string) (($slug ?? '') ?: $badgeName));
 $badgeEscape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
