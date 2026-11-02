@@ -31,7 +31,7 @@ if ($customPeriod) {
     $monthLabel = (new DateTimeImmutable($rangeStart))->format('d/m/Y') . ' a ' . (new DateTimeImmutable($rangeEnd))->format('d/m/Y');
 }
 $loadFailed = false;
-$accounts = $categories = $entries = $tags = $details = [];
+$accounts = $categories = $entries = $tags = $details = $editData = [];
 $extras = false;
 $summary = ['expected' => 0, 'paid' => 0, 'overdue' => 0, 'count' => 0];
 try {
@@ -45,6 +45,7 @@ try {
     $extras = $finance->supportsEntryExtras();
     $tags = $finance->tags();
     $details = $finance->entryDetails(array_map(static fn (array $entry): int => (int) $entry['id'], $entries));
+    $editData = $finance->entryEditData(array_map(static fn (array $entry): int => (int) $entry['id'], $entries));
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -82,7 +83,7 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
 <section class="card finance-workspace" aria-labelledby="entries-title">
   <div class="finance-toolbar">
     <div><h2 id="entries-title"><?= $e($labels['title']) ?></h2><p class="muted"><?= $e($labels['lead']) ?></p></div>
-    <button type="button" class="primary" data-finance-open="entry-dialog"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ <?= $e($labels['new']) ?></button>
+    <button type="button" class="primary" data-entry-open="<?= $e($kind) ?>"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ <?= $e($labels['new']) ?></button>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo do mês">
     <div class="finance-goal-stat"><span><?= $e($labels['expected']) ?></span><strong class="<?= $isIncome ? 'green' : 'red' ?>"><?= $e(Finance::money($summary['expected'])) ?></strong><small><?= $e($monthLabel) ?></small></div>
@@ -135,6 +136,7 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
         <td><span class="finance-badge <?= $entry['paid_at'] ? 'is-paid' : ($overdue ? 'is-overdue' : 'is-open') ?>"><?= $entry['paid_at'] ? $e($labels['status']) : ($overdue ? 'Em atraso' : 'Em aberto') ?></span></td>
         <td class="num <?= $isIncome ? 'green' : 'red' ?>"><strong><?= $isIncome ? '+ ' : '− ' ?><?= $e(Finance::money((int) $entry['amount_cents'])) ?></strong></td>
         <td class="finance-actions">
+          <?php if (isset($editData[(int) $entry['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <?php if (!$entry['paid_at']): ?>
           <form method="post" action="/minha-conta/financeiro/baixa"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="kind" value="<?= $e($kind) ?>"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $entry['id'] ?>"><button type="submit"><?= $e($labels['settle']) ?></button></form>
           <?php endif; ?>
@@ -166,4 +168,4 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
   </div>
   <?php endif; ?>
 </section>
-<?php $form = ['id' => 'entry-dialog', 'kind' => $kind, 'title' => $labels['new'], 'accounts' => $accounts, 'categories' => $categories, 'csrf' => $csrf, 'month' => $month, 'date' => substr($today, 0, 7) === $month ? $today : $month . '-01', 'back' => '', 'extras' => $extras, 'tags' => $tags]; require __DIR__ . '/entry-form.php'; ?>
+<?php $form = ['csrf' => $csrf, 'month' => $month, 'date' => substr($today, 0, 7) === $month ? $today : $month . '-01', 'back' => $page]; require __DIR__ . '/entry-form.php'; ?>

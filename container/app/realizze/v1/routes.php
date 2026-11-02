@@ -265,7 +265,7 @@ return [
             (new \Moves\App\FinanceActions())->goalPhoto();
         }, 'app.finance.goal_photo');
 
-        foreach (['create' => 'lancamento', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'budget' => 'orcamento', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir'] as $action => $slug) {
+        foreach (['create' => 'lancamento', 'update' => 'lancamento-editar', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'budget' => 'orcamento', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
@@ -273,7 +273,7 @@ return [
                 if (\Moves\Services\PersonalAccessContext::ownerId() !== null) {
                     $permission = match ($action) {
                         'create' => ($_POST['kind'] ?? '') === 'income' ? 'income.create' : 'expenses.create',
-                        'settle' => 'payments.register', 'delete' => 'entries.edit',
+                        'settle' => 'payments.register', 'update', 'delete' => 'entries.edit',
                         'category','category_delete' => 'categories.manage',
                         'goal','goal_update','goal_add','goal_contribution_delete','goal_delete' => 'goals.manage',
                         default => '',
@@ -284,7 +284,7 @@ return [
             }, 'app.finance.' . $action);
         }
 
-        foreach (['create'=>'criar','pause'=>'pausar','activate'=>'reativar','cancel'=>'cancelar'] as $action=>$slug) {
+        foreach (['pause'=>'pausar','activate'=>'reativar','cancel'=>'cancelar'] as $action=>$slug) {
             $router->post('/minha-conta/financeiro/recorrencia/'.$slug, static function () use ($requirePreview,$action): void {
                 if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;
                 if(\Moves\Services\PersonalAccessContext::ownerId()!==null){\Moves\Services\AppError::render(403);return;}
@@ -292,13 +292,13 @@ return [
             },'app.recurring.'.$action);
         }
 
-        foreach (['create' => 'recebimento', 'update' => 'recebimento-editar', 'settle' => 'recebimento-baixa', 'cancel' => 'recebimento-cancelar'] as $action => $slug) {
+        foreach (['settle' => 'recebimento-baixa', 'cancel' => 'recebimento-cancelar'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
                 }
                 if (\Moves\Services\PersonalAccessContext::ownerId() !== null) {
-                    $permission = match($action) {'create'=>'income.create','settle'=>'payments.register',default=>'entries.edit'};
+                    $permission = $action === 'settle' ? 'payments.register' : 'entries.edit';
                     if (!\Moves\Services\PersonalAccessContext::can($permission)) { \Moves\Services\AppError::render(403); return; }
                 }
                 (new \Moves\App\ReceivableActions())->handle($action);

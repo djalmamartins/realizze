@@ -19,7 +19,7 @@ $rangeEnd = $customPeriod ? $_GET['fim'] : $end->format('Y-m-d');
 if ($customPeriod) {
     $monthLabel = (new DateTimeImmutable($rangeStart))->format('d/m/Y') . ' a ' . (new DateTimeImmutable($rangeEnd))->format('d/m/Y');
 }
-$rows = $all = $accounts = [];
+$rows = $all = $accounts = $editData = $details = [];
 $search = $accountFilter = '';
 $loadFailed = false;
 try {
@@ -33,6 +33,9 @@ try {
             && ($accountFilter === '' || $r['account'] === $accountFilter || $r['target_account'] === $accountFilter)
             && ($search === '' || mb_stripos($r['description'], $search) !== false || mb_stripos((string) ($r['category'] ?? ''), $search) !== false);
     }));
+    $entryIds = array_map(static fn (array $r): int => (int) $r['id'], array_filter($rows, static fn (array $r): bool => $r['kind'] !== 'transfer'));
+    $editData = $finance->entryEditData($entryIds);
+    $details = $finance->entryDetails($entryIds);
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -51,7 +54,11 @@ unset($_SESSION['finance_flash']);
 <section class="card finance-workspace" aria-labelledby="movements-title">
   <div class="finance-toolbar">
     <div><h2 id="movements-title">Movimentações</h2><p class="muted">Tudo o que entrou, saiu ou foi transferido no mês.</p></div>
-    <button type="button" class="primary" data-finance-open="transfer-dialog"<?= count($accounts) < 2 ? ' disabled title="Cadastre ao menos duas contas"' : '' ?>>⇄ Transferir entre contas</button>
+    <div class="finance-toolbar-actions">
+    <button type="button" class="primary" data-entry-open="income"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ Nova receita</button>
+    <button type="button" class="primary" data-entry-open="expense"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ Nova despesa</button>
+    <button type="button" class="finance-button" data-finance-open="transfer-dialog"<?= count($accounts) < 2 ? ' disabled title="Cadastre ao menos duas contas"' : '' ?>>⇄ Transferir entre contas</button>
+    </div>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo do mês">
     <div class="finance-goal-stat"><span>Entradas</span><strong class="green"><?= $e(Finance::money($total('income'))) ?></strong><small><?= $e($monthLabel) ?></small></div>
@@ -94,11 +101,12 @@ unset($_SESSION['finance_flash']);
       <?php foreach ($rows as $row): $sign = ['income' => '+ ', 'expense' => '− ', 'transfer' => '']; $tone = ['income' => 'green', 'expense' => 'red', 'transfer' => ''][$row['kind']]; ?>
       <tr>
         <td><?= $e((new DateTimeImmutable($row['paid_at']))->format('d/m/Y')) ?></td>
-        <td><strong><?= $e($row['description']) ?></strong></td>
+        <td><strong><?= $e($row['description']) ?></strong><?php $detail = $details[(int) $row['id']] ?? null; $metaHideNotes = false; require dirname(__DIR__) . '/components/entry-meta.php'; ?></td>
         <td><?= $row['kind'] === 'transfer' ? 'Transferência' : $e($row['category'] ?? '—') ?></td>
         <td><?= $e($row['account']) ?><?= $row['target_account'] ? ' → ' . $e($row['target_account']) : '' ?></td>
         <td class="num <?= $tone ?>"><strong><?= $sign[$row['kind']] ?><?= $e(Finance::money((int) $row['amount_cents'])) ?></strong></td>
         <td class="finance-actions">
+          <?php if (isset($editData[(int) $row['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $row['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <?php if ($row['kind'] === 'transfer'): ?>
           <form method="post" action="/minha-conta/financeiro/excluir" data-finance-confirm="Excluir esta transferência?"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="movimentacoes"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $row['id'] ?>"><button type="submit" class="is-danger">Excluir</button></form>
           <?php endif; ?>
@@ -126,3 +134,4 @@ unset($_SESSION['finance_flash']);
     <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Transferir</button></footer>
   </form>
 </dialog>
+<?php $form = ['csrf' => $csrf, 'month' => $month, 'date' => date('Y-m') === $month ? date('Y-m-d') : $month . '-01', 'back' => 'movimentacoes']; require dirname(__DIR__) . '/components/entry-form.php'; ?>

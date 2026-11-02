@@ -30,7 +30,7 @@ $result = ['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 1, 'per_page' => 
 $summary = ['to_receive' => 0, 'received' => 0, 'overdue' => 0, 'forecast' => 0];
 $loadFailed = false;
 $receivables = null;
-$tabCounts = $entryTags = $entryDetails = [];
+$tabCounts = $entryTags = $entryDetails = $editData = [];
 $entryExtras = false;
 try {
     $contextId = FinanceContext::currentId();
@@ -52,6 +52,7 @@ try {
     $entryExtras = $finance->supportsEntryExtras();
     $entryTags = $finance->tags();
     $entryDetails = $finance->entryDetails(array_map(static fn (array $row): int => (int) $row['id'], $result['rows']));
+    $editData = $finance->entryEditData(array_map(static fn (array $row): int => (int) $row['id'], $result['rows']));
     $base =['start' => $start, 'end' => $end, 'search' => $search, 'counterparty' => $counterparty, 'contact_id' => $contactFilter, 'category_id' => $category, 'per_page' => 5];
     foreach (['pending', 'overdue', 'partially_received', 'received', 'cancelled'] as $tabStatus) {
         $tabCounts[$tabStatus] = $receivables->listing($base + ['status' => $tabStatus])['total'];
@@ -92,7 +93,7 @@ $renderState = static function () use ($state, $e): void {
 <section class="card finance-workspace receivables-workspace" aria-labelledby="receivables-title">
   <div class="finance-toolbar">
     <div><h2 id="receivables-title">Contas a receber</h2><p class="muted">Cadastre, acompanhe e baixe recebimentos do contexto financeiro atual.</p></div>
-    <button type="button" class="primary" data-finance-open="receivable-create"<?= $accounts === [] || $categories === [] ? ' disabled title="Cadastre uma conta e uma categoria de receita primeiro"' : '' ?>>+ Novo recebimento</button>
+    <button type="button" class="primary" data-entry-open="income"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ Nova receita</button>
   </div>
 
   <div class="finance-goal-summary is-four" aria-label="Indicadores de contas a receber">
@@ -170,19 +171,12 @@ $renderState = static function () use ($state, $e): void {
         <td><?= $e($methods[$entry['payment_method']] ?? '—') ?></td>
         <td><span class="finance-badge is-<?= $e($entry['display_status']) ?>"><?= $e($statuses[$entry['display_status']]) ?></span></td>
         <td class="finance-actions">
+          <?php if ($editable && isset($editData[(int) $entry['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <?php if ($canSettle): ?><button type="button" data-finance-open="receivable-settle-<?= (int) $entry['id'] ?>">Baixar</button><?php endif; ?>
           <button type="button" data-finance-open="receivable-history-<?= (int) $entry['id'] ?>">Detalhes</button>
         </td>
       </tr>
       <tr class="receivables-dialog-row"><td colspan="7">
-      <?php if ($editable): ?>
-      <dialog class="finance-dialog" id="receivable-edit-<?= (int) $entry['id'] ?>" aria-labelledby="receivable-edit-title-<?= (int) $entry['id'] ?>"><form method="post" action="/minha-conta/financeiro/recebimento-editar" data-finance-form>
-        <header><h2 id="receivable-edit-title-<?= (int) $entry['id'] ?>">Editar recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-        <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="id" value="<?= (int) $entry['id'] ?>"><?php $renderState(); ?>
-        <?php $formEntry = $entry; require __DIR__ . '/receivables-fields.php'; ?>
-        <footer><button type="button" data-finance-close>Voltar</button><button type="submit" class="primary">Salvar alterações</button></footer>
-      </form></dialog>
-      <?php endif; ?>
       <?php if ($canSettle): ?>
       <dialog class="finance-dialog" id="receivable-settle-<?= (int) $entry['id'] ?>" aria-labelledby="receivable-settle-title-<?= (int) $entry['id'] ?>"><form method="post" action="/minha-conta/financeiro/recebimento-baixa" data-finance-form>
         <header><h2 id="receivable-settle-title-<?= (int) $entry['id'] ?>">Registrar recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
@@ -221,7 +215,7 @@ $renderState = static function () use ($state, $e): void {
         <?php if ($history['settlements'] === []): ?><p class="muted">Nenhuma baixa registrada.</p><?php else: ?><ol><?php foreach ($history['settlements'] as $item): ?><li><strong><?= $e(Finance::money((int) $item['amount_cents'])) ?></strong> em <?= $e((new DateTimeImmutable($item['received_at']))->format('d/m/Y')) ?> · <?= $e($item['account']) ?> · <?= $e($methods[$item['payment_method']] ?? $item['payment_method']) ?></li><?php endforeach; ?></ol><?php endif; ?>
         <h3>Histórico</h3>
         <ol><?php foreach ($history['audit'] as $event): ?><li><?= $e(['created' => 'Criado', 'updated' => 'Editado', 'settled' => 'Baixa registrada', 'cancelled' => 'Cancelado'][$event['action']] ?? $event['action']) ?> em <?= $e((new DateTimeImmutable($event['created_at']))->format('d/m/Y H:i')) ?></li><?php endforeach; ?></ol>
-        <footer><button type="button" data-finance-close>Fechar</button><?php if ($editable && $entry['received_cents'] === 0): ?><button type="button" class="is-danger" data-finance-close data-finance-open-after="receivable-cancel-<?= (int) $entry['id'] ?>">Cancelar recebimento</button><?php endif; ?><?php if ($editable): ?><button type="button" class="primary" data-finance-close data-finance-open-after="receivable-edit-<?= (int) $entry['id'] ?>">Editar</button><?php endif; ?></footer>
+        <footer><button type="button" data-finance-close>Fechar</button><?php if ($editable && $entry['received_cents'] === 0): ?><button type="button" class="is-danger" data-finance-close data-finance-open-after="receivable-cancel-<?= (int) $entry['id'] ?>">Cancelar recebimento</button><?php endif; ?><?php if ($editable): ?><button type="button" class="primary" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']] ?? [], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?></footer>
       </div></dialog>
       </td></tr>
       <?php endforeach; ?>
@@ -233,12 +227,4 @@ $renderState = static function () use ($state, $e): void {
   <?php if ($result['pages'] > 1): ?><nav class="receivables-pagination" aria-label="Páginas de recebimentos"><?php for ($number = 1; $number <= $result['pages']; $number++): ?><a href="<?= $e($query(['page' => $number])) ?>"<?= $number === $result['page'] ? ' aria-current="page"' : '' ?>><?= $number ?></a><?php endfor; ?></nav><?php endif; ?>
 </section>
 
-<dialog class="finance-dialog entry-dialog" id="receivable-create" aria-labelledby="receivable-create-title"><form method="post" action="/minha-conta/financeiro/recebimento" enctype="multipart/form-data" data-finance-form data-entry-form>
-  <header><h2 id="receivable-create-title">Novo recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-  <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="idempotency_key" value="<?= $e(bin2hex(random_bytes(16))) ?>"><?php $renderState(); ?>
-  <?php $formEntry = ['description' => '', 'amount_cents' => 0, 'due_date' => $today, 'competency_date' => $competence . '-01', 'counterparty_name' => '', 'contact_id' => null, 'notes' => '', 'document_number' => '', 'payment_method' => 'pix', 'account_id' => $accounts[0]['id'] ?? 0, 'category_id' => $categories[0]['id'] ?? 0]; $entryCreateForm = $entryExtras; require __DIR__ . '/receivables-fields.php'; ?>
-  <label class="entry-switch"><input type="checkbox" name="paid" value="1"><span aria-hidden="true"></span>Já foi recebido</label>
-  <?php if ($entryExtras): $extrasId = 'receivable-create'; $extrasTags = $entryTags; require __DIR__ . '/entry-extras.php'; endif; ?>
-  <p class="entry-error" role="alert" data-entry-error hidden></p>
-  <footer><span class="entry-total" data-entry-total-box>Total <strong data-entry-total>R$ 0,00</strong></span><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar recebimento</button></footer>
-</form></dialog>
+<?php $form = ['csrf' => $csrf, 'month' => $competence, 'date' => $today, 'back' => 'receber', 'state' => $state]; require __DIR__ . '/entry-form.php'; ?>

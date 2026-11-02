@@ -40,7 +40,7 @@ $checks = [
     ],
     'receber' => [
         $view->render('pages/receber', ['icon' => $icon, 'appView' => $view]),
-        ['Contas a receber', 'Não foi possível carregar', 'Novo recebimento'],
+        ['Contas a receber', 'Não foi possível carregar', 'Nova receita'],
     ],
     'empresarial' => [
         $view->render('pages/empresarial', ['icon' => $icon, 'csrf' => 'token-de-teste', 'appView' => $view]),

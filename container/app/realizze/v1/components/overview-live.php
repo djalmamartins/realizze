@@ -50,8 +50,8 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
 <div class="overview-actions">
-  <button type="button" class="primary" data-finance-open="quick-income"<?= $manual === [] ? ' disabled' : '' ?>>+ Recebimento</button>
-  <button type="button" class="primary is-outline" data-finance-open="quick-expense"<?= $manual === [] ? ' disabled' : '' ?>>+ Despesa</button>
+  <button type="button" class="primary" data-entry-open="income"<?= $manual === [] ? ' disabled' : '' ?>>+ Nova receita</button>
+  <button type="button" class="primary is-outline" data-entry-open="expense"<?= $manual === [] ? ' disabled' : '' ?>>+ Nova despesa</button>
 </div>
 <section aria-label="Indicadores financeiros" class="cards">
   <article class="card balance"><span class="label">Saldo disponível</span><div class="value"><?= $money($data['balance']) ?></div><span class="muted">Em contas e carteiras</span></article>
@@ -133,4 +133,4 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
   </article>
 </section>
 <section class="card insights" aria-label="Insights"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3.500 10.900c.6.500 1 1.200 1 2.100h5c0-.9.4-1.600 1-2.100A6 6 0 0 0 12 3zM10 19.500h4"/></svg></span><div><strong>Insights do período</strong><p><?= $e($insight) ?></p></div></section>
-<?php foreach ([['income', 'quick-income', 'Novo recebimento', $categoriesIncome], ['expense', 'quick-expense', 'Nova despesa', $categoriesExpense]] as [$kind, $id, $title, $list]): $form = ['id' => $id, 'kind' => $kind, 'title' => $title, 'accounts' => $manual, 'categories' => $list, 'csrf' => $csrf, 'month' => $month, 'date' => $today->format('Y-m-d'), 'back' => 'overview', 'extras' => $finance->supportsEntryExtras(), 'tags' => $finance->tags()]; require __DIR__ . '/entry-form.php'; endforeach; ?>
+<?php $form = ['csrf' => $csrf, 'month' => $month, 'date' => $today->format('Y-m-d'), 'back' => 'overview']; require __DIR__ . '/entry-form.php'; ?>
