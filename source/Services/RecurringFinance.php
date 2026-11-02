@@ -55,6 +55,9 @@ final class RecurringFinance
         $statement = $this->pdo->prepare('INSERT INTO finance_recurring_items (financial_context_id,item_type,kind,name,provider,amount_cents,frequency,next_due_date,account_id,category_id,auto_create,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $statement->execute([$this->contextId,$type,$kind,$name,$this->optional($data['provider']??'',120),Finance::parseCents($data['amount']??''),$frequency,$date->format('Y-m-d'),$account,$category,isset($data['auto_create'])?1:0,$this->optional($data['notes']??'',500),$userId]);
         $recurringId = (int) $this->pdo->lastInsertId();
+        if (isset($data['auto_create']) && $this->occurrencesReady()) {
+            $this->generateFirstOccurrence($recurringId);
+        }
         return $recurringId;
     }
 
