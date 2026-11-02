@@ -149,7 +149,14 @@ $icon = static function (string $name) use ($iconPaths): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#079550">
-<link rel="icon" type="image/svg+xml" href="/assets/realizze/v1/images/<?= $activeOrganization !== null ? 'favicon-realizze-empresa.svg' : 'favicon-realizze.svg' ?>">
+<?php
+$personalFavicon = '/assets/realizze/v1/images/favicon.svg';
+$enterpriseFavicon = is_file(BASE_PATH . '/public/assets/realizze/v1/images/favicon-realizze-empresa.svg')
+    ? '/assets/realizze/v1/images/favicon-realizze-empresa.svg'
+    : $personalFavicon;
+$activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFavicon;
+?>
+<link rel="icon" type="image/svg+xml" href="<?= htmlspecialchars($activeFavicon, ENT_QUOTES, 'UTF-8') ?>" data-app-favicon>
 <title><?= htmlspecialchars($sections[$section][0], ENT_QUOTES, 'UTF-8') ?> | Realizze</title>
 <?php if (is_file($publishedCss)): ?>
 <link rel="stylesheet" href="/assets/realizze-app/v1/css/dashboard.min.css?v=<?= (int) filemtime($publishedCss) ?>">
