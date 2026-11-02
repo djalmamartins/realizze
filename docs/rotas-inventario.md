@@ -1,6 +1,8 @@
 # Inventário de rotas do Realizze 2.0
 
-Auditoria de 02/11/2026 no branch `feat/realizze-integracao-ui-20261101`. Nenhuma rota foi alterada. As tabelas saem das 276 rotas que o MovesCode Router registra de fato com `APP_ENV=local`, incluindo as alterações ainda não commitadas de Metas. A coluna "Rota proposta" é proposta, e o padrão de período depende do trecho do brief que ainda falta.
+Auditoria de 02/11/2026 no branch `feat/realizze-integracao-ui-20261101`. Nenhuma rota foi alterada. As tabelas saem das 276 rotas que o MovesCode Router registra de fato com `APP_ENV=local`, incluindo as alterações ainda não commitadas de Metas. A coluna "Rota proposta" registra a proposta da auditoria.
+
+**Situação em 02/11/2026:** o período na URL foi implementado em PF e PJ. `AppUrl` gera os links, as rotas ficam em `container/app/realizze/v1/routes.php`, e os endereços antigos com `?mes`, `?visao=anual&ano` e `?inicio&fim` respondem 302. Formatos aceitos: visão geral, Receber, Pagar e Movimentações com mês, ano e datas; Relatórios, Categorias e Planejamento com mês e ano; Fluxo de caixa, só na empresa, com mês. Metas ficou sem período, porque a tela não filtra por ele, ao contrário do que a tabela abaixo propõe. Os achados 1, 2, 3, 4, 5, 6, 8 e 14 foram resolvidos. Continuam abertos os achados 7, 9, 10, 15 e 16.
 
 ## Como o roteamento funciona
 
