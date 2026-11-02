@@ -122,10 +122,13 @@ final class RecurringFinance
         if (!$this->occurrencesReady()) return 0;
         $through ??= new DateTimeImmutable('today');
         $limit = max(1, min(100, $limit));
-        $query = $this->pdo->prepare("SELECT id FROM finance_recurring_items WHERE financial_context_id=? AND status='active' AND auto_create=1 AND next_due_date<=? ORDER BY next_due_date,id LIMIT {$limit}");
-        $query->execute([$this->contextId, $through->format('Y-m-d')]);
+        $query = $this->pdo->prepare("SELECT id FROM finance_recurring_items WHERE financial_context_id=? AND status='active' AND auto_create=1 AND next_due_date<=? ORDER BY next_due_date,id LIMIT 1");
         $count = 0;
-        foreach ($query->fetchAll(PDO::FETCH_COLUMN) as $id) {
+        while ($count < $limit) {
+            $query->execute([$this->contextId, $through->format('Y-m-d')]);
+            $id = $query->fetchColumn();
+            $query->closeCursor();
+            if ($id === false) break;
             $this->generateFirstOccurrence((int) $id);
             $count++;
         }
