@@ -1330,3 +1330,31 @@ a.avatar{text-decoration:none}
 /* Assinaturas e recorrências — usa o mesmo shell e controles do financeiro. */
 .recurring-card{padding:0;overflow:hidden}.recurring-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 26px 16px}.recurring-head h2{margin:0 0 4px;font-size:18px}.recurring-head p{margin:0}.recurring-tabs{display:flex;gap:28px;padding:0 26px;border-bottom:1px solid #e7eee9;overflow-x:auto}.recurring-tabs a{flex:none;padding:12px 0 11px;border-bottom:2px solid transparent;color:#253d31;font-size:13px;font-weight:600}.recurring-tabs a.is-active{border-color:#079550;color:#078b4c}.recurring-table-wrap{overflow-x:auto}.recurring-table{width:100%;min-width:850px;border-collapse:collapse;font-size:13px}.recurring-table th{padding:12px 24px;color:#5d6f66;font-size:11px;text-align:left;text-transform:uppercase;letter-spacing:.04em}.recurring-table td{padding:11px 24px;border-top:1px solid #edf2ef;vertical-align:middle}.recurring-table td:first-child{display:grid;grid-template-columns:34px minmax(0,1fr);gap:1px 10px}.recurring-table td:first-child strong{align-self:end}.recurring-table td:first-child small{grid-column:2;color:#6b7a73}.recurring-brand{grid-row:1/3;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#e7f5ed;color:#06703d;font-weight:800}.recurring-category{padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--category-color) 13%,white);color:color-mix(in srgb,var(--category-color) 80%,#17251e);font-size:12px;font-weight:600}.recurring-menu{position:relative}.recurring-menu summary{display:grid;place-items:center;width:34px;height:32px;border:1px solid #dce6e0;border-radius:8px;list-style:none;cursor:pointer}.recurring-menu summary::-webkit-details-marker{display:none}.recurring-menu div{position:absolute;z-index:4;right:0;display:grid;min-width:120px;padding:4px;border:1px solid #dce6e0;border-radius:9px;background:#fff;box-shadow:0 10px 24px #173d2924}.recurring-menu button{width:100%;padding:8px;border:0;border-radius:6px;background:transparent;font:inherit;text-align:left;cursor:pointer}.recurring-menu button:hover{background:#eef7f2}.recurring-empty{padding:54px 26px;text-align:center}.recurring-empty p{margin:6px 0;color:#6b7a73}.recurring-check{display:flex!important;grid-template-columns:none!important;align-items:center;gap:8px}.recurring-check input{width:auto!important;min-height:0!important}.recurring-dialog{width:min(590px,calc(100vw - 32px))}
 @media(max-width:650px){.recurring-head{align-items:stretch;flex-direction:column;padding:18px 20px}.recurring-head .finance-button{width:100%}.recurring-tabs{padding-inline:20px;gap:22px}.recurring-table th,.recurring-table td{padding-inline:16px}}
+
+/* UI-INTEGRACAO-001: cabeçalho unificado e fixação sem alterar os módulos. */
+.main>.top,.main>.page-heading{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:18px;min-width:0;
+  padding:14px 0 16px;margin:0 0 22px;
+  background:var(--app-header-bg,#f8faf9);
+  border-bottom:1px solid #e7eee9;
+}
+body[data-context="pj"]{--app-header-bg:#eef8f2}
+.main>.top>div:first-child,.main>.page-heading>div:first-child{flex:1 1 280px;min-width:0}
+.main>.top>.toolbar,.main>.page-heading>.page-heading-meta{flex:0 1 auto;min-width:0}
+.main>.page-heading>.page-heading-meta{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.main>.top h1,.main>.page-heading h1{margin:0 0 6px;line-height:1.25}
+.main>.page-heading .eyebrow{margin:0 0 6px}
+.main>.page-heading .muted{margin:0}
+.main>.top .toolbar{width:auto}
+@media(max-width:1100px){
+  .main>.top,.main>.page-heading{flex-wrap:wrap;align-items:flex-start}
+  .main>.top>.toolbar,.main>.page-heading>.page-heading-meta{flex:1 1 100%;justify-content:flex-start}
+}
+@media(max-width:850px){
+  .main>.top,.main>.page-heading{position:relative;top:auto;padding:10px 0 14px}
+}
+@media print{
+  .main>.top,.main>.page-heading{position:static;background:transparent;border-bottom:0}
+}
