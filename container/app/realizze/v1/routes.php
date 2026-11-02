@@ -12,7 +12,8 @@ return [
     'controller' => null,
     'routes' => static function (Router $router): void {
         $previewEnabled = getenv('APP_ENV') === 'local'
-            && getenv('REALIZZE_APP_LOCAL_PREVIEW') === '1';
+            ? getenv('REALIZZE_APP_LOCAL_PREVIEW') === '1'
+            : getenv('REALIZZE_APP_ENABLED') === '1';
         $webView = new Engine(BASE_PATH . '/container/web/realizze/v1');
         $webView->addFolder('components', BASE_PATH . '/container/web/realizze/v1/components');
 

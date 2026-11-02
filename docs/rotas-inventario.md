@@ -66,7 +66,7 @@ Tudo está em `container/app/realizze/v1/assets/js/dashboard.js`.
 
 ### Fora da padronização, mas relevante
 
-15. **O App inteiro responde 503 fora de `APP_ENV=local`**, porque `$previewEnabled` exige `REALIZZE_APP_LOCAL_PREVIEW=1`. O CMS tem saída própria com `REALIZZE_CMS_ENABLED`, e o App não tem. Vale resolver antes de publicar.
+15. **O App responde 503 fora de `APP_ENV=local` enquanto `REALIZZE_APP_ENABLED` não for `1`.** Para lançar, definir essa variável no `.env` de produção; é o mesmo modelo de `REALIZZE_CMS_ENABLED`.
 16. **ERP e Send não têm host no `.env` local** (`ROUTE_ERP_HOST` e `ROUTE_SEND_HOST`) e só registram `/` com 503. Não há o que padronizar neles agora.
 
 ### O que ficou certo e não deve mudar
