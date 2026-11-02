@@ -45,7 +45,9 @@ $duration = static function (?int $months): string {
 };
 
 $loadFailed = false;
-$debts = $open = $institutions = $accounts = $entries = [];
+$debts = $open = $institutions = $accounts = $entries = $categories = [];
+$panorama = ['total_cents' => 0, 'paid_cents' => 0, 'monthly_cents' => 0, 'progress' => 0, 'late' => [], 'upcoming' => []];
+$controlReady = false;
 $profile = null;
 $suggested = ['income_cents' => 0, 'expense_cents' => 0, 'months' => 0];
 try {
@@ -55,6 +57,9 @@ try {
     $profile = $service->profile();
     $suggested = $service->suggestedAverages();
     $entries = $service->linkableEntries();
+    $panorama = $service->panorama();
+    $controlReady = $service->controlReady();
+    $categories = $service->expenseCategories();
     $institutions = FinancialInstitutions::active();
     $accounts = (new Finance((int) FinanceContext::currentId()))->accountsWithBalance();
 } catch (Throwable $exception) {
@@ -72,12 +77,18 @@ if ($profile !== null) {
     $scenario['variable_expenses_cents'] = max(0, $scenario['variable_expenses_cents'] - $cut);
     $capacity = DebtPlanner::capacity($scenario, $open);
 }
-$budget = $queryCents('orcamento') ?? ($capacity['capacity_cents'] ?? 0);
+// Sem valor informado, o plano usa o maior entre a capacidade calculada e as parcelas que já existem.
+$budgetBase = $queryCents('orcamento') ?? max($capacity['capacity_cents'] ?? 0, $panorama['monthly_cents']);
+$extraPayment = $queryCents('extra') ?? 0;
+$budget = $budgetBase + $extraPayment;
+// Taxa desconhecida entra como 0% para a dívida não sumir do plano; a tela avisa que o prazo pode ser maior.
 $planDebts = array_map(static fn (array $d): array => [
     'id' => (int) $d['id'], 'name' => $d['creditor_name'], 'balance_cents' => $d['balance_cents'],
-    'monthly_rate' => $d['monthly_rate'], 'monthly_payment_cents' => $d['monthly_payment_cents'],
+    'monthly_rate' => $d['monthly_rate'] ?? 0.0, 'monthly_payment_cents' => $d['monthly_payment_cents'],
 ], $open);
 $comparison = $open !== [] && $budget > 0 ? DebtPlanner::compare($planDebts, $budget) : null;
+$baseComparison = $extraPayment > 0 && $open !== [] && $budgetBase > 0 ? DebtPlanner::compare($planDebts, $budgetBase) : null;
+$bestPlan = $comparison !== null && $comparison['recommended'] !== null ? $comparison[$comparison['recommended']] : null;
 $withoutRate = array_values(array_filter($open, static fn (array $d): bool => $d['monthly_rate'] === null));
 $secured = array_values(array_filter($open, static fn (array $d): bool => in_array($d['collateral'], ['vehicle', 'property', 'payroll', 'guarantor'], true)));
 $totalDebt = array_sum(array_column($open, 'balance_cents'));
@@ -154,6 +165,25 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
 <section class="card finance-workspace"><div class="finance-empty"><h3>Não foi possível carregar o Sair das Dívidas</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div></section>
 <?php else: ?>
 
+<section class="card finance-workspace debt-answers" aria-labelledby="debt-answers-title">
+  <h2 id="debt-answers-title" class="visually-hidden">Resumo das dívidas</h2>
+  <div class="finance-goal-summary debt-summary">
+    <div class="finance-goal-stat finance-indicator <?= $panorama['total_cents'] > 0 ? 'is-negative' : 'is-neutral' ?>"><span>Quanto eu devo</span><strong><?= $e($money($panorama['total_cents'])) ?></strong><small><?= count($open) ?> dívida<?= count($open) === 1 ? '' : 's' ?> em aberto</small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Quanto pagar por mês</span><strong><?= $e($money($panorama['monthly_cents'])) ?></strong><small><?= $bestPlan !== null && $budget > $panorama['monthly_cents'] ? 'No plano: ' . $e($money($budget)) : 'Soma das parcelas informadas' ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $bestPlan !== null ? 'is-positive' : 'is-neutral' ?>"><span>Quando saio das dívidas</span><strong><?= $open === [] ? '—' : ($bestPlan !== null ? $e($monthLabel($bestPlan['payoff_date'])) : 'Sem previsão') ?></strong><small><?= $bestPlan !== null ? 'Estimativa com ' . $e($money($budget)) . ' por mês' : ($open === [] ? 'Nada em aberto' : 'Informe um valor mensal que cubra os juros') ?></small></div>
+  </div>
+  <?php if ($debts !== []): ?>
+  <div class="debt-progress">
+    <div class="budget-head"><strong>Progresso de quitação</strong><span class="muted"><?= (int) $panorama['progress'] ?>% · já pago <?= $e($money($panorama['paid_cents'])) ?></span></div>
+    <div class="track track-live debt-track" role="img" aria-label="<?= (int) $panorama['progress'] ?>% pago"><span data-width="<?= (int) $panorama['progress'] ?>"></span></div>
+  </div>
+  <?php endif; ?>
+  <?php if ($panorama['late'] !== []): ?><p class="debt-alert debt-alert-red" role="status"><?= count($panorama['late']) === 1 ? '1 parcela em atraso' : count($panorama['late']) . ' parcelas em atraso' ?>: <?= $e(implode(', ', array_map(static fn (array $d): string => $d['creditor_name'] . ' (' . (new DateTimeImmutable($d['next_due_date']))->format('d/m') . ')', $panorama['late']))) ?>.</p><?php endif; ?>
+  <?php if ($panorama['upcoming'] !== []): ?>
+  <div class="debt-upcoming"><h3>Próximos vencimentos</h3><ul><?php foreach ($panorama['upcoming'] as $d): ?><li><span><?= $e((new DateTimeImmutable($d['next_due_date']))->format('d/m/Y')) ?></span><span><?= $e($d['creditor_name']) ?></span><strong><?= $e($money($d['monthly_payment_cents'])) ?></strong></li><?php endforeach; ?></ul></div>
+  <?php endif; ?>
+</section>
+
 <section class="card finance-workspace" aria-labelledby="debt-diagnosis-title">
   <div class="finance-toolbar">
     <div><h2 id="debt-diagnosis-title">Diagnóstico financeiro</h2><p class="muted">Quanto dá para pagar por mês sem comprometer o essencial.</p></div>
@@ -190,14 +220,14 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
   <?php if ($debts === []): ?>
   <div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('credit-card') ?></span><h3>Nenhuma dívida cadastrada</h3><p>Cadastre cada dívida com saldo, juros e parcela. Quanto mais exatos os dados, mais confiável a simulação.</p></div>
   <?php else: ?>
-  <?php if ($withoutRate !== []): ?><p class="debt-alert debt-alert-amber"><?= count($withoutRate) ?> dívida<?= count($withoutRate) > 1 ? 's estão' : ' está' ?> sem taxa de juros e fica<?= count($withoutRate) > 1 ? 'm' : '' ?> fora das simulações. Consulte o contrato ou o app do credor; não estimamos taxas.</p><?php endif; ?>
+  <?php if ($withoutRate !== []): ?><p class="debt-alert debt-alert-amber"><?= count($withoutRate) ?> dívida<?= count($withoutRate) > 1 ? 's estão' : ' está' ?> sem taxa de juros: nas simulações, entra<?= count($withoutRate) > 1 ? 'm' : '' ?> sem juros, então prazo e custo podem ser maiores. Consulte o contrato ou o app do credor; não estimamos taxas.</p><?php endif; ?>
   <ul class="debt-list">
     <?php foreach ($debts as $debt): $debtId = (int) $debt['id']; $closed = in_array($debt['status'], ['paid', 'cancelled'], true); ?>
     <li class="debt-item<?= $closed ? ' debt-item-closed' : '' ?>">
       <div class="debt-head">
         <?= $appView->render('components::bank-badge', ['name' => $debt['institution_name'] ?: $debt['creditor_name'], 'logo' => $debt['institution_logo'], 'slug' => $debt['institution_slug']]) ?>
-        <div class="debt-title"><strong><?= $e($debt['creditor_name']) ?></strong><small><?= $e(Debts::TYPES[$debt['debt_type']] ?? '') ?><?= $debt['account_name'] ? ' · ' . $e($debt['account_name']) : '' ?></small></div>
-        <span class="debt-status debt-status-<?= $e($debt['status']) ?>"><?= $e(Debts::STATUSES[$debt['status']] ?? '') ?></span>
+        <div class="debt-title"><strong><?= $e($debt['creditor_name']) ?></strong><small><?= $debt['description'] ? $e($debt['description']) . ' · ' : '' ?><?= $e(Debts::TYPES[$debt['debt_type']] ?? '') ?><?= $debt['account_name'] ? ' · ' . $e($debt['account_name']) : '' ?></small></div>
+        <?php $shownStatus = !$closed && $debt['status'] === 'current' && $debt['next_due_date'] !== null && $debt['next_due_date'] < date('Y-m-d') ? 'overdue' : $debt['status']; ?><span class="debt-status debt-status-<?= $e($shownStatus) ?>"><?= $e(Debts::STATUSES[$shownStatus] ?? '') ?></span>
         <strong class="debt-balance"><?= $e($money($debt['balance_cents'])) ?></strong>
       </div>
       <dl class="debt-facts">
@@ -207,6 +237,7 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
         <div><dt>Vencimento</dt><dd><?= $debt['next_due_date'] ? $e((new DateTimeImmutable($debt['next_due_date']))->format('d/m/Y')) : '—' ?></dd></div>
         <div><dt>Garantia</dt><dd><?= $e(Debts::COLLATERALS[$debt['collateral']] ?? '') ?></dd></div>
         <div><dt>Já pago</dt><dd><?= $e($money($debt['paid_cents'])) ?></dd></div>
+        <div><dt>Valor original</dt><dd><?= $e($money($debt['original_amount_cents'])) ?></dd></div>
       </dl>
       <?php if ($debt['risk_notes']): ?><p class="muted debt-note">Riscos: <?= $e($debt['risk_notes']) ?></p><?php endif; ?>
       <details class="debt-details">
@@ -215,13 +246,17 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
           <?php if (!$closed): ?>
           <form method="post" action="/minha-conta/dividas/pagamento" class="debt-form" data-finance-form>
             <h3>Registrar pagamento</h3>
-            <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="id" value="<?= $debtId ?>">
+            <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="id" value="<?= $debtId ?>"><input type="hidden" name="idempotency_key" value="<?= $e(bin2hex(random_bytes(16))) ?>">
             <div class="finance-dialog-row">
               <label>Valor (R$)<input name="amount" inputmode="decimal" placeholder="0,00" pattern="[0-9.]+(,[0-9]{1,2})?" required></label>
               <label>Data<input name="paid_on" type="date" value="<?= $e(date('Y-m-d')) ?>" required></label>
             </div>
             <label>Lançamento já existente (opcional)<select name="entry_id"><option value="">Não vincular</option><?php foreach ($entries as $entry): ?><option value="<?= (int) $entry['id'] ?>"><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m') . ' · ' . $entry['description'] . ' · ' . Finance::money((int) $entry['amount_cents'])) ?></option><?php endforeach; ?></select></label>
-            <p class="muted">Ao vincular, o lançamento é baixado na data informada. Sem vínculo, uma saída é criada automaticamente quando a dívida tem uma conta associada.</p>
+            <div class="finance-dialog-row">
+              <label>Conta do pagamento<select name="account_id"><option value=""><?= $debt['account_name'] ? $e('Conta da dívida (' . $debt['account_name'] . ')') : 'Escolha, se saiu de uma conta' ?></option><?php foreach ($accounts as $account): ?><option value="<?= (int) $account['id'] ?>"><?= $e($account['name']) ?></option><?php endforeach; ?><option value="none">Pago por fora: não mexer em conta</option></select></label>
+              <label>Categoria no Planejamento<select name="category_id"><option value="">Sem categoria</option><?php foreach ($categories as $category): ?><option value="<?= (int) $category['id'] ?>"><?= $e($category['name']) ?></option><?php endforeach; ?></select></label>
+            </div>
+            <p class="muted">Ao vincular, o lançamento é baixado na data informada e não se cria outra saída. Sem vínculo, a saída é criada na conta escolhida. O pagamento parcial abate o saldo, mas não avança o vencimento.</p>
             <button type="submit">Registrar</button>
           </form>
           <form method="post" action="/minha-conta/dividas/negociacao" class="debt-form" data-finance-form>
@@ -248,12 +283,13 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
             <?php if ($payments !== []): ?>
             <ul>
               <?php foreach ($payments as $payment): ?>
-              <li><strong><?= $e(Finance::money((int) $payment['amount_cents'])) ?></strong> em <?= $e((new DateTimeImmutable($payment['paid_on']))->format('d/m/Y')) ?> · saldo <?= $e(Finance::money((int) $payment['balance_before_cents'])) ?> → <?= $e(Finance::money((int) $payment['balance_after_cents'])) ?><?= $payment['entry_description'] ? ' · vinculado a “' . $e($payment['entry_description']) . '”' : '' ?></li>
+              <?php $reversed = ($payment['reversed_at'] ?? null) !== null; ?><li<?= $reversed ? ' class="debt-reversed"' : '' ?>><strong><?= $e(Finance::money((int) $payment['amount_cents'])) ?></strong> em <?= $e((new DateTimeImmutable($payment['paid_on']))->format('d/m/Y')) ?> · saldo <?= $e(Finance::money((int) $payment['balance_before_cents'])) ?> → <?= $e(Finance::money((int) $payment['balance_after_cents'])) ?><?= $payment['entry_description'] ? ' · vinculado a “' . $e($payment['entry_description']) . '”' : '' ?><?php if ($reversed): ?> · <strong>Estornado</strong><?php elseif ($controlReady): ?><form method="post" action="/minha-conta/dividas/pagamento-estornar" class="debt-reverse" data-finance-confirm="Estornar este pagamento? O saldo da dívida volta e a saída na conta é desfeita."><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="id" value="<?= (int) $payment['id'] ?>"><button type="submit" class="finance-link-danger">Estornar</button></form><?php endif; ?></li>
               <?php endforeach; ?>
             </ul>
             <?php endif; ?>
             <?php foreach ($negotiations as $negotiation): $eval = DebtPlanner::evaluateProposal(max(1, (int) $negotiation['balance_at_proposal_cents']), (int) $negotiation['down_payment_cents'], (int) $negotiation['installment_cents'] > 0 ? (int) $negotiation['installments'] : 0, (int) $negotiation['installment_cents']); ?>
             <div class="debt-negotiation">
+              <?php if (($negotiation['applied_at'] ?? null) !== null): ?><p class="debt-tag">Acordo em vigor: os termos anteriores estão guardados</p><?php endif; ?>
               <p><strong><?= $e(Debts::NEGOTIATION_STATUSES[$negotiation['status']] ?? '') ?></strong> · <?= $negotiation['origin'] === 'creditor' ? 'do credor' : 'minha' ?> · <?= $e((new DateTimeImmutable($negotiation['created_at']))->format('d/m/Y')) ?></p>
               <p class="muted">Entrada <?= $e(Finance::money((int) $negotiation['down_payment_cents'])) ?><?= (int) $negotiation['installment_cents'] > 0 ? ' + ' . (int) $negotiation['installments'] . 'x ' . $e(Finance::money((int) $negotiation['installment_cents'])) : '' ?> = <?= $e(Finance::money($eval['total_cents'])) ?> (<?= $eval['discount_cents'] >= 0 ? 'desconto de ' . $e(Finance::money($eval['discount_cents'])) : 'acréscimo de ' . $e(Finance::money(-$eval['discount_cents'])) ?> sobre <?= $e(Finance::money((int) $negotiation['balance_at_proposal_cents'])) ?>)</p>
               <?php if ($negotiation['notes']): ?><p class="muted"><?= $e($negotiation['notes']) ?></p><?php endif; ?>
@@ -298,12 +334,13 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
     <div><h2 id="debt-strategy-title">Estratégias de quitação</h2><p class="muted">Mesma quantia por mês, ordens diferentes de pagamento.</p></div>
   </div>
   <form method="get" action="/p/sair-das-dividas" class="debt-scenario">
-    <label>Valor por mês para dívidas (R$)<input name="orcamento" inputmode="decimal" value="<?= $budget > 0 ? $e(number_format($budget / 100, 2, ',', '.')) : '' ?>" pattern="[0-9.]+(,[0-9]{1,2})?"></label>
+    <label>Valor por mês para dívidas (R$)<input name="orcamento" inputmode="decimal" value="<?= $budgetBase > 0 ? $e(number_format($budgetBase / 100, 2, ',', '.')) : '' ?>" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
+    <label>Pagamento adicional por mês (R$)<input name="extra" inputmode="decimal" value="<?= $extraPayment > 0 ? $e(number_format($extraPayment / 100, 2, ',', '.')) : '' ?>" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
     <label>Cenário: renda extra (R$)<input name="renda_extra" inputmode="decimal" value="<?= $extraIncome > 0 ? $e(number_format($extraIncome / 100, 2, ',', '.')) : '' ?>" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
     <label>Cenário: corte em despesas variáveis (R$)<input name="corte" inputmode="decimal" value="<?= $cut > 0 ? $e(number_format($cut / 100, 2, ',', '.')) : '' ?>" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
     <button type="submit">Simular</button>
   </form>
-  <?php if ($capacity !== null && $budget > $capacity['capacity_cents'] && isset($_GET['orcamento'])): ?>
+  <?php if ($capacity !== null && $open !== [] && $budget > $capacity['capacity_cents']): ?>
   <p class="debt-alert debt-alert-amber">Esse valor passa da sua capacidade sustentável (<?= $e($money($capacity['capacity_cents'])) ?>). O plano pode ficar apertado diante de imprevistos.</p>
   <?php endif; ?>
   <?php if ($open === []): ?>
@@ -330,11 +367,14 @@ $institutionSelect = static function (?int $selected = null) use ($institutions,
       </tbody>
     </table>
   </div>
+  <?php if ($baseComparison !== null && $bestPlan !== null && $baseComparison['recommended'] !== null && ($baseRun = $baseComparison[$baseComparison['recommended']])['feasible']): ?>
+  <p class="debt-alert debt-alert-green" role="status">Com <?= $e($money($extraPayment)) ?> a mais por mês, a estimativa é sair <?= $e($duration(max(0, $baseRun['months'] - $bestPlan['months']))) ?> antes e pagar <?= $e($money(max(0, $baseRun['total_interest_cents'] - $bestPlan['total_interest_cents']))) ?> a menos de juros.</p>
+  <?php endif; ?>
   <?php $best = $comparison['recommended'] ? $comparison[$comparison['recommended']] : null; ?>
   <?php if ($best !== null): ?>
   <p class="muted">Ordem sugerida (<?= $e($strategyNames[$comparison['recommended']]) ?>): <?php $order = $best['debts']; usort($order, static fn ($a, $b) => ($a['paid_off_month'] ?? 999) <=> ($b['paid_off_month'] ?? 999)); echo $e(implode(' → ', array_map(static fn ($d) => $d['name'] . ' (' . $monthLabel((new DateTimeImmutable('first day of next month'))->modify('+' . max(0, (int) $d['paid_off_month'] - 1) . ' months')->format('Y-m')) . ')', $order))); ?></p>
   <?php endif; ?>
-  <details class="debt-details"><summary>Hipóteses usadas</summary><ul class="debt-assumptions"><?php foreach ($comparison['avalanche']['assumptions'] as $assumption): ?><li><?= $e($assumption) ?></li><?php endforeach; ?><li>A economia compara com pagar só as parcelas atuais.</li></ul></details>
+  <details class="debt-details"><summary>Hipóteses usadas</summary><ul class="debt-assumptions"><?php foreach ($comparison['avalanche']['assumptions'] as $assumption): ?><li><?= $e($assumption) ?></li><?php endforeach; ?><li>A economia compara com pagar só as parcelas atuais.</li><?php if ($withoutRate !== []): ?><li>Dívidas sem taxa informada entram sem juros.</li><?php endif; ?></ul></details>
   <?php endif; ?>
 </section>
 

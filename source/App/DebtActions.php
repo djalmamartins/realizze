@@ -31,7 +31,8 @@ final class DebtActions
                 'create' => [$debts->create($_POST, $userId) > 0 ? 'success' : 'error', 'Dívida cadastrada.'],
                 'update' => $debts->update($id, $_POST) ? ['success', 'Dívida atualizada.'] : ['error', 'Dívida não encontrada.'],
                 'archive' => $debts->archive($id) ? ['success', 'Dívida removida da lista.'] : ['error', 'Dívida não encontrada.'],
-                'payment' => [$debts->registerPayment($id, $_POST, $userId) > 0 ? 'success' : 'error', 'Pagamento registrado e saldo atualizado.'],
+                'payment' => $this->payment($debts, $id, $userId),
+                'payment_reverse' => $debts->reversePayment($id, $userId) ? ['success', 'Pagamento estornado. O saldo da dívida e o da conta foram refeitos.'] : ['error', 'Pagamento não encontrado.'],
                 'negotiation' => [$debts->createNegotiation($id, $_POST, $userId) > 0 ? 'success' : 'error', 'Proposta registrada no histórico.'],
                 'negotiation_status' => $debts->updateNegotiationStatus($id, (string) ($_POST['status'] ?? '')) ? ['success', 'Situação da negociação atualizada.'] : ['error', 'Negociação não encontrada.'],
                 default => ['error', 'Ação inválida.'],
@@ -45,6 +46,19 @@ final class DebtActions
         $_SESSION['finance_flash'] = $message;
         header('Cache-Control: no-store');
         header('Location: /p/sair-das-dividas', true, 303);
+    }
+
+    /** @return array{0:string,1:string} */
+    private function payment(Debts $debts, int $id, int $userId): array
+    {
+        // Sem a migration 013 não há chave no banco: a sessão segura o duplo clique, como nas assinaturas.
+        $key = (string) ($_POST['idempotency_key'] ?? '');
+        if (!$debts->controlReady() && $key !== '' && isset($_SESSION['debt_payment_keys'][$key])) {
+            return ['success', 'Este pagamento já havia sido registrado.'];
+        }
+        $debts->registerPayment($id, $_POST, $userId);
+        $_SESSION['debt_payment_keys'][$key] = true;
+        return ['success', 'Pagamento registrado e saldo atualizado.'];
     }
 
     /** @return array{0:string,1:string} */
