@@ -97,10 +97,10 @@ $renderState = static function () use ($state, $e): void {
   </div>
 
   <div class="finance-goal-summary is-four" aria-label="Indicadores de contas a receber">
-    <div class="finance-goal-stat"><span>Total a receber</span><strong class="green"><?= $e(Finance::money($summary['to_receive'])) ?></strong><small>Saldo em aberto no período</small></div>
-    <div class="finance-goal-stat"><span>Total recebido</span><strong><?= $e(Finance::money($summary['received'])) ?></strong><small>Baixas dos lançamentos do período</small></div>
-    <div class="finance-goal-stat"><span>Total vencido</span><strong class="<?= $summary['overdue'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money($summary['overdue'])) ?></strong><small>Saldo vencido e não recebido</small></div>
-    <div class="finance-goal-stat"><span>Previsto no período</span><strong><?= $e(Finance::money($summary['forecast'])) ?></strong><small>Valor original não cancelado</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $summary['to_receive'] > 0 ? 'is-pending' : 'is-neutral' ?>"><span>Total a receber</span><strong><?= $e(Finance::money($summary['to_receive'])) ?></strong><small>Saldo em aberto no período</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $summary['received'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Total recebido</span><strong><?= $e(Finance::money($summary['received'])) ?></strong><small>Baixas dos lançamentos do período</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $summary['overdue'] > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Total vencido</span><strong><?= $e(Finance::money($summary['overdue'])) ?></strong><small>Saldo vencido e não recebido</small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Previsto no período</span><strong><?= $e(Finance::money($summary['forecast'])) ?></strong><small>Valor original não cancelado</small></div>
   </div>
 
   <div class="finance-filter-bar">

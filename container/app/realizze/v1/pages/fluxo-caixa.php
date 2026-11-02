@@ -69,10 +69,10 @@ $projected = $balance + $totals['in_open'] - $totals['out_open'];
     <div><h2 id="cash-title">Fluxo de caixa</h2><p class="muted">Realizado é o que já foi pago ou recebido. Previsto é o que continua em aberto no mês.</p></div>
   </div>
   <div class="finance-goal-summary cash-summary" aria-label="Resumo do mês">
-    <div class="finance-goal-stat"><span>Saldo atual</span><strong class="<?= $balance < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($balance)) ?></strong><small>Contas e carteiras, sem cartões</small></div>
-    <div class="finance-goal-stat"><span>Realizado no mês</span><strong class="<?= $totals['in_done'] - $totals['out_done'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($totals['in_done'] - $totals['out_done'])) ?></strong><small>Entradas menos saídas</small></div>
-    <div class="finance-goal-stat"><span>Previsto em aberto</span><strong class="<?= $totals['in_open'] - $totals['out_open'] < 0 ? 'red' : '' ?>"><?= $e(Finance::money($totals['in_open'] - $totals['out_open'])) ?></strong><small><?= $overdue > 0 ? $e(Finance::money($overdue)) . ' já vencidos' : 'A receber menos a pagar' ?></small></div>
-    <div class="finance-goal-stat"><span>Saldo projetado</span><strong class="<?= $projected < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($projected)) ?></strong><small>Se tudo em aberto se confirmar</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $balance > 0 ? 'is-positive' : ($balance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo atual</span><strong><?= $e(Finance::money($balance)) ?></strong><small>Contas e carteiras, sem cartões</small></div>
+    <?php $realized = $totals['in_done'] - $totals['out_done']; ?><div class="finance-goal-stat finance-indicator <?= $realized > 0 ? 'is-positive' : ($realized < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Realizado no mês</span><strong><?= $e(Finance::money($realized)) ?></strong><small>Entradas menos saídas</small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Previsto em aberto</span><strong><?= $e(Finance::money($totals['in_open'] - $totals['out_open'])) ?></strong><small><?= $overdue > 0 ? $e(Finance::money($overdue)) . ' já vencidos' : 'A receber menos a pagar' ?></small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Saldo projetado</span><strong><?= $e(Finance::money($projected)) ?></strong><small>Se tudo em aberto se confirmar</small></div>
   </div>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Mês">

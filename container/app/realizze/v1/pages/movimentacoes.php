@@ -61,9 +61,9 @@ unset($_SESSION['finance_flash']);
     </div>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo do mês">
-    <div class="finance-goal-stat"><span>Entradas</span><strong class="green"><?= $e(Finance::money($total('income'))) ?></strong><small><?= $e($monthLabel) ?></small></div>
-    <div class="finance-goal-stat"><span>Saídas</span><strong class="red"><?= $e(Finance::money($total('expense'))) ?></strong><small><?= $e($monthLabel) ?></small></div>
-    <div class="finance-goal-stat"><span>Resultado</span><strong><?= $e(Finance::money($total('income') - $total('expense'))) ?></strong><small>Transferências não entram na conta</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $total('income') > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Entradas realizadas</span><strong><?= $e(Finance::money($total('income'))) ?></strong><small><?= $e($monthLabel) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $total('expense') > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Saídas realizadas</span><strong><?= $e(Finance::money($total('expense'))) ?></strong><small><?= $e($monthLabel) ?> · valores pagos</small></div>
+    <?php $movementResult = $total('income') - $total('expense'); ?><div class="finance-goal-stat finance-indicator <?= $movementResult > 0 ? 'is-positive' : ($movementResult < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Resultado</span><strong><?= $e(Finance::money($movementResult)) ?></strong><small>Transferências não entram na conta</small></div>
   </div>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Mês">

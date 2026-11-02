@@ -86,9 +86,9 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
     <button type="button" class="primary" data-entry-open="<?= $e($kind) ?>"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ <?= $e($labels['new']) ?></button>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo do mês">
-    <div class="finance-goal-stat"><span><?= $e($labels['expected']) ?></span><strong class="<?= $isIncome ? 'green' : 'red' ?>"><?= $e(Finance::money($summary['expected'])) ?></strong><small><?= $e($monthLabel) ?></small></div>
-    <div class="finance-goal-stat"><span><?= $e($labels['done']) ?></span><strong><?= $e(Finance::money($summary['paid'])) ?></strong><small><?= (int) $summary['count'] ?> lançamento<?= $summary['count'] === 1 ? '' : 's' ?> no mês</small></div>
-    <div class="finance-goal-stat"><span>Em atraso</span><strong class="<?= $summary['overdue'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money($summary['overdue'])) ?></strong><small>Vencidos e não baixados</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $summary['expected'] > 0 ? 'is-pending' : 'is-neutral' ?>"><span><?= $e($labels['expected']) ?></span><strong><?= $e(Finance::money($summary['expected'])) ?></strong><small><?= $e($monthLabel) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $summary['paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span><?= $e($labels['done']) ?></span><strong><?= $e(Finance::money($summary['paid'])) ?></strong><small><?= (int) $summary['count'] ?> lançamento<?= $summary['count'] === 1 ? '' : 's' ?> no mês</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $summary['overdue'] > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($summary['overdue'])) ?></strong><small>Vencidos e não baixados</small></div>
   </div>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Mês">

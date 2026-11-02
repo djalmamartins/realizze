@@ -54,13 +54,13 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
   <button type="button" class="primary is-outline" data-entry-open="expense"<?= $manual === [] ? ' disabled' : '' ?>>+ Nova despesa</button>
 </div>
 <section aria-label="Indicadores financeiros" class="cards">
-  <article class="card balance"><span class="label">Saldo disponível</span><div class="value"><?= $money($data['balance']) ?></div><span class="muted">Em contas e carteiras</span></article>
+  <article class="card balance finance-indicator <?= $data['balance'] > 0 ? 'is-positive' : ($data['balance'] < 0 ? 'is-negative' : 'is-neutral') ?>"><span class="label">Saldo disponível</span><div class="value"><?= $money($data['balance']) ?></div><span class="muted">Em contas e carteiras</span></article>
   <?php foreach ([
-    ['Resultado de ' . $period['short'], $data['result'], 'Receitas − despesas pagas', $data['result'] < 0 ? 'red' : 'green', '<path d="M3 12h4l3-7 4 14 3-7h4"/>', \Moves\Services\AppUrl::section('movimentacoes')],
-    ['A receber', $data['receivable'], $data['receivable_count'] . ' título' . ($data['receivable_count'] === 1 ? '' : 's') . ' em aberto', 'green', '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>', \Moves\Services\AppUrl::section('receber', null, ['situacao' => 'open'])],
-    ['A pagar', $data['payable'], $data['payable_count'] . ' título' . ($data['payable_count'] === 1 ? '' : 's') . ' em aberto', 'red', '<path d="M7 17 17 7m0 0H9m8 0v8"/>', \Moves\Services\AppUrl::section('pagar', null, ['situacao' => 'open'])],
-  ] as [$label, $value, $description, $color, $path, $href]): ?>
-  <a class="card card-link" href="<?= $e($href) ?>"><div class="stat"><span class="stat-icon <?= $color === 'red' ? 'red-icon' : '' ?>" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?= $path ?></svg></span><div><span class="label"><?= $e($label) ?></span><div class="value <?= $color ?>"><?= $money($value) ?></div><span class="muted"><?= $e($description) ?></span></div></div></a>
+    ['Resultado de ' . $period['short'], $data['result'], 'Receitas − despesas pagas', $data['result'] > 0 ? 'is-positive' : ($data['result'] < 0 ? 'is-negative' : 'is-neutral'), '<path d="M3 12h4l3-7 4 14 3-7h4"/>', \Moves\Services\AppUrl::section('movimentacoes')],
+    ['A receber', $data['receivable'], $data['receivable_count'] . ' título' . ($data['receivable_count'] === 1 ? '' : 's') . ' em aberto', $data['receivable'] > 0 ? 'is-pending' : 'is-neutral', '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/>', \Moves\Services\AppUrl::section('receber', null, ['situacao' => 'open'])],
+    ['A pagar', $data['payable'], $data['payable_count'] . ' título' . ($data['payable_count'] === 1 ? '' : 's') . ' em aberto', $data['payable'] > 0 ? 'is-pending' : 'is-neutral', '<path d="M7 17 17 7m0 0H9m8 0v8"/>', \Moves\Services\AppUrl::section('pagar', null, ['situacao' => 'open'])],
+  ] as [$label, $value, $description, $tone, $path, $href]): ?>
+  <a class="card card-link finance-indicator <?= $tone ?>" href="<?= $e($href) ?>"><div class="stat"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?= $path ?></svg></span><div><span class="label"><?= $e($label) ?></span><div class="value"><?= $money($value) ?></div><span class="muted"><?= $e($description) ?></span></div></div></a>
   <?php endforeach; ?>
 </section>
 <section class="card progress-panel" aria-label="Andamento do período">
@@ -72,7 +72,7 @@ $month = $period['view'] === 'mensal' ? $period['start']->format('Y-m') : $today
 <?php foreach ([['Hoje e atrasados', 'today'], ['Amanhã', 'tomorrow'], ['Próximos 7 dias', 'week'], ['Depois', 'later']] as [$label, $key]): $count = $data['due'][$key . '_count']; ?>
   <div class="due-item"><span class="stat-icon <?= $key === 'today' && $count > 0 ? 'red-icon' : '' ?>" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.500 10h17M8 3v4m8-4v4"/></svg></span><div><small><?= $e($label) ?></small><strong><?= $money($data['due'][$key . '_total']) ?></strong><span class="muted"><?= $count ?> título<?= $count === 1 ? '' : 's' ?></span></div></div>
 <?php endforeach; ?>
-  <div class="forecast"><span class="green">Fechamento previsto</span><p class="muted">Saldo atual + a receber − a pagar no período.</p><strong class="<?= $data['forecast'] < 0 ? 'red' : 'green' ?>"><?= $money($data['forecast']) ?></strong></div>
+  <div class="forecast finance-indicator is-forecast"><span>Fechamento previsto</span><p class="muted">Saldo atual + a receber − a pagar no período.</p><strong><?= $money($data['forecast']) ?></strong></div>
 </div></section>
 <section class="card overview-chart-card" aria-labelledby="overview-chart-title">
   <div class="section-head"><h2 id="overview-chart-title"><?= $period['view'] === 'anual' ? 'Receitas e despesas de ' . $e($period['label']) : 'Receitas e despesas, últimos 6 meses' ?></h2><a href="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>">Ver relatórios</a></div>

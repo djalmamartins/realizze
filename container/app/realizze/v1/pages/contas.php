@@ -29,9 +29,9 @@ unset($_SESSION['finance_flash']);
     <button type="button" class="primary" data-finance-open="account-dialog">+ Adicionar conta</button>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo das contas">
-    <div class="finance-goal-stat"><span>Saldo disponível</span><strong class="<?= $available < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($available)) ?></strong><small>Contas e carteiras</small></div>
-    <div class="finance-goal-stat"><span>Cartões de crédito</span><strong class="<?= $cards < 0 ? 'red' : '' ?>"><?= $e(Finance::money($cards)) ?></strong><small>Fora do saldo disponível</small></div>
-    <div class="finance-goal-stat"><span>Contas ativas</span><strong><?= count($accounts) ?></strong><small>Neste contexto</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $available > 0 ? 'is-positive' : ($available < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo disponível</span><strong><?= $e(Finance::money($available)) ?></strong><small>Contas e carteiras</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $cards < 0 ? 'is-negative' : 'is-neutral' ?>"><span>Cartões de crédito</span><strong><?= $e(Finance::money($cards)) ?></strong><small>Fora do saldo disponível</small></div>
+    <div class="finance-goal-stat finance-indicator is-neutral"><span>Contas ativas</span><strong><?= count($accounts) ?></strong><small>Neste contexto</small></div>
   </div>
   <?php if ($loadFailed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar as contas</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>

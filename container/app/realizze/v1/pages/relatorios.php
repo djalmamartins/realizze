@@ -72,10 +72,10 @@ $situation = static function (array $entry) use ($brDate): array {
   <div class="finance-empty"><h3>Não foi possível carregar os relatórios</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php else: ?>
   <div class="finance-goal-summary is-four" aria-label="Indicadores do período">
-    <div class="finance-goal-stat"><span>Receitas</span><strong class="green"><?= $e(Finance::money($totals['income'])) ?></strong><small>Recebido <?= $e(Finance::money($totals['income_paid'])) ?> · a receber <?= $e(Finance::money($totals['income'] - $totals['income_paid'])) ?></small></div>
-    <div class="finance-goal-stat"><span>Despesas</span><strong class="red"><?= $e(Finance::money($totals['expense'])) ?></strong><small>Pago <?= $e(Finance::money($totals['expense_paid'])) ?> · a pagar <?= $e(Finance::money($totals['expense'] - $totals['expense_paid'])) ?></small></div>
-    <div class="finance-goal-stat"><span>Resultado previsto</span><strong class="<?= $resultExpected < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado até agora <?= $e(Finance::money($resultPaid)) ?></small></div>
-    <div class="finance-goal-stat"><span>Em atraso</span><strong class="<?= $totals['expense_overdue'] + $totals['income_overdue'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money($totals['expense_overdue'] + $totals['income_overdue'])) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $totals['income_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Receitas realizadas</span><strong><?= $e(Finance::money($totals['income_paid'])) ?></strong><small>A receber <?= $e(Finance::money($totals['income'] - $totals['income_paid'])) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $totals['expense_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Despesas realizadas</span><strong><?= $e(Finance::money($totals['expense_paid'])) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense'] - $totals['expense_paid'])) ?></small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Resultado previsto</span><strong><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado até agora <?= $e(Finance::money($resultPaid)) ?></small></div>
+    <?php $overdueTotal = $totals['expense_overdue'] + $totals['income_overdue']; ?><div class="finance-goal-stat finance-indicator <?= $overdueTotal > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($overdueTotal)) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
   <div class="finance-report-panels<?= $monthly ? ' has-daily' : '' ?>">
     <?php if ($monthly): ?>

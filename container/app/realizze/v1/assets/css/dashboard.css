@@ -1447,3 +1447,27 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 /* Cabeçalho em duas linhas ocuparia muito da tela se continuasse fixo. */
 @media(max-width:1100px){.main>.top,.main>.page-heading{position:relative;top:auto}}
 .main .toolbar .bell{margin-right:4px}
+
+/* Indicadores financeiros — semântica única PF/PJ. A cor reforça títulos e estados, nunca os substitui. */
+:root{
+  --finance-realized:#16834a;--finance-realized-soft:#eaf6ef;--finance-realized-border:#cce8d8;
+  --finance-pending:#2563eb;--finance-pending-soft:#eef4ff;--finance-pending-border:#d4e1ff;
+  --finance-overdue:#c0392b;--finance-overdue-soft:#fff1ef;--finance-overdue-border:#f2d3ce;
+  --finance-forecast:#6654b8;--finance-forecast-soft:#f3f0ff;--finance-forecast-border:#ddd7f5;
+  --finance-neutral:#52615a;--finance-neutral-soft:#f5f7f6;--finance-neutral-border:#e2e8e4;
+}
+.finance-indicator{--indicator-color:var(--finance-neutral);--indicator-bg:var(--finance-neutral-soft);--indicator-border:var(--finance-neutral-border);background:var(--indicator-bg);border:1px solid var(--indicator-border);color:var(--indicator-color)}
+.finance-indicator>span,.finance-indicator>small,.finance-indicator .label,.finance-indicator .muted{color:#52645a}
+.finance-indicator>strong,.finance-indicator .value{color:var(--indicator-color)}
+.finance-indicator.is-realized,.finance-indicator.is-positive{--indicator-color:var(--finance-realized);--indicator-bg:var(--finance-realized-soft);--indicator-border:var(--finance-realized-border)}
+.finance-indicator.is-pending{--indicator-color:var(--finance-pending);--indicator-bg:var(--finance-pending-soft);--indicator-border:var(--finance-pending-border)}
+.finance-indicator.is-overdue,.finance-indicator.is-negative{--indicator-color:var(--finance-overdue);--indicator-bg:var(--finance-overdue-soft);--indicator-border:var(--finance-overdue-border)}
+.finance-indicator.is-forecast{--indicator-color:var(--finance-forecast);--indicator-bg:var(--finance-forecast-soft);--indicator-border:var(--finance-forecast-border)}
+.finance-indicator.is-neutral{--indicator-color:var(--finance-neutral);--indicator-bg:var(--finance-neutral-soft);--indicator-border:var(--finance-neutral-border)}
+.finance-indicator .stat-icon{background:color-mix(in srgb,var(--indicator-color) 12%,#fff);color:var(--indicator-color)}
+.cards .finance-indicator{box-shadow:none}
+.cards .finance-indicator .value{font-size:clamp(19px,1.65vw,26px)}
+.cards .finance-indicator.balance:after{border-color:color-mix(in srgb,var(--indicator-color) 18%,transparent)}
+.forecast.finance-indicator{background:var(--indicator-bg)}
+.forecast.finance-indicator>span,.forecast.finance-indicator>strong{color:var(--indicator-color)}
+@media(forced-colors:active){.finance-indicator{border:1px solid CanvasText}.finance-indicator>strong,.finance-indicator .value{color:CanvasText}}

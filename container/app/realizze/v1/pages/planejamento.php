@@ -27,9 +27,9 @@ $spent = array_sum(array_map(static fn (array $r): int => $r['budget'] > 0 ? $r[
     <button type="button" class="primary" data-finance-open="budget-dialog"<?= $rows === [] ? ' disabled title="Crie uma categoria de despesa primeiro"' : '' ?>>+ Definir orçamento</button>
   </div>
   <div class="finance-goal-summary" aria-label="Resumo do orçamento">
-    <div class="finance-goal-stat"><span>Orçamento</span><strong><?= $e(Finance::money($planned)) ?></strong><small><?= $e($period['long']) ?></small></div>
-    <div class="finance-goal-stat"><span>Gasto</span><strong class="red"><?= $e(Finance::money($spent)) ?></strong><small>Nas categorias com orçamento</small></div>
-    <div class="finance-goal-stat"><span>Disponível</span><strong class="<?= $planned - $spent < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($planned - $spent)) ?></strong><small>Orçamento − gasto</small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Orçamento previsto</span><strong><?= $e(Finance::money($planned)) ?></strong><small><?= $e($period['long']) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $spent > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Gasto realizado</span><strong><?= $e(Finance::money($spent)) ?></strong><small>Nas categorias com orçamento</small></div>
+    <?php $budgetAvailable = $planned - $spent; ?><div class="finance-goal-stat finance-indicator <?= $budgetAvailable > 0 ? 'is-positive' : ($budgetAvailable < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Disponível</span><strong><?= $e(Finance::money($budgetAvailable)) ?></strong><small>Orçamento − gasto</small></div>
   </div>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Mês"><a href="<?= $e($link($period['previous'])) ?>" aria-label="Mês anterior">‹</a><strong><?= $e($period['long']) ?></strong><a href="<?= $e($link($period['next'])) ?>" aria-label="Próximo mês">›</a></nav>

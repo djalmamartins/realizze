@@ -27,10 +27,10 @@ try {
 ?>
 <section class="card executive-panel" aria-label="Indicadores da empresa">
   <div class="finance-goal-summary cash-summary">
-    <div class="finance-goal-stat"><span>Receitas de <?= $e($period['short']) ?></span><strong class="green"><?= $e(Finance::money($income['paid'])) ?></strong><small>Já recebidas</small></div>
-    <div class="finance-goal-stat"><span>Despesas de <?= $e($period['short']) ?></span><strong class="red"><?= $e(Finance::money($expense['paid'])) ?></strong><small>Já pagas</small></div>
-    <a class="finance-goal-stat" href="<?= $e(AppUrl::section('receber', null, ['situacao' => 'overdue', 'inicio' => '2000-01-01', 'fim' => $yesterday])) ?>"><span>A receber vencido</span><strong class="<?= $overdueIncomeTotal > 0 ? 'red' : '' ?>"><?= $e(Finance::money($overdueIncomeTotal)) ?></strong><small><?= (int) $overdueIncome['total'] ?> cobrança<?= (int) $overdueIncome['total'] === 1 ? '' : 's' ?> em atraso</small></a>
-    <a class="finance-goal-stat" href="<?= $e(AppUrl::section('fluxo-de-caixa')) ?>"><span>A pagar vencido</span><strong class="<?= $overdueExpense > 0 ? 'red' : '' ?>"><?= $e(Finance::money($overdueExpense)) ?></strong><small>Ver fluxo de caixa</small></a>
+    <div class="finance-goal-stat finance-indicator <?= $income['paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Receitas de <?= $e($period['short']) ?></span><strong><?= $e(Finance::money($income['paid'])) ?></strong><small>Já recebidas</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $expense['paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Despesas de <?= $e($period['short']) ?></span><strong><?= $e(Finance::money($expense['paid'])) ?></strong><small>Já pagas</small></div>
+    <a class="finance-goal-stat finance-indicator <?= $overdueIncomeTotal > 0 ? 'is-overdue' : 'is-neutral' ?>" href="<?= $e(AppUrl::section('receber', null, ['situacao' => 'overdue', 'inicio' => '2000-01-01', 'fim' => $yesterday])) ?>"><span>A receber vencido</span><strong><?= $e(Finance::money($overdueIncomeTotal)) ?></strong><small><?= (int) $overdueIncome['total'] ?> cobrança<?= (int) $overdueIncome['total'] === 1 ? '' : 's' ?> em atraso</small></a>
+    <a class="finance-goal-stat finance-indicator <?= $overdueExpense > 0 ? 'is-overdue' : 'is-neutral' ?>" href="<?= $e(AppUrl::section('fluxo-de-caixa')) ?>"><span>A pagar vencido</span><strong><?= $e(Finance::money($overdueExpense)) ?></strong><small>Ver fluxo de caixa</small></a>
   </div>
   <?php if ($overdueIncome['rows'] !== []): ?>
   <div class="executive-overdue">
