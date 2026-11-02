@@ -98,6 +98,25 @@ final class RecurringFinance
         }
     }
 
+    private function advanceNextDue(int $id, string $due, string $frequency): void
+    {
+        $date = new DateTimeImmutable($due);
+        if ($frequency === 'weekly') {
+            $next = $date->modify('+7 days');
+        } else {
+            $months = match ($frequency) {
+                'quarterly' => 3,
+                'yearly' => 12,
+                default => 1,
+            };
+            $first = $date->modify('first day of this month')->modify('+' . $months . ' months');
+            $day = min((int) $date->format('j'), (int) $first->format('t'));
+            $next = $first->setDate((int) $first->format('Y'), (int) $first->format('n'), $day);
+        }
+        $update = $this->pdo->prepare('UPDATE finance_recurring_items SET next_due_date=? WHERE id=? AND financial_context_id=?');
+        $update->execute([$next->format('Y-m-d'), $id, $this->contextId]);
+    }
+
     public function changeStatus(int $id, string $status): bool
     {
         if (!in_array($status, ['active', 'paused', 'canceled'], true)) throw new InvalidArgumentException('Situação inválida.');
