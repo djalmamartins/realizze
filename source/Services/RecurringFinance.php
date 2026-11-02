@@ -90,6 +90,7 @@ final class RecurringFinance
                 $link = $this->pdo->prepare('INSERT INTO finance_recurring_occurrences (financial_context_id,recurring_item_id,due_date,entry_id) VALUES (?,?,?,?)');
                 $link->execute([$this->contextId,$id,$due,$entryId]);
             }
+            $this->advanceNextDue($id, $due, $item['frequency']);
             $this->pdo->commit();
         } catch (\Throwable $error) {
             $this->pdo->rollBack();
