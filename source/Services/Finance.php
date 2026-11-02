@@ -73,9 +73,9 @@ final class Finance
     public function entries(string $kind, string $start, string $end, string $status = 'all', array $filters = []): array
     {
         $filter = match ($status) {
-            'open' => ' AND e.paid_at IS NULL',
+            'open' => " AND e.paid_at IS NULL AND (e.status IS NULL OR e.status <> 'cancelled')",
             'paid' => ' AND e.paid_at IS NOT NULL',
-            'overdue' => ' AND e.paid_at IS NULL AND e.due_date < CURDATE()',
+            'overdue' => " AND e.paid_at IS NULL AND e.due_date < CURDATE() AND (e.status IS NULL OR e.status <> 'cancelled')",
             default => '',
         };
         $params = [$this->contextId, $kind, $start, $end];
@@ -1482,6 +1482,7 @@ final class Finance
              FROM finance_entries AS e
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
              WHERE e.financial_context_id = ? AND e.kind = 'expense' AND e.due_date BETWEEN ? AND ?
+               AND (e.status IS NULL OR e.status <> 'cancelled')
              GROUP BY name, color ORDER BY total DESC"
         );
         $statement->execute([$this->contextId, $start, $end]);

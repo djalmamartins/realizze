@@ -45,6 +45,12 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 - [ ] **PF-11. Exportar e excluir a conta (LGPD).** Não encontrei fluxo de exportação de dados pessoais nem de exclusão. Excluir usuário com recorrência ainda falha pela FK `finance_recurring_items.account_id`.
 - [ ] **PF-12. Trocar o e-mail da conta.** O campo em Perfil está desativado com "Alterações exigem verificação".
 
+- [ ] **PF-18. Categorias soma lançamentos cancelados.** `Finance::categoriesWithTotals` não filtra `status`. Não mudei porque Categorias ficou fora da etapa de 02/11. Fazer junto com PF-05.
+- [ ] **PF-19. Despesa paga não volta a ficar em aberto.** Só dá para excluir. Fazer junto com PF-04.
+- [ ] **PF-20. Agendar as tarefas de produção.** `finance-recurring-due`, `process-mail-queue`, `process-notifications` e `process-goal-schedules` não têm cron.
+- [ ] **PF-21. Backup, restauração e controle de migrations.** Hoje há só dump manual, sem teste de restauração nem registro de migrations aplicadas.
+- [ ] **PF-22. Djalma: aplicar a migration 013** com `aplicar-migrations.sh`. Sem ela, Dívidas fica sem estorno e sem aplicar acordo.
+
 ### P2
 
 - [ ] **PF-13. Conferir o App em celular real e com cache normal.** Até hoje só houve emulação no Chrome com cache desligado.
