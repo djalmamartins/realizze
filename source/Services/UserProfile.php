@@ -24,7 +24,8 @@ final class UserProfile
         if ($first === '' || $last === '' || mb_strlen($first) > 100 || mb_strlen($last) > 100) throw new \InvalidArgumentException('Informe nome e sobrenome válidos.');
         $phone = self::phone((string) ($input['phone'] ?? ''));
         $birth = trim((string) ($input['datebirth'] ?? ''));
-        if ($birth !== '' && (\DateTimeImmutable::createFromFormat('!Y-m-d', $birth) === false || $birth > date('Y-m-d'))) throw new \InvalidArgumentException('Data de nascimento inválida.');
+        $parsedBirth = \DateTimeImmutable::createFromFormat('!Y-m-d', $birth);
+        if ($birth !== '' && ($parsedBirth === false || $parsedBirth->format('Y-m-d') !== $birth || $birth > date('Y-m-d') || $birth < '1900-01-01')) throw new \InvalidArgumentException('Data de nascimento inválida.');
         $timezone = (string) ($input['timezone'] ?? 'America/Sao_Paulo');
         if (!in_array($timezone, \DateTimeZone::listIdentifiers(), true)) throw new \InvalidArgumentException('Fuso horário inválido.');
         $biography = trim((string) ($input['biography'] ?? ''));
@@ -44,12 +45,13 @@ final class UserProfile
         }
         $statement = Connection::get()->prepare('SELECT password FROM users WHERE id=?');
         $statement->execute([$userId]);
-        if (!password_verify($current, (string) $statement->fetchColumn())) {
+        $hash = (string) $statement->fetchColumn();
+        if (!password_verify($current, $hash)) {
             UserActivity::record($userId, 'password.changed', 'failure');
             throw new \InvalidArgumentException('A senha atual não confere.');
         }
         if ($new !== $confirmation || strlen($new) < 12 || strlen($new) > 128 || !preg_match('/[A-Za-z]/', $new) || !preg_match('/\d/', $new)) throw new \InvalidArgumentException('Use ao menos 12 caracteres, com letras e números, e confirme a nova senha.');
-        if (password_verify($new, (string) $statement->fetchColumn())) throw new \InvalidArgumentException('A nova senha deve ser diferente da atual.');
+        if (password_verify($new, $hash)) throw new \InvalidArgumentException('A nova senha deve ser diferente da atual.');
         Connection::get()->prepare('UPDATE users SET password=?,auth_version=auth_version+1,updated_at=NOW() WHERE id=?')->execute([password_hash($new, PASSWORD_DEFAULT), $userId]);
         $version = (int) Connection::get()->query('SELECT auth_version FROM users WHERE id=' . $userId)->fetchColumn();
         $_SESSION['auth_version'] = $version;
@@ -71,6 +73,23 @@ final class UserProfile
         $old = (string) ($profile['photo'] ?? '');
         if (str_starts_with($old, '/uploads/profiles/')) $upload->remove(substr($old, strlen('/uploads/profiles/')));
         UserActivity::record($userId, 'profile.photo_updated');
+    }
+
+    /** Remove a foto atual. Sem foto, não faz nada. */
+    public static function removePhoto(int $userId): void
+    {
+        $old = (string) (self::get($userId)['photo'] ?? '');
+        if ($old === '') return;
+        Connection::get()->prepare('UPDATE users SET photo=NULL,updated_at=NOW() WHERE id=?')->execute([$userId]);
+        if (str_starts_with($old, '/uploads/profiles/')) (new Upload(BASE_PATH . '/public/uploads/profiles', 2097152))->remove(substr($old, strlen('/uploads/profiles/')));
+        UserActivity::record($userId, 'profile.photo_removed');
+    }
+
+    /** CPF só com os dígitos finais, para a tela nunca devolver o número inteiro. */
+    public static function maskedDocument(?string $document): string
+    {
+        $digits = preg_replace('/\D/', '', (string) $document) ?? '';
+        return strlen($digits) === 11 ? '***.***.' . substr($digits, 6, 3) . '-' . substr($digits, 9, 2) : ($digits === '' ? 'Não informado' : '***');
     }
 
     public static function notificationPreferences(int $userId): array

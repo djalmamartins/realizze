@@ -42,6 +42,21 @@ try {
     $check($profile['first_name'] === 'Nome' && $profile['phone'] === '+5531988887777' && $profile['datebirth'] === '1990-05-12', 'Dados pessoais normalizados e persistidos');
     try { UserProfile::phone('11111111111'); $check(false, 'Celular repetido rejeitado'); } catch (InvalidArgumentException) { $check(true, 'Celular inválido rejeitado'); }
 
+    try { UserProfile::update($users['owner']['id'], ['first_name'=>'Nome','last_name'=>'Atualizado','phone'=>'(31) 98888-7777','datebirth'=>'1990-02-31']); $check(false, 'Data inexistente aceita'); } catch (InvalidArgumentException) { $check(true, 'Data de nascimento inexistente é recusada'); }
+    try { UserProfile::update($users['owner']['id'], ['first_name'=>'','last_name'=>'X','phone'=>'(31) 98888-7777']); $check(false, 'Nome vazio aceito'); } catch (InvalidArgumentException) { $check(true, 'Nome é obrigatório'); }
+    try { UserProfile::changePassword($users['owner']['id'], 'errada', 'Nova-Senha-12345', 'Nova-Senha-12345'); $check(false, 'Senha atual errada aceita'); } catch (InvalidArgumentException) { $check(true, 'Senha atual errada é recusada'); }
+    try { UserProfile::changePassword($users['owner']['id'], $password, $password, $password); $check(false, 'Mesma senha aceita'); } catch (InvalidArgumentException $error) { $check(str_contains($error->getMessage(), 'diferente'), 'Nova senha igual à atual é recusada'); }
+    try { UserProfile::changePassword($users['owner']['id'], $password, 'curta1', 'curta1'); $check(false, 'Senha fraca aceita'); } catch (InvalidArgumentException) { $check(true, 'Senha fraca é recusada'); }
+    $versionBefore = (int) $pdo->query('SELECT auth_version FROM users WHERE id=' . (int) $users['owner']['id'])->fetchColumn();
+    UserProfile::changePassword($users['owner']['id'], $password, 'Nova-Senha-12345', 'Nova-Senha-12345');
+    $stored = $pdo->query('SELECT password, auth_version FROM users WHERE id=' . (int) $users['owner']['id'])->fetch(PDO::FETCH_ASSOC);
+    $check(password_verify('Nova-Senha-12345', $stored['password']) && (int) $stored['auth_version'] === $versionBefore + 1 && !str_contains((string) $stored['password'], 'Nova-Senha'), 'Senha nova persistida com hash e sessões antigas invalidadas');
+    $password = 'Nova-Senha-12345';
+    $check(UserProfile::maskedDocument('12345678901') === '***.***.789-01' && UserProfile::maskedDocument(null) === 'Não informado', 'CPF sai mascarado');
+    $pdo->prepare('UPDATE users SET photo=? WHERE id=?')->execute(['/uploads/profiles/inexistente.jpg', $users['owner']['id']]);
+    UserProfile::removePhoto($users['owner']['id']);
+    $check(UserProfile::get($users['owner']['id'])['photo'] === null, 'Foto removida do perfil');
+
     $setup = TwoFactorAuth::begin($users['owner']['id'], $password);
     $method = new ReflectionMethod(TwoFactorAuth::class, 'hotp');
     $code = $method->invoke(null, $setup['secret'], intdiv(time(), 30));

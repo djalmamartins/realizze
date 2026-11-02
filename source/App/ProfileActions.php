@@ -56,7 +56,7 @@ final class ProfileActions
         header('Location: /p/perfil?aba=' . rawurlencode($tab), true, 303);
     }
 
-    private function update(int $id): string { UserProfile::update($id, $_POST); UserProfile::updatePhoto($id, is_array($_FILES['photo'] ?? null) ? $_FILES['photo'] : []); return 'Dados atualizados com sucesso.'; }
+    private function update(int $id): string { UserProfile::update($id, $_POST); if (isset($_POST['remove_photo'])) UserProfile::removePhoto($id); UserProfile::updatePhoto($id, is_array($_FILES['photo'] ?? null) ? $_FILES['photo'] : []); return 'Dados atualizados com sucesso.'; }
     private function password(int $id): string { UserProfile::changePassword($id, (string) ($_POST['current_password'] ?? ''), (string) ($_POST['new_password'] ?? ''), (string) ($_POST['confirm_password'] ?? '')); return 'Senha alterada e outras sessões encerradas.'; }
     private function beginTwoFactor(int $id): string { $_SESSION['profile_2fa_setup'] = TwoFactorAuth::begin($id, (string) ($_POST['current_password'] ?? '')); return 'Leia o QR Code e confirme o código para concluir.'; }
     private function confirmTwoFactor(int $id): string { $_SESSION['profile_recovery_codes'] = TwoFactorAuth::confirm($id, (string) ($_POST['code'] ?? '')); unset($_SESSION['profile_2fa_setup']); return 'Autenticação em dois fatores ativada.'; }
