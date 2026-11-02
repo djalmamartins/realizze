@@ -13,7 +13,8 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require dirname(__DIR__) . '/source/Boot/app.php';
+require dirname(__DIR__) . '/source/Boot/database.php';
 
 use Moves\Services\RecurringFinance;
 use MovesCode\Model\Connection;

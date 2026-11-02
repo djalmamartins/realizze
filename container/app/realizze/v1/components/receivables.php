@@ -4,6 +4,7 @@ use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\Receivables;
 use Moves\Services\Contacts;
+use Moves\Services\RecurringFinance;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $date = static function (mixed $value, string $fallback): string {
@@ -37,6 +38,8 @@ try {
         throw new RuntimeException('Contexto financeiro indisponível.');
     }
     $finance = new Finance($contextId);
+    // Gera de forma idempotente as receitas recorrentes vencidas até hoje.
+    (new RecurringFinance($contextId))->generateDue(new DateTimeImmutable('today'), 100);
     $receivables = new Receivables($contextId);
     $customers = (new Contacts($contextId))->selectableCustomers();
     $accounts = $finance->accounts();
