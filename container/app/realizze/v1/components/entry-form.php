@@ -32,6 +32,12 @@ $cardAccounts = array_filter($form['accounts'], static fn (array $account): bool
       </div>
     </div>
     <?php if ($form['extras']): $extrasId = $formId; $extrasTags = $form['tags']; require __DIR__ . '/entry-extras.php'; endif; ?>
+    <div class="entry-recurring-link">
+      <strong>É uma assinatura ou cobrança recorrente?</strong>
+      <p class="muted">Cadastre uma vez e acompanhe as próximas cobranças em Assinaturas e Recorrências. O recurso de repetição acima continua disponível para parcelas e séries com quantidade definida.</p>
+      <a href="<?= $e(\Moves\Services\AppUrl::section('recorrencias', null, ['novo' => '1', 'tipo' => $form['kind']])) ?>">Cadastrar como recorrência</a>
+    </div>
+
     <p class="entry-error" role="alert" data-entry-error hidden></p>
     <footer><span class="entry-total" data-entry-total-box>Total <strong data-entry-total>R$ 0,00</strong></span><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
   </form>
