@@ -1539,3 +1539,4 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .finance-toolbar-actions form{margin:0}
 .finance-toolbar-actions form button{height:100%;width:100%}
 @media(max-width:760px){.finance-workspace>h2,.finance-workspace>.muted,.finance-workspace>.debt-alert,.finance-workspace>.debt-details,.finance-workspace>.debt-list,.finance-workspace>.debt-scenario,.finance-workspace>.debt-table-wrap,.finance-workspace>.debt-assumptions,.finance-workspace>.debt-progress,.finance-workspace>.debt-upcoming,.finance-workspace>.debt-summary{margin-inline:20px}.debt-upcoming li{grid-template-columns:84px 1fr auto}}
+.finance-workspace+.finance-workspace{margin-top:20px}
