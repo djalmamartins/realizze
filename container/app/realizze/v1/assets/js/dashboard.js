@@ -504,10 +504,29 @@ syncAppFavicon();
         list.append(empty);
       }
       list.hidden = false;
+      place();
       input.setAttribute('aria-expanded', 'true');
       mark(items().length ? 0 : -1);
     };
+    // A lista vai para a camada superior, acima da própria modal: a borda da modal não a corta
+    // nem cria rolagem. Abre para cima quando falta espaço embaixo.
+    const place = () => {
+      if (list.hidden || typeof list.showPopover !== 'function') return;
+      if (!list.matches(':popover-open')) list.showPopover();
+      const field = input.getBoundingClientRect();
+      Object.assign(list.style, { position: 'fixed', margin: '0', inset: 'auto', width: `${field.width}px`, left: `${field.left}px`, maxHeight: '' });
+      const room = window.innerHeight - field.bottom - 12;
+      const above = field.top - 12;
+      const height = Math.min(list.scrollHeight, 260);
+      const up = room < height && above > room;
+      list.style.maxHeight = `${Math.max(120, Math.min(260, up ? above : room))}px`;
+      list.style.top = `${up ? Math.max(8, field.top - 4 - list.getBoundingClientRect().height) : field.bottom + 4}px`;
+    };
+    list.popover = 'manual';
+    form.closest('dialog').addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
     const hide = () => {
+      if (list.matches?.(':popover-open')) list.hidePopover();
       list.hidden = true;
       input.setAttribute('aria-expanded', 'false');
       input.removeAttribute('aria-activedescendant');
