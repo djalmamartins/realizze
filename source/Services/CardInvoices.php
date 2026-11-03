@@ -64,10 +64,18 @@ final class CardInvoices
         $this->ownedCard($cardId);
         if (!preg_match('/^20\d{2}-(0[1-9]|1[0-2])$/', $reference)) throw new InvalidArgumentException('Mês inválido.');
         [$start, $end, $due] = $this->period($cardId, $reference);
-        $q = $this->pdo->prepare("SELECT e.id,e.description,e.amount_cents,e.due_date,e.paid_at,c.name category FROM finance_entries e LEFT JOIN finance_categories c ON c.id=e.category_id WHERE e.financial_context_id=? AND e.account_id=? AND e.kind='expense' AND e.due_date BETWEEN ? AND ? AND e.paid_at IS NULL ORDER BY e.due_date,e.id");
+        $q = $this->pdo->prepare("SELECT e.id,e.description,e.amount_cents,e.due_date,e.paid_at,c.name category,
+            COALESCE(SUM(CASE WHEN p.reversed_at IS NULL THEN a.amount_cents ELSE 0 END),0) AS paid_cents
+            FROM finance_entries e LEFT JOIN finance_categories c ON c.id=e.category_id
+            LEFT JOIN finance_card_payment_allocations a ON a.card_entry_id=e.id AND a.financial_context_id=e.financial_context_id
+            LEFT JOIN finance_card_invoice_payments p ON p.id=a.payment_id
+            WHERE e.financial_context_id=? AND e.account_id=? AND e.kind='expense' AND e.due_date BETWEEN ? AND ? AND e.paid_at IS NULL
+            GROUP BY e.id HAVING e.amount_cents > paid_cents ORDER BY e.due_date,e.id");
         $q->execute([$this->contextId, $cardId, $start, $end]);
         $rows = $q->fetchAll(PDO::FETCH_ASSOC);
-        return ['start' => $start, 'end' => $end, 'due_on' => $due, 'rows' => $rows, 'total_cents' => array_sum(array_map(static fn($r) => (int) $r['amount_cents'], $rows))];
+        foreach ($rows as &$row) $row['open_cents'] = (int) $row['amount_cents'] - (int) $row['paid_cents'];
+        unset($row);
+        return ['start' => $start, 'end' => $end, 'due_on' => $due, 'rows' => $rows, 'total_cents' => array_sum(array_map(static fn($r) => (int) $r['open_cents'], $rows))];
     }
 
     /** Quita as despesas de cartão da fatura e cria uma única saída na conta pagadora. */
@@ -78,6 +86,8 @@ final class CardInvoices
         $month = (string) ($data['month'] ?? '');
         $invoice = $this->invoice($card, $month);
         if ($invoice['total_cents'] <= 0) throw new InvalidArgumentException('Esta fatura não possui compras em aberto.');
+        $amount = ($data['amount'] ?? '') === '' ? $invoice['total_cents'] : Finance::parseCents($data['amount']);
+        if ($amount > $invoice['total_cents']) throw new InvalidArgumentException('O pagamento não pode superar o saldo aberto da fatura.');
         $key = $this->key($data['idempotency_key'] ?? null);
         $old = $this->pdo->prepare('SELECT id FROM finance_card_invoice_payments WHERE financial_context_id=? AND idempotency_key=?');
         $old->execute([$this->contextId, $key]);
@@ -86,15 +96,29 @@ final class CardInvoices
         $this->pdo->beginTransaction();
         try {
             $entry = $this->pdo->prepare("INSERT INTO finance_entries (financial_context_id,kind,description,amount_cents,due_date,paid_at,account_id,created_by,idempotency_key) VALUES (?,'expense',?,?,?,?,?,?,?)");
-            $entry->execute([$this->contextId, 'Pagamento de fatura', $invoice['total_cents'], $paidOn, $paidOn, $source, $userId, hash('sha256', $key . ':cash')]);
+            $entry->execute([$this->contextId, 'Pagamento de fatura', $amount, $paidOn, $paidOn, $source, $userId, hash('sha256', $key . ':cash')]);
             $cashEntry = (int) $this->pdo->lastInsertId();
-            $ids = array_map(static fn(array $r): int => (int) $r['id'], $invoice['rows']);
-            $marks = implode(',', array_fill(0, count($ids), '?'));
-            $this->pdo->prepare("UPDATE finance_entries SET paid_at=? WHERE financial_context_id=? AND account_id=? AND id IN ({$marks}) AND paid_at IS NULL")->execute([$paidOn, $this->contextId, $card, ...$ids]);
             $save = $this->pdo->prepare('INSERT INTO finance_card_invoice_payments (financial_context_id,card_account_id,source_account_id,entry_id,period_start,period_end,amount_cents,idempotency_key,paid_on,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)');
-            $save->execute([$this->contextId, $card, $source, $cashEntry, $invoice['start'], $invoice['end'], $invoice['total_cents'], $key, $paidOn, $userId]);
-            $id = (int) $this->pdo->lastInsertId(); $this->pdo->commit(); return $id;
+            $save->execute([$this->contextId, $card, $source, $cashEntry, $invoice['start'], $invoice['end'], $amount, $key, $paidOn, $userId]);
+            $id = (int) $this->pdo->lastInsertId();
+            $allocation = $this->pdo->prepare('INSERT INTO finance_card_payment_allocations (financial_context_id,payment_id,card_entry_id,amount_cents) VALUES (?,?,?,?)');
+            $remaining=$amount;
+            foreach($invoice['rows'] as $row){ if($remaining<=0) break; $part=min($remaining,(int)$row['open_cents']); $allocation->execute([$this->contextId,$id,(int)$row['id'],$part]); $remaining-=$part; if($part===(int)$row['open_cents']) $this->pdo->prepare('UPDATE finance_entries SET paid_at=? WHERE id=? AND financial_context_id=?')->execute([$paidOn,(int)$row['id'],$this->contextId]); }
+            $this->pdo->commit(); return $id;
         } catch (\Throwable $e) { if ($this->pdo->inTransaction()) $this->pdo->rollBack(); throw $e; }
+    }
+
+    /** Estorno preserva histórico, desfaz alocações e remove somente a saída criada pelo pagamento. */
+    public function reversePayment(int $paymentId, int $userId): bool
+    {
+        $this->pdo->beginTransaction(); try {
+            $q=$this->pdo->prepare('SELECT * FROM finance_card_invoice_payments WHERE id=? AND financial_context_id=? AND reversed_at IS NULL FOR UPDATE');$q->execute([$paymentId,$this->contextId]);$payment=$q->fetch(PDO::FETCH_ASSOC);if(!$payment){$this->pdo->rollBack();return false;}
+            $a=$this->pdo->prepare('SELECT card_entry_id FROM finance_card_payment_allocations WHERE payment_id=?');$a->execute([$paymentId]);$ids=$a->fetchAll(PDO::FETCH_COLUMN);
+            $this->pdo->prepare('UPDATE finance_card_invoice_payments SET reversed_at=NOW(),reversed_by=? WHERE id=?')->execute([$userId,$paymentId]);
+            $this->pdo->prepare('DELETE FROM finance_entries WHERE id=? AND financial_context_id=?')->execute([(int)$payment['entry_id'],$this->contextId]);
+            foreach($ids as $entryId)$this->pdo->prepare('UPDATE finance_entries SET paid_at=NULL WHERE id=? AND financial_context_id=?')->execute([(int)$entryId,$this->contextId]);
+            $this->pdo->commit();return true;
+        } catch(\Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
     }
 
     private function installments(string $date, int $amount, int $count, array $rules): array { $list=[]; for($i=0;$i<$count;$i++){ $base=(new DateTimeImmutable($date))->modify('first day of +' . $i . ' month'); $list[]=['amount'=>intdiv($amount,$count)+($i===0?$amount%$count:0),'due'=>$this->cycleDate($base,$rules)->format('Y-m-d')]; } return $list; }
