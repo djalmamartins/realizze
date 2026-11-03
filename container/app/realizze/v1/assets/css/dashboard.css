@@ -1540,3 +1540,7 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .finance-toolbar-actions form button{height:100%;width:100%}
 @media(max-width:760px){.finance-workspace>h2,.finance-workspace>.muted,.finance-workspace>.debt-alert,.finance-workspace>.debt-details,.finance-workspace>.debt-list,.finance-workspace>.debt-scenario,.finance-workspace>.debt-table-wrap,.finance-workspace>.debt-assumptions,.finance-workspace>.debt-progress,.finance-workspace>.debt-upcoming,.finance-workspace>.debt-summary{margin-inline:20px}.debt-upcoming li{grid-template-columns:84px 1fr auto}}
 .finance-workspace+.finance-workspace{margin-top:20px}
+.finance-actions button.is-icon,.finance-icon-danger{display:inline-grid;place-items:center;width:calc(32px - var(--app-button-trim));min-width:calc(32px - var(--app-button-trim));padding:0;color:#c0262d}
+.finance-icon-danger{height:30px;border-radius:8px}
+.finance-icon-danger:hover{background:#fdecec}
+.finance-actions>*,.finance-actions form>button{vertical-align:middle}

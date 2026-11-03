@@ -108,7 +108,7 @@ unset($_SESSION['finance_flash']);
         <td class="finance-actions">
           <?php if (isset($editData[(int) $row['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $row['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <?php if ($row['kind'] === 'transfer'): ?>
-          <form method="post" action="/minha-conta/financeiro/excluir" data-finance-confirm="Excluir esta transferência?"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="movimentacoes"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $row['id'] ?>"><button type="submit" class="is-danger">Excluir</button></form>
+          <form method="post" action="/minha-conta/financeiro/excluir" data-finance-confirm="Excluir esta transferência?"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="movimentacoes"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $row['id'] ?>"><button type="submit" class="is-danger is-icon" aria-label="Excluir esta transferência" title="Excluir"><?php require __DIR__ . '/../components/trash-icon.php'; ?></button></form>
           <?php endif; ?>
         </td>
       </tr>

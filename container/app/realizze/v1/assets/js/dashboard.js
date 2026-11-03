@@ -504,10 +504,29 @@ syncAppFavicon();
         list.append(empty);
       }
       list.hidden = false;
+      place();
       input.setAttribute('aria-expanded', 'true');
       mark(items().length ? 0 : -1);
     };
+    // A lista vai para a camada superior, acima da própria modal: a borda da modal não a corta
+    // nem cria rolagem. Abre para cima quando falta espaço embaixo.
+    const place = () => {
+      if (list.hidden || typeof list.showPopover !== 'function') return;
+      if (!list.matches(':popover-open')) list.showPopover();
+      const field = input.getBoundingClientRect();
+      Object.assign(list.style, { position: 'fixed', margin: '0', inset: 'auto', width: `${field.width}px`, left: `${field.left}px`, maxHeight: '' });
+      const room = window.innerHeight - field.bottom - 12;
+      const above = field.top - 12;
+      const height = Math.min(list.scrollHeight, 260);
+      const up = room < height && above > room;
+      list.style.maxHeight = `${Math.max(120, Math.min(260, up ? above : room))}px`;
+      list.style.top = `${up ? Math.max(8, field.top - 4 - list.getBoundingClientRect().height) : field.bottom + 4}px`;
+    };
+    list.popover = 'manual';
+    form.closest('dialog').addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
     const hide = () => {
+      if (list.matches?.(':popover-open')) list.hidePopover();
       list.hidden = true;
       input.setAttribute('aria-expanded', 'false');
       input.removeAttribute('aria-activedescendant');
@@ -921,11 +940,42 @@ syncAppFavicon();
   document.addEventListener('change', (event) => {
     if (event.target.matches?.('[data-goal-sort]')) event.target.form.requestSubmit();
   });
+  const rowMenus = 'details.goal-menu[open],details.recurring-menu[open]';
   document.addEventListener('click', (event) => {
-    document.querySelectorAll('details.goal-menu[open]').forEach((menu) => {
+    document.querySelectorAll(rowMenus).forEach((menu) => {
       if (!menu.contains(event.target) || event.target.closest('button')) menu.open = false;
     });
   });
+  // O menu de ações vai para a camada superior do navegador: nenhum recorte de tabela ou cartão o cobre.
+  // Fica ao lado do botão e abre para cima se faltar espaço.
+  const placeRowMenu = (menu) => {
+    const panel = menu.querySelector(':scope > div');
+    panel.popover = 'manual';
+    panel.showPopover();
+    panel.style.position = 'fixed';
+    panel.style.margin = '0';
+    panel.style.inset = 'auto';
+    const button = menu.querySelector('summary').getBoundingClientRect();
+    const { width, height } = panel.getBoundingClientRect();
+    const below = button.bottom + 4;
+    const fitsBelow = below + height <= window.innerHeight - 8;
+    panel.style.top = `${Math.max(8, fitsBelow ? below : button.top - height - 4)}px`;
+    panel.style.left = `${Math.max(8, Math.min(button.right - width, window.innerWidth - width - 8))}px`;
+  };
+  document.addEventListener('toggle', (event) => {
+    if (!event.target.matches?.('details.goal-menu,details.recurring-menu')) return;
+    if (event.target.open) {
+      placeRowMenu(event.target);
+    } else {
+      const panel = event.target.querySelector(':scope > div');
+      if (panel.matches(':popover-open')) panel.hidePopover();
+    }
+  }, true);
+  const closeRowMenus = () => document.querySelectorAll(rowMenus).forEach((menu) => { menu.open = false; });
+  window.addEventListener('resize', closeRowMenus);
+  document.addEventListener('scroll', (event) => {
+    if (!event.target.closest?.('details.goal-menu,details.recurring-menu')) closeRowMenus();
+  }, true);
 
   // Criação de meta em passos: resumo ao vivo e análise com o histórico real recebido do servidor.
   const goalMoney = (cents) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

@@ -38,8 +38,8 @@ try {
         throw new RuntimeException('Contexto financeiro indisponível.');
     }
     $finance = new Finance($contextId);
-    // Gera de forma idempotente as receitas recorrentes vencidas até hoje.
-    (new RecurringFinance($contextId))->generateDue(new DateTimeImmutable('today'), 100);
+    // Gera de forma idempotente as receitas recorrentes automáticas do mês.
+    (new RecurringFinance($contextId))->generateDue(new DateTimeImmutable('last day of this month'), 100);
     $receivables = new Receivables($contextId);
     $customers = (new Contacts($contextId))->selectableCustomers();
     $accounts = $finance->accounts();
@@ -171,8 +171,8 @@ $renderState = static function () use ($state, $e): void {
         <td><?= $e($methods[$entry['payment_method']] ?? '—') ?></td>
         <td><span class="finance-badge is-<?= $e($entry['display_status']) ?>"><?= $e($statuses[$entry['display_status']]) ?></span></td>
         <td class="finance-actions">
-          <?php if ($editable && isset($editData[(int) $entry['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <?php if ($canSettle): ?><button type="button" data-finance-open="receivable-settle-<?= (int) $entry['id'] ?>">Baixar</button><?php endif; ?>
+          <?php if ($editable && isset($editData[(int) $entry['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <button type="button" data-finance-open="receivable-history-<?= (int) $entry['id'] ?>">Detalhes</button>
         </td>
       </tr>

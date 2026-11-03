@@ -36,8 +36,8 @@ $extras = false;
 $summary = ['expected' => 0, 'paid' => 0, 'overdue' => 0, 'count' => 0];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
-    // Garante vencimentos do dia mesmo quando o cron local ainda não foi configurado.
-    (new RecurringFinance((int) FinanceContext::currentId()))->generateDue(new DateTimeImmutable('today'), 100);
+    // Assinaturas automáticas do mês já entram como contas a pagar ou receber; a ocorrência única evita duplicar.
+    (new RecurringFinance((int) FinanceContext::currentId()))->generateDue(new DateTimeImmutable('last day of this month'), 100);
     $accounts = $finance->accounts();
     $categories = $finance->categories($kind);
     $entries = $finance->entries($kind, $rangeStart, $rangeEnd, $status, ['search' => $search, 'category_id' => $categoryFilter, 'account_id' => $accountFilter, 'tag' => $tagFilter]);
@@ -136,11 +136,11 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
         <td><span class="finance-badge <?= $entry['paid_at'] ? 'is-paid' : ($overdue ? 'is-overdue' : 'is-open') ?>"><?= $entry['paid_at'] ? $e($labels['status']) : ($overdue ? 'Em atraso' : 'Em aberto') ?></span></td>
         <td class="num <?= $isIncome ? 'green' : 'red' ?>"><strong><?= $isIncome ? '+ ' : '− ' ?><?= $e(Finance::money((int) $entry['amount_cents'])) ?></strong></td>
         <td class="finance-actions">
-          <?php if (isset($editData[(int) $entry['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
           <?php if (!$entry['paid_at']): ?>
           <form method="post" action="/minha-conta/financeiro/baixa"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="kind" value="<?= $e($kind) ?>"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $entry['id'] ?>"><button type="submit"><?= $e($labels['settle']) ?></button></form>
           <?php endif; ?>
-          <form method="post" action="/minha-conta/financeiro/excluir" data-finance-confirm="Excluir “<?= $e($entry['description']) ?>”?"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="kind" value="<?= $e($kind) ?>"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $entry['id'] ?>"><button type="submit" class="is-danger">Excluir</button></form>
+          <?php if (isset($editData[(int) $entry['id']])): ?><button type="button" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?>
+          <form method="post" action="/minha-conta/financeiro/excluir" data-finance-confirm="Excluir “<?= $e($entry['description']) ?>”?"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="kind" value="<?= $e($kind) ?>"><input type="hidden" name="mes" value="<?= $e($month) ?>"><input type="hidden" name="id" value="<?= (int) $entry['id'] ?>"><button type="submit" class="is-danger is-icon" aria-label="Excluir <?= $e($entry['description']) ?>" title="Excluir"><?php require __DIR__ . '/trash-icon.php'; ?></button></form>
         </td>
       </tr>
       <?php endforeach; ?>
