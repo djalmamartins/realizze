@@ -69,6 +69,14 @@ final class Finance
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Centros de custo só existem após a migration 014. */
+    public function costCenters(): array
+    {
+        if ($this->pdo->query("SHOW TABLES LIKE 'finance_cost_centers'")->fetchColumn() === false) return [];
+        $q=$this->pdo->prepare("SELECT id,name FROM finance_cost_centers WHERE financial_context_id=? AND status='active' ORDER BY name");
+        $q->execute([$this->contextId]); return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /** @param 'all'|'open'|'paid'|'overdue' $status */
     public function entries(string $kind, string $start, string $end, string $status = 'all', array $filters = []): array
     {
@@ -212,6 +220,7 @@ final class Finance
             throw new InvalidArgumentException('Escolha uma conta.');
         }
         $categoryId = $this->ownedId('finance_categories', $data['category_id'] ?? null);
+        $costCenterId = $this->ownedCostCenter($data['cost_center_id'] ?? null);
         // Data futura paga agora conta como paga hoje; data passada, no próprio dia informado.
         $paidAt = !empty($data['paid']) ? min($due, date('Y-m-d')) : null;
         $amount = self::parseCents($data['amount'] ?? null);
@@ -235,11 +244,8 @@ final class Finance
             return $existing;
         }
         $seriesId = $total > 1 ? bin2hex(random_bytes(16)) : null;
-        $insert = $this->pdo->prepare(
-            'INSERT INTO finance_entries
-             (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, created_by, notes, idempotency_key)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
+        $hasCostCenter = $this->pdo->query("SHOW COLUMNS FROM finance_entries LIKE 'cost_center_id'")->fetchColumn() !== false;
+        $insert = $this->pdo->prepare('INSERT INTO finance_entries (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, '.($hasCostCenter?'cost_center_id, ':'').'created_by, notes, idempotency_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '.($hasCostCenter?'?, ':'').'?, ?, ?)');
         $stored = [];
         $firstId = 0;
         $this->pdo->beginTransaction();
@@ -247,7 +253,7 @@ final class Finance
             foreach ($occurrences as $index => $occurrence) {
                 $insert->execute([
                     $this->contextId, $kind, $occurrence['description'], $occurrence['amount'], $occurrence['due'],
-                    $index === 0 ? $paidAt : null, $accountId, $categoryId, $userId, $notes === '' ? null : $notes,
+                    $index === 0 ? $paidAt : null, $accountId, $categoryId, ...($hasCostCenter ? [$costCenterId] : []), $userId, $notes === '' ? null : $notes,
                     $key === null ? null : ($index === 0 ? $key : hash('sha256', $key . '-' . $index)),
                 ]);
                 $entryId = (int) $this->pdo->lastInsertId();
@@ -1501,6 +1507,15 @@ final class Finance
         $statement = $this->pdo->prepare("SELECT id FROM {$table} WHERE id = ? AND financial_context_id = ?");
         $statement->execute([$id, $this->contextId]);
         return $statement->fetchColumn() === false ? null : $id;
+    }
+
+    private function ownedCostCenter(mixed $id): ?int
+    {
+        if ($id === null || $id === '') return null;
+        if ($this->pdo->query("SHOW TABLES LIKE 'finance_cost_centers'")->fetchColumn() === false) throw new InvalidArgumentException('Centros de custo ainda não estão disponíveis.');
+        $id=filter_var($id,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        $q=$this->pdo->prepare("SELECT id FROM finance_cost_centers WHERE id=? AND financial_context_id=? AND status='active'");$q->execute([$id,$this->contextId]);
+        if($id===false||$q->fetchColumn()===false) throw new InvalidArgumentException('Centro de custo inválido.'); return (int)$id;
     }
 
     private static function date(mixed $value): string

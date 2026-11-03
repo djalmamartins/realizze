@@ -17,6 +17,7 @@ try {
     $entryFinance = new Finance($contextId);
     $entryAccounts = $entryFinance->accounts();
     $entryCategories = ['income' => $entryFinance->categories('income'), 'expense' => $entryFinance->categories('expense')];
+    $entryCostCenters = $entryFinance->costCenters();
     $entryCustomers = (new Contacts($contextId))->selectableCustomers();
     $extrasReady = $entryFinance->supportsEntryExtras();
     $extrasTags = $entryFinance->tags();
@@ -52,6 +53,7 @@ $methods = ['pix' => 'PIX', 'transfer' => 'Transferência', 'cash' => 'Dinheiro'
         <label>Categoria<select name="category_id" data-entry-category><option value="">Sem categoria</option><?php foreach ($entryCategories as $categoryKind => $list): foreach ($list as $category): ?><option value="<?= (int) $category['id'] ?>" data-kind="<?= $e($categoryKind) ?>" data-color="<?= $e($category['color']) ?>"><?= $e($category['name']) ?></option><?php endforeach; endforeach; ?></select></label>
       </div>
     </div>
+    <?php if ($entryCostCenters !== []): ?><label>Centro de custo<select name="cost_center_id"><option value="">Sem centro de custo</option><?php foreach ($entryCostCenters as $center): ?><option value="<?= (int) $center['id'] ?>"><?= $e($center['name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
     <details class="entry-details" data-entry-income hidden>
       <summary>Dados do recebimento</summary>
       <div class="finance-dialog-row">
