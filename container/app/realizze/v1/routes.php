@@ -79,7 +79,8 @@ return [
                     return;
                 }
             }
-            if ((in_array($section, $organizationSections, true) || $section === 'contato-detalhe') && $organization === null) {
+            // Faturas atendem PF e PJ; os demais itens desta lista são exclusivos da empresa.
+            if (((in_array($section, $organizationSections, true) && $section !== 'faturas') || $section === 'contato-detalhe') && $organization === null) {
                 $renderError(404);
                 return;
             }
