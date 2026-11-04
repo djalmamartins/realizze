@@ -77,7 +77,7 @@ Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empr
 - [ ] **PJ-07. Centros de custo.** Tabela, cadastro e vínculo no lançamento. Contrato C9.
 - [ ] **PJ-08. Conciliação bancária.** Importar OFX/CSV para revisão, nunca conciliar sozinho. Contrato C12.
 - [ ] **PJ-09. DRE gerencial.** Contrato C11. Decisão de Djalma: regime de caixa ou competência.
-- [ ] **PJ-10. Faturas de cartão.** Mesmo trabalho de PF-10.
+- [x] **PJ-10. Faturas de cartão.** Mesmo trabalho de PF-10.
 - [ ] **PJ-11. Obrigações PJ/MEI.** Regime da empresa e calendário, sem cálculo de tributo. Contrato C13.
 - [ ] **PJ-12. Ordens de serviço.** Módulo opcional por empresa. Contrato C20.
 - [ ] **PJ-13. Voltar ao convite depois do login.** Quem aceita o convite sem sessão perde o caminho.

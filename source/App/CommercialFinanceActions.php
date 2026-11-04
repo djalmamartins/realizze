@@ -16,7 +16,8 @@ final class CommercialFinanceActions
         if($org!==null&&!OrganizationTeam::can((int)$user['id'],(int)$org['id'],'finance.manage')){\Moves\Services\AppError::render(403);return;}
         try {$context=(int)FinanceContext::currentId();$message=match($action){
             'card_purchase'=>(new CardInvoices($context))->purchase($_POST,(int)$user['id'])?'Compra registrada na fatura.':'',
-            'card_pay'=>(new CardInvoices($context))->pay($_POST,(int)$user['id'])?'Fatura paga. A saída foi registrada somente na conta de origem.':'',
+            'card_pay'=>(new CardInvoices($context))->pay($_POST,(int)$user['id'])?'Pagamento registrado. O valor saiu da conta de origem para o cartão.':'',
+            'card_reverse'=>(new CardInvoices($context))->reversePayment((int)($_POST['payment_id']??0),(int)$user['id'])?'Pagamento estornado. O valor voltou para a conta de origem.':throw new InvalidArgumentException('Pagamento não encontrado ou já estornado.'),
             'cost_center'=>(new CostCenters($context))->save($_POST,(int)$user['id'])?'Centro de custo salvo.':'',
             'reconciliation_import'=>((new BankReconciliation($context))->importCsv($_FILES['statement']??[],$_POST['account_id']??null,(int)$user['id'])).' linhas importadas para revisão.',
             'reconciliation_review'=>$this->review($context,(int)$user['id']),
@@ -24,7 +25,9 @@ final class CommercialFinanceActions
         };$_SESSION['finance_flash']=['success',$message];
         } catch(InvalidArgumentException $e){$_SESSION['finance_flash']=['error',$e->getMessage()];} catch(Throwable $e){error_log('Realizze commercial finance: '.$e->getMessage());$_SESSION['finance_flash']=['error','Não foi possível salvar. Tente novamente.'];}
         $page=in_array($_POST['back']??'', ['faturas','conciliacao','centros-de-custo'],true)?$_POST['back']:'faturas';
-        header('Cache-Control: no-store');header('Location: '.\Moves\Services\AppUrl::section($page,null),true,303);
+        // Faturas volta para o mesmo cartão e mês.
+        $query=$page==='faturas'?array_filter(['cartao'=>(string)($_POST['card_account_id']??''),'mes'=>(string)($_POST['month']??'')],static fn($v)=>$v!==''):[];
+        header('Cache-Control: no-store');header('Location: '.\Moves\Services\AppUrl::section($page,null,$query),true,303);
     }
     private function review(int $context,int $userId): string {(new BankReconciliation($context))->review($_POST['line_id']??null,$_POST['entry_id']??null,(string)($_POST['status']??''),$userId);return 'Linha de extrato revisada. Nenhum saldo foi alterado.';}
 }

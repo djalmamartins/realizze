@@ -10,8 +10,10 @@ $name = 'Cartão HTTP ' . bin2hex(random_bytes(2));
 $o->req('POST', '/minha-conta/financeiro/conta', ['csrf_token' => $csrf, 'back' => 'contas', 'name' => $name, 'type' => 'credit_card', 'credit_limit' => '2.000,00', 'closing_day' => '3', 'due_day' => '10']);
 $page = $o->req('GET', "/e/$slug/cartoes");
 $check(str_contains($page['body'], 'Conta cadastrada') && str_contains($page['body'], 'Fecha dia 3 · vence dia 10'), 'Cartão é cadastrado com fechamento e vencimento');
-preg_match('/id="account-edit-(\d+)"[^>]*>(?:(?!<\/dialog>).)*?value="' . preg_quote(htmlspecialchars($name), '/') . '"/s', $page['body'], $m);
-$id = $m[1] ?? '';
+// A janela de edição da conta é a última aberta antes do campo com o nome dela.
+$at = strpos($page['body'], 'name="name" maxlength="120" required value="' . htmlspecialchars($name) . '"');
+preg_match_all('/id="account-edit-(\d+)"/', substr($page['body'], 0, $at === false ? 0 : $at), $m);
+$id = $at === false ? '' : (string) end($m[1]);
 $check($id !== '', 'Cada conta tem sua janela de edição');
 $o->req('POST', '/minha-conta/financeiro/conta-editar', ['csrf_token' => $csrf, 'back' => 'contas', 'id' => $id, 'name' => $name . ' editado', 'credit_limit' => '2.500,00', 'closing_day' => '4', 'due_day' => '11']);
 $page = $o->req('GET', "/e/$slug/cartoes");

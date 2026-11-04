@@ -1,0 +1,31 @@
+<?php
+// Cartões e faturas por HTTP: compra, pagamento parcial, estorno e permissão. Servidor temporário do banco de teste.
+require __DIR__ . '/client.php';
+$ok = 0; $fail = 0;
+$check = function (bool $c, string $m) use (&$ok, &$fail) { echo ($c ? 'OK' : 'FALHOU') . " - $m\n"; $c ? $ok++ : $fail++; };
+$slug = 'missao-alfa-ltda';
+$o = new H(); $o->login('pj-dono@example.invalid', 'PjMissao#2026');
+$page = $o->req('GET', "/e/$slug/cartoes"); $csrf = $o->csrf($page['body']);
+$tag = bin2hex(random_bytes(2));
+$o->req('POST', '/minha-conta/financeiro/conta', ['csrf_token' => $csrf, 'back' => 'contas', 'name' => "Banco $tag", 'type' => 'checking', 'opening_balance' => '1.000,00']);
+$o->req('POST', '/minha-conta/financeiro/conta', ['csrf_token' => $csrf, 'back' => 'contas', 'name' => "Cartão $tag", 'type' => 'credit_card', 'closing_day' => '28', 'due_day' => '5']);
+$page = $o->req('GET', "/e/$slug/faturas");
+preg_match('/<option value="(\d+)"[^>]*>Cartão ' . $tag . '</', $page['body'], $m); $card = $m[1] ?? '';
+$o->req('POST', '/minha-conta/financeiro/cartao-compra', ['csrf_token' => $csrf, 'back' => 'faturas', 'card_account_id' => $card, 'description' => "Compra $tag", 'amount' => '90,00', 'purchased_on' => '2031-03-10', 'installments' => '1', 'idempotency_key' => bin2hex(random_bytes(32))]);
+$inv = $o->req('GET', "/e/$slug/faturas?cartao=$card&mes=2031-03");
+$check(str_contains($inv['body'], "Compra $tag") && str_contains($inv['body'], 'Vence em 05/04/2031'), 'Compra aparece na fatura de março, com vencimento 05/04');
+preg_match('/<select name="source_account_id" required>.*?<option value="(\d+)">Banco ' . $tag . '/s', $inv['body'], $b);
+$r = $o->req('POST', '/minha-conta/financeiro/cartao-pagar-fatura', ['csrf_token' => $csrf, 'back' => 'faturas', 'card_account_id' => $card, 'month' => '2031-03', 'source_account_id' => $b[1] ?? '', 'amount' => '40,00', 'paid_on' => '2031-04-05', 'idempotency_key' => bin2hex(random_bytes(32))]);
+$check($r['location'] === "/e/$slug/faturas?cartao=$card&mes=2031-03", 'Depois de pagar, volta para o mesmo cartão e mês');
+$inv = $o->req('GET', $r['location']);
+$check(str_contains($inv['body'], 'Pagamento registrado') && str_contains($inv['body'], 'R$ 50,00') && str_contains($inv['body'], '>Pago<'), 'Pagamento parcial deixa R$ 50,00 em aberto e entra no histórico');
+preg_match('/name="payment_id" value="(\d+)"/', $inv['body'], $p);
+$v = new H(); $v->login('pj-leitor@example.invalid', 'PjMissao#2026');
+$vp = $v->req('GET', "/e/$slug/faturas");
+$check($v->req('POST', '/minha-conta/financeiro/cartao-estornar-pagamento', ['csrf_token' => $v->csrf($vp['body']), 'back' => 'faturas', 'payment_id' => $p[1] ?? ''])['code'] === 403, 'Visualizador não estorna');
+$o->req('POST', '/minha-conta/financeiro/cartao-estornar-pagamento', ['csrf_token' => $csrf, 'back' => 'faturas', 'card_account_id' => $card, 'month' => '2031-03', 'payment_id' => $p[1] ?? '']);
+$inv = $o->req('GET', "/e/$slug/faturas?cartao=$card&mes=2031-03");
+$check(str_contains($inv['body'], 'Pagamento estornado') && str_contains($inv['body'], 'R$ 90,00') && str_contains($inv['body'], '>Estornado<'), 'Estorno reabre a fatura e fica no histórico');
+$contas = $o->req('GET', "/e/$slug/cartoes");
+$check(str_contains($contas['body'], 'R$ 1.000,00'), 'Banco volta ao saldo inicial depois do estorno');
+echo "$ok OK, $fail falha(s)\n"; exit($fail ? 1 : 0);

@@ -1548,3 +1548,8 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 /* PJ-CONTAS: editar e arquivar contas pela própria lista. */
 .finance-account-list li:has(>.account-edit){grid-template-columns:44px 1fr auto auto}
 @media(max-width:650px){.finance-account-list li:has(>.account-edit){grid-template-columns:44px 1fr auto}.finance-account-list li>.account-edit{grid-column:2/-1;justify-self:start}}
+.invoice-pay{justify-content:flex-end;padding:16px 28px 24px}
+.invoice-card-switch{display:flex;align-items:center;gap:8px}
+.invoice-card-switch select{min-height:40px;padding:0 12px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit}
+.invoice-card-switch select:focus{outline:none;border-color:#078b4c;box-shadow:0 0 0 3px #078b4c33}
+@media(max-width:650px){.invoice-pay{padding-inline:20px}.invoice-pay .primary{width:100%}}
