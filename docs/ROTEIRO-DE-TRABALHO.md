@@ -74,7 +74,7 @@ Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empr
 - [x] **PJ-04. Contas a pagar à altura de Receber.** Falta fornecedor, baixa parcial e histórico. Sem `contact_id` na despesa, Fornecedores não mostra pagamentos. Contrato C5.
 - [x] **PJ-05. Auditoria.** A tela diz "Em breve", mas a tabela `organization_audit_logs` existe. É o módulo pendente mais fácil. Contrato C23.
 - [x] **PJ-06. Segurança.** O texto diz que 2FA e sessões não existem, mas já existem em Perfil (`TwoFactorAuth`, `UserSessions`). Ligar a tela ao que há e corrigir o texto. Contrato C22.
-- [ ] **PJ-07. Centros de custo.** Tabela, cadastro e vínculo no lançamento. Contrato C9.
+- [x] **PJ-07. Centros de custo.** Tabela, cadastro e vínculo no lançamento. Contrato C9.
 - [x] **PJ-08. Conciliação bancária.** Importar OFX/CSV para revisão, nunca conciliar sozinho. Contrato C12.
 - [ ] **PJ-09. DRE gerencial.** Contrato C11. Decisão de Djalma: regime de caixa ou competência.
 - [x] **PJ-10. Faturas de cartão.** Mesmo trabalho de PF-10.

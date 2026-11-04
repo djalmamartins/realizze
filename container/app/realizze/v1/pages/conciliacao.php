@@ -48,7 +48,7 @@ $kinds=['income'=>'Receita','expense'=>'Despesa','transfer'=>'Transferência'];
     <td><strong><?= $e($line['description']) ?></strong></td>
     <td><?= $e($line['account']) ?></td>
     <td class="num <?= (int)$line['amount_cents']<0?'red':'green' ?>"><?= $e(Finance::money((int)$line['amount_cents'])) ?></td>
-    <td><span class="finance-badge <?= ['pending'=>'is-open','matched'=>'is-paid','ignored'=>'is-neutral','reversed'=>'is-overdue'][$line['status']]??'is-open' ?>"><?= $e($statusLabels[$line['status']]??$line['status']) ?></span>
+    <td><span class="finance-badge <?= ['pending'=>'is-open','matched'=>'is-paid','ignored'=>'is-cancelled','reversed'=>'is-overdue'][$line['status']]??'is-open' ?>"><?= $e($statusLabels[$line['status']]??$line['status']) ?></span>
       <?php if($line['status']==='matched'&&$line['entry_description']): ?><small class="contact-legal"><?= $e($line['entry_description']) ?> · <?= $e($date($line['entry_date'])) ?></small><?php elseif($line['status']==='pending'): ?><small class="contact-legal"><?= $options===[]?'Sem lançamento igual':count($options).' sugest'.(count($options)===1?'ão':'ões') ?></small><?php endif; ?>
     </td>
     <td class="finance-actions"><div class="reconcile-actions">

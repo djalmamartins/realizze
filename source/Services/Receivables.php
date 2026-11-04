@@ -101,6 +101,7 @@ final class Receivables
                 $fields['category_id'], $userId, $key,
             ]);
             $id = (int) $this->pdo->lastInsertId();
+            $this->applyCostCenter($id, $data);
             $this->audit($id, 'created', $userId, ['amount_cents' => $fields['amount_cents']]);
             $this->pdo->commit();
             return ['id' => $id, 'duplicate' => false];
@@ -148,6 +149,7 @@ final class Receivables
                 $fields['payment_method'], $fields['account_id'], $fields['category_id'], $status, $paidAt,
                 $entryId, $this->contextId,
             ]);
+            $this->applyCostCenter($entryId, $data);
             $this->audit($entryId, 'updated', $userId, [
                 'amount_cents' => $fields['amount_cents'],
                 'received_cents' => $received,
@@ -385,6 +387,24 @@ final class Receivables
             'account_id' => $this->ownedId('finance_accounts', $data['account_id'] ?? null, true),
             'category_id' => $this->ownedId('finance_categories', $data['category_id'] ?? null, false, 'income'),
         ];
+    }
+
+    /** Centro de custo do recebimento (migration 014). Campo ausente no envio mantém o que está gravado. */
+    private function applyCostCenter(int $entryId, array $data): void
+    {
+        if (!array_key_exists('cost_center_id', $data) || $this->pdo->query("SHOW COLUMNS FROM finance_entries LIKE 'cost_center_id'")->fetchColumn() === false) {
+            return;
+        }
+        $center = null;
+        if ($data['cost_center_id'] !== '' && $data['cost_center_id'] !== null) {
+            $center = filter_var($data['cost_center_id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $find = $this->pdo->prepare("SELECT id FROM finance_cost_centers WHERE id = ? AND financial_context_id = ? AND status = 'active'");
+            $find->execute([$center === false ? 0 : $center, $this->contextId]);
+            if ($center === false || $find->fetchColumn() === false) {
+                throw new InvalidArgumentException('Centro de custo inválido.');
+            }
+        }
+        $this->pdo->prepare('UPDATE finance_entries SET cost_center_id = ? WHERE id = ? AND financial_context_id = ?')->execute([$center, $entryId, $this->contextId]);
     }
 
     private function lockedEntry(int $entryId): array
