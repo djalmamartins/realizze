@@ -81,6 +81,7 @@ O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros
 - Atenção: no `dev-apache`, `app.realizze.lab` serve a pasta `realizze-main-integration` (a `main`), não esta pasta. As mudanças da `dev-claude` não aparecem ali até serem integradas. As capturas desta missão usam o servidor temporário e os arquivos de `public/` desta pasta.
 - Saldo inicial de conta não é editável: o saldo vem dos lançamentos e uma correção entra como lançamento de ajuste.
 
+- Visual PJ conferido em captura: barra lateral verde-escura com logo branco e fundo verde-claro, diferente da PF (roteiro PJ-18).
 - Logo da empresa: não há coluna nem armazenamento para ele. O botão desativado saiu da tela; fica como pendência, sem migration nova por enquanto.
 - A auditoria registra o que o serviço aceitou, a partir de `TeamActions`, das rotas de aceite e recusa do convite e de `Organizations::update`. Falha ao gravar o registro vai para o log do servidor e não desfaz a ação.
 

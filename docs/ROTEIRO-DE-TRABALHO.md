@@ -88,7 +88,7 @@ Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empr
 - [x] **PJ-15. Limpar rotas que sobraram.** `/e/{empresa}/empresarial`, `/configuracoes`, `/assistente` e `/contatos` não estão no menu. Redirecionar para a tela certa.
 - [x] **PJ-16. Textos desatualizados em `module-pending.php`.** As entradas `recorrencias` e `permissoes` já têm tela real. Apagar.
 - [x] **PJ-17. Título divergente.** O menu diz "Dashboard", e a aba do navegador diz "Visão Geral".
-- [ ] **PJ-18. Fundo verde-claro da área PJ.** Pedido do perfil PJ, conferir se ainda vale. Defeito 8 do inventário.
+- [x] **PJ-18. Fundo verde-claro da área PJ.** Pedido do perfil PJ, conferir se ainda vale. Defeito 8 do inventário.
 
 ## CMS
 
