@@ -1,0 +1,44 @@
+/* Aba lateral de suporte: abre, navega entre as telas e devolve o foco ao fechar. */
+(() => {
+  'use strict';
+  const tab = document.getElementById('sp-tab');
+  const panel = document.getElementById('sp-panel');
+  if (!tab || !panel) return;
+  const titles = { home: 'Suporte', service: 'Atendimento', form: 'Abrir chamado' };
+  const parents = { service: 'home', form: 'service' };
+  const title = panel.querySelector('[data-sp-title]');
+  const back = panel.querySelector('[data-sp-back]');
+  let current = 'home';
+  const show = (name) => {
+    current = name;
+    panel.querySelectorAll('[data-sp-view]').forEach((view) => { view.hidden = view.dataset.spView !== name; });
+    title.textContent = titles[name];
+    back.hidden = name === 'home';
+    panel.scrollTop = 0;
+    title.focus();
+  };
+  const close = () => { panel.hidden = true; tab.focus(); };
+  tab.addEventListener('click', (event) => {
+    event.preventDefault();
+    panel.hidden = false;
+    show('home');
+  });
+  panel.querySelector('[data-sp-close]').addEventListener('click', close);
+  back.addEventListener('click', () => show(parents[current] || 'home'));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !panel.hidden) close();
+  });
+  const press = (selector, active) => panel.querySelectorAll(selector).forEach((button) => button.setAttribute('aria-pressed', String(button === active)));
+  const typeField = panel.querySelector('[data-support-type]');
+  const moduleField = panel.querySelector('[data-support-module]');
+  const categoryField = panel.querySelector('[data-support-category]');
+  if (moduleField) moduleField.value = 'Geral';
+  panel.addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    if (button.dataset.spCategory && categoryField) categoryField.value = button.dataset.spCategory;
+    if (button.dataset.spGo) show(button.dataset.spGo);
+    if (button.dataset.spType) { press('[data-sp-type]', button); if (typeField) typeField.value = button.dataset.spType; }
+    if (button.dataset.spModule) { press('[data-sp-module]', button); if (moduleField) moduleField.value = button.dataset.spModule; const help = panel.querySelector('[data-sp-help]'); if (help) help.href = button.dataset.spModule === 'Geral' ? '/suporte/ajuda' : '/suporte/ajuda?q=' + encodeURIComponent(button.dataset.spModule); }
+  });
+})();

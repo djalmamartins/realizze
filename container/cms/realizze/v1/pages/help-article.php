@@ -1,0 +1,2 @@
+<?php $this->layout('default'); use Moves\Services\CmsSite; use Moves\Support\CmsView as V; $a = CmsSite::helpArticle('id', (int) $id, true); if ($a === null) { http_response_code(404); echo V::empty('Artigo não encontrado.'); return; } ?>
+<article class="cms-card cms-preview-body"><h2><?= V::e($a['title']) ?></h2><p><?= V::e($a['subtitle']) ?></p><?= \Moves\Support\HtmlSanitizer::clean($a['content']) ?><p><a href="/ajuda">Voltar à ajuda</a></p></article>

@@ -1,6 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Navegadores ainda solicitam /favicon.ico mesmo quando a página declara
+    # o SVG. Sirva o ícone oficial existente e evite um 404 de asset.
+    RewriteRule ^favicon\.ico$ assets/realizze/v1/images/favicon.svg [L]
+
     # Preservar arquivos e diretórios existentes
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

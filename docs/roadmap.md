@@ -15,14 +15,14 @@ Status: Em andamento
 - [ ] Primeiro commit
 
 ## Fase 2 — Design System
-Status: Pendente
+Status: Em andamento
 
-- [ ] Definir identidade visual
-- [ ] Definir paleta de cores
-- [ ] Definir tipografia
+- [x] Definir identidade visual
+- [x] Definir paleta de cores
+- [x] Definir tipografia
 - [ ] Criar biblioteca de componentes
-- [ ] Definir padrões responsivos
-- [ ] Documentar o Design System
+- [x] Definir padrões responsivos
+- [x] Documentar o Design System
 
 ## Fase 3 — Site institucional
 Status: Pendente

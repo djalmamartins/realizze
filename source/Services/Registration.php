@@ -21,11 +21,13 @@ final class Registration
         string $termsVersion,
         string $privacyVersion,
         ?string $ipAddress = null,
-        ?string $userAgent = null
+        ?string $userAgent = null,
+        ?string $phone = null
     ): int {
         $firstName = trim($firstName);
         $lastName = trim($lastName);
         $email = trim($email);
+        $normalizedPhone = $phone === null ? null : UserProfile::phone($phone);
 
         if ($firstName === '' || $lastName === '') {
             throw new InvalidArgumentException('Nome e sobrenome são obrigatórios.');
@@ -56,7 +58,7 @@ final class Registration
         $existing->execute([$email]);
 
         if ($existing->fetchColumn() !== false) {
-            throw new InvalidArgumentException('E-mail já cadastrado.');
+            throw new EmailAlreadyRegistered();
         }
 
         $ownsTransaction = !$pdo->inTransaction();
@@ -68,14 +70,15 @@ final class Registration
         try {
             $statement = $pdo->prepare(
                 'INSERT INTO users
-                 (first_name, last_name, email, password, status)
-                 VALUES (?, ?, ?, ?, ?)'
+                 (first_name, last_name, email, phone, password, status)
+                 VALUES (?, ?, ?, ?, ?, ?)'
             );
 
             $statement->execute([
                 $firstName,
                 $lastName,
                 $email,
+                $normalizedPhone,
                 password_hash($password, PASSWORD_DEFAULT),
                 'registered',
             ]);
@@ -112,6 +115,11 @@ final class Registration
         } catch (Throwable $exception) {
             if ($ownsTransaction && $pdo->inTransaction()) {
                 $pdo->rollBack();
+            }
+
+            // Dois envios simultâneos: o índice único decide qual conta fica.
+            if ($exception instanceof \PDOException && (int) ($exception->errorInfo[1] ?? 0) === 1062) {
+                throw new EmailAlreadyRegistered();
             }
 
             throw $exception;

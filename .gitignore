@@ -34,3 +34,6 @@
 
 # Arquivos locais de configuração
 /config.local.php
+
+# Mídia enviada pelo CMS
+/public/uploads/

@@ -27,6 +27,12 @@ final class EmailVerification
             throw new RuntimeException('Aceites legais obrigatórios não encontrados.');
         }
 
+        // Só o link mais recente vale.
+        $pdo->prepare(
+            "UPDATE auth_tokens SET used_at = NOW()
+             WHERE user_id = ? AND type = 'email_verification' AND used_at IS NULL"
+        )->execute([$userId]);
+
         $token = bin2hex(random_bytes(32));
         $hash = hash('sha256', $token);
 
@@ -89,7 +95,7 @@ final class EmailVerification
 
             $statement = $pdo->prepare(
                 "UPDATE users
-                 SET status = 'active'
+                 SET status = 'active', email_verified_at = NOW()
                  WHERE id = ? AND status = 'registered'"
             );
             $statement->execute([(int) $record['user_id']]);

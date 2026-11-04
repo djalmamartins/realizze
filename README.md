@@ -46,11 +46,19 @@ As interfaces de autenticação e contato ainda não estão integradas aos servi
 
 ## Desenvolvimento local
 
-O projeto utiliza Docker e Apache, com o endereço:
+O projeto utiliza Docker e Apache, com os endereços locais:
 
-`https://www.realizze.lab`
+- `https://www.realizze.lab` — site institucional
+- `https://app.realizze.lab` — aplicativo financeiro autenticado
+- `https://cms.realizze.lab` — prévia administrativa estática
 
 O DocumentRoot aponta para `public/`.
+
+Os hosts App e CMS só são reconhecidos quando `ROUTE_APP_HOST` e
+`ROUTE_CMS_HOST` estão configurados. As prévias permanecem bloqueadas por HTTP
+503, exceto no ambiente `local` quando as flags
+`REALIZZE_APP_LOCAL_PREVIEW=1` e `REALIZZE_CMS_LOCAL_PREVIEW=1` são definidas.
+O CMS não consulta dados nem oferece operações administrativas.
 
 ## Diretrizes
 

@@ -24,15 +24,7 @@ class VerificationMailer
             );
         }
 
-        $baseUrl = getenv('APP_URL');
-
-        if (!is_string($baseUrl) || $baseUrl === '') {
-            throw new InvalidArgumentException(
-                'APP_URL não configurada.'
-            );
-        }
-
-        $url = rtrim($baseUrl, '/')
+        $url = $this->baseUrl()
             . '/confirmar-email?token='
             . rawurlencode($token);
 
@@ -44,5 +36,33 @@ class VerificationMailer
             $message['html'],
             $message['text']
         );
+    }
+
+    public function sendAlreadyRegistered(string $email, string $firstName): void
+    {
+        $message = $this->template->buildAlreadyRegistered(
+            $firstName,
+            $this->baseUrl() . '/recuperar-senha'
+        );
+
+        $this->mail->send(
+            $email,
+            $message['subject'],
+            $message['html'],
+            $message['text']
+        );
+    }
+
+    private function baseUrl(): string
+    {
+        $baseUrl = getenv('APP_URL');
+
+        if (!is_string($baseUrl) || $baseUrl === '') {
+            throw new InvalidArgumentException(
+                'APP_URL não configurada.'
+            );
+        }
+
+        return rtrim($baseUrl, '/');
     }
 }

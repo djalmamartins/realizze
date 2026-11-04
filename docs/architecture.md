@@ -17,6 +17,11 @@ container/
 
 Cada ambiente possui isolamento de responsabilidades.
 
+No desenvolvimento local, `www.realizze.lab`, `app.realizze.lab` e
+`cms.realizze.lab` usam o mesmo front controller e são selecionados somente pelo
+`EnvironmentRouter`, a partir do hostname configurado. Não existe um segundo
+mecanismo de roteamento para os subdomínios.
+
 ## Organização dos temas
 
 container/{ambiente}/{tema}/{versao}/
@@ -40,6 +45,8 @@ Demais diretórios:
 4. Preservar componentes e contratos existentes.
 5. Documentar alterações arquiteturais.
 6. Testar antes de integrar mudanças à branch principal.
+7. Manter App e CMS indisponíveis por padrão; prévias exigem `APP_ENV=local` e
+   flags locais explícitas.
 
 ## Estado atual
 
