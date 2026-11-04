@@ -204,8 +204,11 @@ return [
             if (!$requirePreview()) {
                 return;
             }
+            // O login recria a sessão; o convite de empresa aberto antes de entrar é guardado e retomado.
+            $pendingInvite = is_string($_SESSION['team_pending_invite'] ?? null) ? $_SESSION['team_pending_invite'] : null;
             if ((new \Moves\App\Login())->submit()) {
-                header('Location: ' . (\Moves\App\Login::pendingSecondFactor() ? '/entrar/2fa' : '/p'), true, 302);
+                if ($pendingInvite !== null) $_SESSION['team_pending_invite'] = $pendingInvite;
+                header('Location: ' . (\Moves\App\Login::pendingSecondFactor() ? '/entrar/2fa' : ($pendingInvite !== null ? '/convite-empresa' : '/p')), true, 302);
                 return;
             }
             http_response_code(401);
@@ -220,7 +223,12 @@ return [
 
         $router->post('/entrar/2fa', static function () use ($requirePreview, $webView): void {
             if (!$requirePreview()) return;
-            if ((new \Moves\App\Login())->submitSecondFactor()) { header('Location: /p', true, 302); return; }
+            $pendingInvite = is_string($_SESSION['team_pending_invite'] ?? null) ? $_SESSION['team_pending_invite'] : null;
+            if ((new \Moves\App\Login())->submitSecondFactor()) {
+                if ($pendingInvite !== null) $_SESSION['team_pending_invite'] = $pendingInvite;
+                header('Location: ' . ($pendingInvite !== null ? '/convite-empresa' : '/p'), true, 302);
+                return;
+            }
             http_response_code(401);
             echo $webView->render('pages/login-2fa', ['twoFactorError' => true]);
         }, 'app.login.2fa.submit');

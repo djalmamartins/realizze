@@ -63,6 +63,9 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | DRE gerencial | Bloqueada | Falta a decisão de Djalma entre caixa e competência e a classificação das categorias em receita, custo e despesa. A tela diz isso, sem números simulados | — | — |
 | Obrigações PJ/MEI, Ordens de serviço | Bloqueada | Fora das etapas desta missão e sem tabela; continuam "Em breve" com o que falta | — | — |
 
+| Permissões (PJ-03) | Concluída | Matriz por HTTP no MySQL: Visualizador e Operacional recebem 403 em todas as 20 ações financeiras de escrita, não exportam, não convidam, não abrem a auditoria nem outra empresa; Operacional cadastra clientes (`contacts.manage`). Nenhuma linha mudou no banco | `tests/http/enterprise-permissions-flow.php` | ver abaixo |
+| Convite depois do login (PJ-13) | Concluída | O login recriava a sessão e perdia o convite; agora volta para `/convite-empresa`, inclusive com 2FA | `tests/http/enterprise-invite-login-flow.php` | ver abaixo |
+
 ## Migrations da missão
 
 | Migration | O que faz | Depende de | Aplicada em |

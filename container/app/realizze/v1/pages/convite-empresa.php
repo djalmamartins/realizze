@@ -13,7 +13,7 @@ $matches = $user !== null && $invitation !== null && hash_equals((string) $invit
 <?php if ($invitation === null): ?>
   <h1>Convite indisponível</h1><p class="muted">Este convite expirou, foi cancelado ou já foi usado. Peça um novo a quem convidou você.</p><a class="primary team-invite-link" href="/">Ir para o Realizze</a>
 <?php elseif ($user === null): ?>
-  <h1>Você foi convidado</h1><p>Entre com a conta do e-mail <strong><?= $e($invitation['email']) ?></strong> e abra o link do convite de novo para acessar <strong><?= $e($invitation['organization']) ?></strong>.</p><p class="muted">Se ainda não tem conta, crie uma com esse mesmo e-mail.</p><a class="primary team-invite-link" href="/entrar">Entrar</a>
+  <h1>Você foi convidado</h1><p>Entre com a conta do e-mail <strong><?= $e($invitation['email']) ?></strong>. Depois de entrar, você volta para este convite e aceita o acesso a <strong><?= $e($invitation['organization']) ?></strong>.</p><p class="muted">Se ainda não tem conta, crie uma com esse mesmo e-mail.</p><a class="primary team-invite-link" href="/entrar">Entrar</a>
 <?php elseif (!$matches): ?>
   <h1>Convite de outra conta</h1><p>Este convite foi enviado para outro e-mail. Saia e entre com a conta certa para aceitar.</p><a class="primary team-invite-link" href="/p">Voltar ao Realizze</a>
 <?php else: ?>

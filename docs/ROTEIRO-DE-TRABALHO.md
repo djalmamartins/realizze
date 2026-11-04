@@ -67,7 +67,7 @@ Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empr
 
 - [x] **PJ-01. Convite de equipe nunca é enviado.** `TeamActions` coloca o e-mail na fila, mas nada chama `MailQueue::work`: não há script nem cron. Quem é convidado nunca recebe. Vale para tudo que usa `Email::queue`.
 - [x] **PJ-02. Dados da empresa só leitura.** `/e/{empresa}/empresa` não edita nada, e "Alterar logo" está desativado. Contrato C14.
-- [ ] **PJ-03. Validar equipe e permissões no MySQL e no navegador.** O teste `enterprise-002-team` roda em SQLite. Testar membro sem permissão em cada tela e ação.
+- [x] **PJ-03. Validar equipe e permissões no MySQL e no navegador.** O teste `enterprise-002-team` roda em SQLite. Testar membro sem permissão em cada tela e ação.
 
 ### P1
 
@@ -80,7 +80,7 @@ Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empr
 - [x] **PJ-10. Faturas de cartão.** Mesmo trabalho de PF-10.
 - [ ] **PJ-11. Obrigações PJ/MEI.** Regime da empresa e calendário, sem cálculo de tributo. Contrato C13.
 - [ ] **PJ-12. Ordens de serviço.** Módulo opcional por empresa. Contrato C20.
-- [ ] **PJ-13. Voltar ao convite depois do login.** Quem aceita o convite sem sessão perde o caminho.
+- [x] **PJ-13. Voltar ao convite depois do login.** Quem aceita o convite sem sessão perde o caminho.
 - [x] **PJ-14. Histórico administrativo de equipe** em `organization_audit_logs`.
 
 ### P2
