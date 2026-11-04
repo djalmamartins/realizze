@@ -50,6 +50,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Auditoria | Concluída | Consulta de `organization_audit_logs` com filtros por ação, pessoa e período, paginação; exige `team.manage` na rota e no menu | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
 | Segurança | Concluída | 2FA e sessões da própria conta; para quem tem `team.manage`, 2FA de cada membro e mudanças de acesso recentes. Não existe política por empresa (exigir 2FA): dito na tela | `tests/http/enterprise-security-flow.php` | ver abaixo |
 | Dashboard | Concluída | Baixa parcial de recebimento passou a contar em Receitas, Resultado, A receber, Fechamento previsto e no gráfico mensal (antes sumia, embora entrasse no saldo); "A pagar vencido" leva a Pagar filtrado e mostra a quantidade; cabeçalho e aba dizem Dashboard. `Finance::summary` e `monthlySeries` são compartilhados com a PF: suíte inteira rodada | `finance-017-dashboard-consistency` + suíte PF | ver abaixo |
+| Bancos e contas | Concluída | Cadastro de cartão com limite, fechamento e vencimento (o formulário não tinha esses campos e Faturas dependia deles); editar nome, instituição e regras do cartão; arquivar só com saldo zero, sem lançamento em aberto, sem reserva de meta e sem assinatura ativa, para o saldo consolidado não mudar. Tipo e saldo inicial não se editam | `finance-018-accounts`, `tests/http/enterprise-accounts-flow.php`, capturas 1440 e 390 px | ver abaixo |
 | Pagar | Pendente | Fornecedor, baixa parcial, histórico | — | — |
 | Centros de custo | Pendente | Editar, inativar, filtro | — | — |
 | Conciliação | Pendente | Conciliar linha com lançamento existente | — | — |
@@ -64,6 +65,9 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros de custo e Equipe funcionarem. Quem aplica é Djalma.
 
 ## Decisões
+
+- Atenção: no `dev-apache`, `app.realizze.lab` serve a pasta `realizze-main-integration` (a `main`), não esta pasta. As mudanças da `dev-claude` não aparecem ali até serem integradas. As capturas desta missão usam o servidor temporário e os arquivos de `public/` desta pasta.
+- Saldo inicial de conta não é editável: o saldo vem dos lançamentos e uma correção entra como lançamento de ajuste.
 
 - Logo da empresa: não há coluna nem armazenamento para ele. O botão desativado saiu da tela; fica como pendência, sem migration nova por enquanto.
 - A auditoria registra o que o serviço aceitou, a partir de `TeamActions`, das rotas de aceite e recusa do convite e de `Organizations::update`. Falha ao gravar o registro vai para o log do servidor e não desfaz a ação.

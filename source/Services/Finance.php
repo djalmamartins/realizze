@@ -666,6 +666,94 @@ final class Finance
         return (int) $this->pdo->lastInsertId();
     }
 
+    /**
+     * Nome, instituição e regras do cartão. Tipo e saldo inicial não mudam aqui: o saldo
+     * vem dos lançamentos, e uma correção entra como lançamento.
+     */
+    public function updateAccount(int $id, array $data): bool
+    {
+        $current = $this->pdo->prepare("SELECT type FROM finance_accounts WHERE id = ? AND financial_context_id = ? AND archived_at IS NULL AND status = 'active'");
+        $current->execute([$id, $this->contextId]);
+        $type = $current->fetchColumn();
+        if ($type === false) {
+            return false;
+        }
+        $name = trim((string) ($data['name'] ?? ''));
+        if ($name === '' || mb_strlen($name) > 120) {
+            throw new InvalidArgumentException('Informe um nome de até 120 caracteres.');
+        }
+        $catalogReady = FinancialInstitutions::catalogReady();
+        $institutionId = !$catalogReady || ($data['institution_id'] ?? '') === '' ? null : FinancialInstitutions::activeId($data['institution_id']);
+        if ($catalogReady && ($data['institution_id'] ?? '') !== '' && $institutionId === null) {
+            throw new InvalidArgumentException('Escolha uma instituição da lista.');
+        }
+        $institution = trim((string) ($data['institution'] ?? ''));
+        if ($institution === '' && $institutionId !== null) {
+            $institution = (string) (FinancialInstitutions::find($institutionId)['trade_name'] ?? '');
+        }
+        if (mb_strlen($institution) > 120) {
+            throw new InvalidArgumentException('Use até 120 caracteres na instituição.');
+        }
+        $card = $type === 'credit_card';
+        $limit = trim((string) ($data['credit_limit'] ?? ''));
+        $values = [
+            $name, $institution ?: null,
+            $card && $limit !== '' ? self::parseCents($limit) : null,
+            $card ? self::optionalDay($data['closing_day'] ?? null) : null,
+            $card ? self::optionalDay($data['due_day'] ?? null) : null,
+        ];
+        $columns = 'name = ?, institution = ?, credit_limit_cents = ?, closing_day = ?, due_day = ?';
+        if ($catalogReady) {
+            $columns .= ', institution_id = ?';
+            $values[] = $institutionId;
+        }
+        $this->pdo->prepare("UPDATE finance_accounts SET {$columns} WHERE id = ? AND financial_context_id = ?")
+            ->execute([...$values, $id, $this->contextId]);
+        return true;
+    }
+
+    /**
+     * Tira a conta das listas sem apagar o histórico. Só com saldo zero e nada pendente nela,
+     * para o saldo consolidado não mudar ao arquivar.
+     */
+    public function archiveAccount(int $id): bool
+    {
+        $account = null;
+        foreach ($this->accountsWithBalance() as $row) {
+            if ((int) $row['id'] === $id) $account = $row;
+        }
+        if ($account === null) {
+            return false;
+        }
+        if ($account['balance_cents'] !== 0) {
+            throw new InvalidArgumentException('Zere o saldo antes de arquivar: transfira o valor para outra conta.');
+        }
+        if ($account['reserved_cents'] > 0) {
+            throw new InvalidArgumentException('Há valor reservado em metas nesta conta. Resgate antes de arquivar.');
+        }
+        $open = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM finance_entries WHERE financial_context_id = ? AND (account_id = ? OR target_account_id = ?)
+             AND paid_at IS NULL AND (status IS NULL OR status <> 'cancelled')"
+        );
+        $open->execute([$this->contextId, $id, $id]);
+        if ((int) $open->fetchColumn() > 0) {
+            throw new InvalidArgumentException('Há lançamentos em aberto nesta conta. Baixe ou mude a conta deles antes de arquivar.');
+        }
+        $recurring = $this->pdo->prepare("SELECT COUNT(*) FROM finance_recurring_items WHERE financial_context_id = ? AND account_id = ? AND status = 'active'");
+        try {
+            $recurring->execute([$this->contextId, $id]);
+            $hasRecurring = (int) $recurring->fetchColumn() > 0;
+        } catch (\PDOException) {
+            $hasRecurring = false; // Sem a migration 010 não há recorrências.
+        }
+        if ($hasRecurring) {
+            throw new InvalidArgumentException('Há assinaturas ativas nesta conta. Mude a conta delas antes de arquivar.');
+        }
+        $this->pdo->prepare("UPDATE finance_accounts SET archived_at = NOW(), status = 'archived' WHERE id = ? AND financial_context_id = ? AND archived_at IS NULL")
+            ->execute([$id, $this->contextId]);
+        return true;
+    }
+
     public function transfer(array $data, ?int $userId): int
     {
         $from = $this->ownedId('finance_accounts', $data['account_id'] ?? null);

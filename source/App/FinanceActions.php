@@ -63,6 +63,8 @@ final class FinanceActions
                 'goal_schedule' => $this->goalSchedule($contextId, $id, (int) $user['id']),
                 'goal_schedule_status' => (new GoalWallets($contextId))->setScheduleStatus($id, (string) ($_POST['status'] ?? '')) ? ['success', 'Aporte programado atualizado.'] : ['error', 'Aporte programado não encontrado.'],
                 'account' => [$finance->createAccount($_POST) > 0 ? 'success' : 'error', 'Conta cadastrada.'],
+                'account_update' => $finance->updateAccount($id, $_POST) ? ['success', 'Conta atualizada.'] : ['error', 'Conta não encontrada.'],
+                'account_archive' => $finance->archiveAccount($id) ? ['success', 'Conta arquivada. O histórico continua nos relatórios.'] : ['error', 'Conta não encontrada.'],
                 'transfer' => [$finance->transfer($_POST, (int) $user['id']) > 0 ? 'success' : 'error', 'Transferência registrada.'],
                 'settle' => $finance->settle($id) ? ['success', $kind === 'income' ? 'Recebimento confirmado.' : 'Pagamento confirmado.'] : ['error', 'Lançamento não encontrado.'],
                 'delete' => $finance->delete($id, (int) $user['id']) ? ['success', 'Lançamento excluído.'] : ['error', 'Lançamento não encontrado.'],

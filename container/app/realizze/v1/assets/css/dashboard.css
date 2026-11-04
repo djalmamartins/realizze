@@ -1544,3 +1544,7 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .finance-icon-danger{height:30px;border-radius:8px}
 .finance-icon-danger:hover{background:#fdecec}
 .finance-actions>*,.finance-actions form>button{vertical-align:middle}
+
+/* PJ-CONTAS: editar e arquivar contas pela própria lista. */
+.finance-account-list li:has(>.account-edit){grid-template-columns:44px 1fr auto auto}
+@media(max-width:650px){.finance-account-list li:has(>.account-edit){grid-template-columns:44px 1fr auto}.finance-account-list li>.account-edit{grid-column:2/-1;justify-self:start}}

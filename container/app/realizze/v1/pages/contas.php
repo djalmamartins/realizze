@@ -53,7 +53,8 @@ unset($_SESSION['finance_flash']);
           <?php else: ?><?= $e(CardBrands::label($cardBrand)) ?><?php endif; ?>
         </span><?php endif; ?>
       <?php endif; ?>
-      <span class="account-balance"><strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong><?php if ($account['reserved_cents'] > 0): ?><small>Reservado <?= $e(Finance::money($account['reserved_cents'])) ?> · Disponível <b class="<?= $account['available_cents'] < 0 ? 'red' : '' ?>"><?= $e(Finance::money($account['available_cents'])) ?></b></small><?php endif; ?></span>
+      <span class="account-balance"><strong class="<?= $account['balance_cents'] < 0 ? 'red' : 'green' ?>"><?= $e(Finance::money($account['balance_cents'])) ?></strong><?php if ($account['reserved_cents'] > 0): ?><small>Reservado <?= $e(Finance::money($account['reserved_cents'])) ?> · Disponível <b class="<?= $account['available_cents'] < 0 ? 'red' : '' ?>"><?= $e(Finance::money($account['available_cents'])) ?></b></small><?php endif; ?><?php if ($account['type'] === 'credit_card'): ?><small><?= $account['closing_day'] ? 'Fecha dia ' . (int) $account['closing_day'] . ' · vence dia ' . (int) $account['due_day'] : 'Sem dia de fechamento: edite o cartão' ?></small><?php endif; ?></span>
+      <button type="button" class="finance-button account-edit" data-finance-open="account-edit-<?= (int) $account['id'] ?>" aria-label="Editar <?= $e($account['name']) ?>">Editar</button>
     </li>
     <?php endforeach; ?>
   </ul>
@@ -74,6 +75,27 @@ unset($_SESSION['finance_flash']);
     </div>
     <label>Outra instituição<input name="institution" maxlength="120" placeholder="Só se não estiver na lista"></label>
     <label>Saldo inicial (R$)<input name="opening_balance" inputmode="decimal" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?"></label>
+    <details class="entry-details"><summary>Dados do cartão de crédito</summary><p class="muted">Só valem quando o tipo é Cartão de crédito. Fechamento e vencimento definem as faturas.</p><div class="finance-dialog-row"><label>Limite (R$)<input name="credit_limit" inputmode="decimal" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?" value=""></label><label>Dia do fechamento<input type="number" name="closing_day" min="1" max="31" value=""></label><label>Dia do vencimento<input type="number" name="due_day" min="1" max="31" value=""></label></div></details>
     <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
   </form>
 </dialog>
+<?php foreach ($accounts as $account): $accountId = (int) $account['id']; ?>
+<dialog class="finance-dialog" id="account-edit-<?= $accountId ?>" aria-labelledby="account-edit-title-<?= $accountId ?>">
+  <form method="post" action="/minha-conta/financeiro/conta-editar" data-finance-form>
+    <header><h2 id="account-edit-title-<?= $accountId ?>">Editar conta</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="contas"><input type="hidden" name="id" value="<?= $accountId ?>">
+    <label>Nome<input name="name" maxlength="120" required value="<?= $e($account['name']) ?>"></label>
+    <div class="finance-dialog-row">
+      <label>Tipo<input value="<?= $e($types[$account['type']] ?? '') ?>" disabled></label>
+      <label>Banco ou instituição<select name="institution_id"><option value="">Não está na lista</option>
+        <?php foreach ($institutions as $institution): ?><option value="<?= (int) $institution['id'] ?>"<?= (int) $institution['id'] === (int) $account['institution_id'] ? ' selected' : '' ?>><?= $e($institution['trade_name'] . ($institution['compe_code'] ? ' (' . $institution['compe_code'] . ')' : '')) ?></option><?php endforeach; ?>
+      </select></label>
+    </div>
+    <label>Outra instituição<input name="institution" maxlength="120" value="<?= $e($account['institution_id'] ? '' : (string) $account['institution']) ?>" placeholder="Só se não estiver na lista"></label>
+    <?php if ($account['type'] === 'credit_card'): ?><div class="finance-dialog-row"><label>Limite (R$)<input name="credit_limit" inputmode="decimal" placeholder="0,00" pattern="[0-9.]*(,[0-9]{1,2})?" value="<?= $account['credit_limit_cents'] !== null ? $e(number_format((int) $account['credit_limit_cents'] / 100, 2, ',', '.')) : '' ?>"></label><label>Dia do fechamento<input type="number" name="closing_day" min="1" max="31" value="<?= $e($account['closing_day'] ?? '') ?>"></label><label>Dia do vencimento<input type="number" name="due_day" min="1" max="31" value="<?= $e($account['due_day'] ?? '') ?>"></label></div><?php endif; ?>
+    <p class="muted">O saldo vem dos lançamentos. Para corrigir, registre uma receita ou despesa de ajuste.</p>
+    <footer><button type="submit" class="finance-button is-danger" form="account-archive-<?= $accountId ?>">Arquivar</button><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Salvar</button></footer>
+  </form>
+  <form method="post" action="/minha-conta/financeiro/conta-arquivar" id="account-archive-<?= $accountId ?>" data-finance-confirm="Arquivar <?= $e($account['name']) ?>? Ela sai das listas, mas o histórico continua."><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="contas"><input type="hidden" name="id" value="<?= $accountId ?>"></form>
+</dialog>
+<?php endforeach; ?>
