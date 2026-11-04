@@ -19,7 +19,7 @@ final class CommercialFinanceActions
             'card_pay'=>(new CardInvoices($context))->pay($_POST,(int)$user['id'])?'Pagamento registrado. O valor saiu da conta de origem para o cartão.':'',
             'card_reverse'=>(new CardInvoices($context))->reversePayment((int)($_POST['payment_id']??0),(int)$user['id'])?'Pagamento estornado. O valor voltou para a conta de origem.':throw new InvalidArgumentException('Pagamento não encontrado ou já estornado.'),
             'cost_center'=>(new CostCenters($context))->save($_POST,(int)$user['id'])?'Centro de custo salvo.':'',
-            'reconciliation_import'=>((new BankReconciliation($context))->importCsv($_FILES['statement']??[],$_POST['account_id']??null,(int)$user['id'])).' linhas importadas para revisão.',
+            'reconciliation_import'=>((new BankReconciliation($context))->importStatement($_FILES['statement']??[],$_POST['account_id']??null,(int)$user['id'])).' linhas importadas para revisão.',
             'reconciliation_review'=>$this->review($context,(int)$user['id']),
             default=>throw new InvalidArgumentException('Ação inválida.'),
         };$_SESSION['finance_flash']=['success',$message];
@@ -29,5 +29,5 @@ final class CommercialFinanceActions
         $query=$page==='faturas'?array_filter(['cartao'=>(string)($_POST['card_account_id']??''),'mes'=>(string)($_POST['month']??'')],static fn($v)=>$v!==''):[];
         header('Cache-Control: no-store');header('Location: '.\Moves\Services\AppUrl::section($page,null,$query),true,303);
     }
-    private function review(int $context,int $userId): string {(new BankReconciliation($context))->review($_POST['line_id']??null,$_POST['entry_id']??null,(string)($_POST['status']??''),$userId);return 'Linha de extrato revisada. Nenhum saldo foi alterado.';}
+    private function review(int $context,int $userId): string {$status=(string)($_POST['status']??'');(new BankReconciliation($context))->review($_POST['line_id']??null,$_POST['entry_id']??null,$status,$userId);return ['matched'=>'Linha conciliada com o lançamento. Nenhum saldo foi alterado.','ignored'=>'Linha ignorada.','pending'=>'Revisão desfeita. A linha voltou para pendente.'][$status]??'Linha de extrato revisada. Nenhum saldo foi alterado.';}
 }

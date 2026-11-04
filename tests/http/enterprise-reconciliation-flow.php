@@ -1,0 +1,40 @@
+<?php
+// Conciliação por HTTP: importar CSV (; e ,) e OFX, recusar o mesmo arquivo, conciliar e desfazer. Servidor temporário do banco de teste.
+require __DIR__ . '/client.php';
+$ok = 0; $fail = 0;
+$check = function (bool $c, string $m) use (&$ok, &$fail) { echo ($c ? 'OK' : 'FALHOU') . " - $m\n"; $c ? $ok++ : $fail++; };
+$slug = 'missao-beta-me';
+$o = new H(); $o->login('pj-dono@example.invalid', 'PjMissao#2026');
+$page = $o->req('GET', "/e/$slug/cartoes"); $csrf = $o->csrf($page['body']);
+$tag = bin2hex(random_bytes(2));
+$o->req('POST', '/minha-conta/financeiro/conta', ['csrf_token' => $csrf, 'back' => 'contas', 'name' => "Conc $tag", 'type' => 'checking', 'opening_balance' => '2.000,00']);
+$pagar = $o->req('GET', "/e/$slug/pagar");
+preg_match('/<option value="(\d+)">Conc ' . $tag . '</', $pagar['body'], $a); $account = $a[1] ?? '';
+$o->req('POST', '/minha-conta/financeiro/lancamento', ['csrf_token' => $csrf, 'kind' => 'expense', 'source' => 'entry', 'mes' => '2026-10', 'back' => 'pagar', 'description' => "Aluguel $tag", 'amount' => '1.250,00', 'due_date' => '2026-10-05', 'account_id' => $account, 'paid' => '1', 'idempotency_key' => bin2hex(random_bytes(16))]);
+$upload = function (string $name, string $content) use ($o, $csrf, $account) {
+    $path = sys_get_temp_dir() . '/' . $name; file_put_contents($path, $content);
+    return $o->req('POST', '/minha-conta/financeiro/conciliacao-importar', ['csrf_token' => $csrf, 'back' => 'conciliacao', 'account_id' => $account], ['statement' => new CURLFile($path, 'text/plain', $name)]);
+};
+$flash = fn () => (preg_match('/finance-flash-[a-z]+" role="status">([^<]+)/', $o->req('GET', "/e/$slug/conciliacao")['body'], $m) ? html_entity_decode($m[1]) : '');
+$upload("extrato-$tag.csv", "\xEF\xBB\xBFData;Descrição;Valor\n05/10/2026;ALUGUEL OUTUBRO $tag;-1.250,00\n06/10/2026;PIX RECEBIDO $tag;300,00\n");
+$check(str_contains($flash(), '2 linhas importadas'), 'CSV com ponto e vírgula e BOM é importado');
+$upload("extrato-$tag.csv", "\xEF\xBB\xBFData;Descrição;Valor\n05/10/2026;ALUGUEL OUTUBRO $tag;-1.250,00\n06/10/2026;PIX RECEBIDO $tag;300,00\n");
+$check(str_contains($flash(), 'já foi importado'), 'O mesmo arquivo não entra duas vezes');
+$upload("virgula-$tag.csv", "Data,Descrição,Valor\n2026-10-07,TARIFA $tag,\"-12,90\"\n");
+$check(str_contains($flash(), '1 linhas importadas'), 'CSV com vírgula também é importado');
+$ofx = "OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST>\n<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20261008120000[-3:BRT]<TRNAMT>-45.50<FITID>A1$tag<MEMO>CAFE $tag\n</STMTTRN><STMTTRN><TRNTYPE>CREDIT<DTPOSTED>20261009<TRNAMT>1000.00<FITID>A2$tag<NAME>CLIENTE $tag\n</STMTTRN></BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>";
+$upload("extrato-$tag.ofx", $ofx);
+$check(str_contains($flash(), '2 linhas importadas'), 'OFX é importado com valores em ponto decimal');
+$upload("ruim-$tag.csv", "Coluna;Outra\n1;2\n");
+$check(str_contains($flash(), 'Data, Descrição e Valor'), 'CSV sem as colunas é recusado com mensagem clara');
+$page = $o->req('GET', "/e/$slug/conciliacao?conta=$account&situacao=pending")['body'];
+$check(substr_count($page, 'name="line_id"') >= 5 && str_contains($page, 'CAFE ' . $tag) && str_contains($page, '- R$ 45,50'), 'Linhas pendentes aparecem filtradas pela conta, com o sinal da saída');
+$check(preg_match('/ALUGUEL OUTUBRO ' . $tag . '.*?name="line_id" value="(\d+)".*?name="entry_id"><option value="(\d+)">Despesa: Aluguel ' . $tag . '/s', $page, $m) === 1, 'Linha do aluguel sugere a despesa lançada');
+$o->req('POST', '/minha-conta/financeiro/conciliacao-revisar', ['csrf_token' => $csrf, 'back' => 'conciliacao', 'line_id' => $m[1] ?? '', 'status' => 'matched', 'entry_id' => $m[2] ?? '']);
+$check(str_contains($flash(), 'Linha conciliada'), 'Dono concilia a linha');
+$matched = $o->req('GET', "/e/$slug/conciliacao?situacao=matched")['body'];
+$check(str_contains($matched, "Aluguel $tag") && str_contains($matched, 'Desfazer'), 'Conciliada mostra o lançamento e permite desfazer');
+$check(str_contains($o->req('GET', "/e/$slug/cartoes")['body'], 'R$ 750,00'), 'Saldo da conta continua o dos lançamentos');
+$o->req('POST', '/minha-conta/financeiro/conciliacao-revisar', ['csrf_token' => $csrf, 'back' => 'conciliacao', 'line_id' => $m[1] ?? '', 'status' => 'pending']);
+$check(str_contains($flash(), 'voltou para pendente'), 'Desfazer devolve a linha para pendente');
+echo "$ok OK, $fail falha(s)\n"; exit($fail ? 1 : 0);

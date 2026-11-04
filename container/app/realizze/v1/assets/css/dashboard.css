@@ -1553,3 +1553,9 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .invoice-card-switch select{min-height:40px;padding:0 12px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit}
 .invoice-card-switch select:focus{outline:none;border-color:#078b4c;box-shadow:0 0 0 3px #078b4c33}
 @media(max-width:650px){.invoice-pay{padding-inline:20px}.invoice-pay .primary{width:100%}}
+.finance-filter-bar.invoice-card-switch{justify-content:flex-start;flex-wrap:wrap}
+.reconcile-hint{margin:0 28px 12px}
+.reconcile-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;min-width:150px}
+.reconcile-match{display:inline-flex;align-items:center;gap:6px}
+.reconcile-match select{max-width:220px;min-height:34px;padding:0 8px;border:1px solid #d6e2dc;border-radius:8px;background:#fff;font:inherit;font-size:13px}
+@media(max-width:650px){.reconcile-match{display:flex;flex-wrap:wrap}.reconcile-match select{max-width:100%}}
