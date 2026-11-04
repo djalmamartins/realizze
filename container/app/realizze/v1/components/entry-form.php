@@ -19,6 +19,7 @@ try {
     $entryCategories = ['income' => $entryFinance->categories('income'), 'expense' => $entryFinance->categories('expense')];
     $entryCostCenters = $entryFinance->costCenters();
     $entryCustomers = (new Contacts($contextId))->selectableCustomers();
+    $entrySuppliers = (new Contacts($contextId))->selectableSuppliers();
     $extrasReady = $entryFinance->supportsEntryExtras();
     $extrasTags = $entryFinance->tags();
     $autoReady = (new RecurringFinance($contextId))->occurrencesReady();
@@ -53,6 +54,7 @@ $methods = ['pix' => 'PIX', 'transfer' => 'Transferência', 'cash' => 'Dinheiro'
         <label>Categoria<select name="category_id" data-entry-category><option value="">Sem categoria</option><?php foreach ($entryCategories as $categoryKind => $list): foreach ($list as $category): ?><option value="<?= (int) $category['id'] ?>" data-kind="<?= $e($categoryKind) ?>" data-color="<?= $e($category['color']) ?>"><?= $e($category['name']) ?></option><?php endforeach; endforeach; ?></select></label>
       </div>
     </div>
+    <?php if ($entrySuppliers !== []): ?><label data-entry-expense>Fornecedor<select name="supplier_id"><option value="">Sem fornecedor</option><?php foreach ($entrySuppliers as $supplier): ?><option value="<?= (int) $supplier['id'] ?>"><?= $e($supplier['trade_name'] ?: $supplier['legal_name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
     <?php if ($entryCostCenters !== []): ?><label>Centro de custo<select name="cost_center_id"><option value="">Sem centro de custo</option><?php foreach ($entryCostCenters as $center): ?><option value="<?= (int) $center['id'] ?>"><?= $e($center['name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
     <details class="entry-details" data-entry-income hidden>
       <summary>Dados do recebimento</summary>

@@ -1,5 +1,5 @@
 <?php
-/** Detalhe do cliente ou fornecedor: totais calculados dos recebimentos vinculados a este contato, nesta empresa. */
+/** Detalhe do cliente ou fornecedor: totais calculados dos recebimentos ou das despesas vinculados a este contato, nesta empresa. */
 use Moves\Services\AppUrl;
 use Moves\Services\Contacts;
 use Moves\Services\Finance;
@@ -23,10 +23,16 @@ try {
         $result = $receivables->listing(['start' => '2000-01-01', 'end' => '2100-12-31', 'contact_id' => $id, 'page' => $page, 'per_page' => 50]);
         array_push($rows, ...$result['rows']);
     } while ($page++ < $result['pages']);
+    $payables = $listSection === 'fornecedores' ? (new Finance($contextId))->entries('expense', '2000-01-01', '2100-12-31', 'all', ['contact_id' => $id]) : [];
 } catch (Throwable $exception) {
     error_log('Realizze contact detail: ' . $exception->getMessage());
     $failed = true;
+    $payables = [];
 }
+$today = date('Y-m-d');
+$payablesPaid = array_filter($payables, static fn (array $r): bool => $r['paid_at'] !== null);
+$payablesOpen = array_filter($payables, static fn (array $r): bool => $r['paid_at'] === null);
+$payablesLate = array_filter($payablesOpen, static fn (array $r): bool => $r['due_date'] < $today);
 $billable = array_filter($rows, static fn (array $r): bool => $r['display_status'] !== 'cancelled');
 $sum = static fn (array $list, string $field): int => array_sum(array_column($list, $field));
 $overdue = array_filter($billable, static fn (array $r): bool => $r['balance_cents'] > 0 && $r['due_date'] < date('Y-m-d'));
@@ -56,10 +62,45 @@ $address = trim(implode(', ', array_filter([$row['street'] ?? null, $row['addres
 <div class="detail-layout">
   <section class="card detail-main" data-tabs>
     <div class="detail-tabs" role="tablist" aria-label="Seções do contato">
+      <?php if ($listSection === 'fornecedores'): ?>
+      <button type="button" role="tab" data-tab="payables" aria-selected="true">Contas a pagar (<?= count($payables) ?>)</button>
+      <button type="button" role="tab" data-tab="supplier-payments" aria-selected="false">Pagamentos (<?= count($payablesPaid) ?>)</button>
+      <?php else: ?>
       <button type="button" role="tab" data-tab="charges" aria-selected="true">Cobranças (<?= count($rows) ?>)</button>
       <button type="button" role="tab" data-tab="payments" aria-selected="false">Pagamentos (<?= count($paid) ?>)</button>
+      <?php endif; ?>
       <button type="button" role="tab" data-tab="notes" aria-selected="false">Observações</button>
     </div>
+    <?php if ($listSection === 'fornecedores'): ?>
+    <div data-tab-panel="payables">
+      <?php if ($failed): ?>
+      <div class="finance-empty"><h3>Não foi possível carregar as contas a pagar</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
+      <?php elseif ($payables === []): ?>
+      <div class="finance-empty"><h3>Nenhuma despesa vinculada</h3><p>Escolha este fornecedor ao lançar uma despesa em Pagar.</p></div>
+      <?php else: ?>
+      <div class="finance-table-wrap" role="region" tabindex="0" aria-label="Contas a pagar do fornecedor">
+        <table class="finance-table finance-entries">
+          <thead><tr><th scope="col">Descrição</th><th scope="col">Vencimento</th><th scope="col">Situação</th><th scope="col" class="num">Valor</th></tr></thead>
+          <tbody><?php foreach ($payables as $bill): $late = $bill['paid_at'] === null && $bill['due_date'] < $today; ?>
+          <tr><td><strong><?= $e($bill['description']) ?></strong><small class="contact-legal"><?= $e($bill['account']) ?><?= $bill['category'] ? ' · ' . $e($bill['category']) : '' ?></small></td><td class="nowrap"><?= $e($date($bill['due_date'])) ?></td><td><span class="finance-badge <?= $bill['paid_at'] ? 'is-paid' : ($late ? 'is-overdue' : 'is-open') ?>"><?= $bill['paid_at'] ? 'Pago' : ($late ? 'Em atraso' : 'Em aberto') ?></span></td><td class="num red"><?= $e(Finance::money((int) $bill['amount_cents'])) ?></td></tr>
+          <?php endforeach; ?></tbody>
+        </table>
+      </div>
+      <?php endif; ?>
+    </div>
+    <div data-tab-panel="supplier-payments" hidden>
+      <?php if ($payablesPaid === []): ?>
+      <div class="finance-empty"><h3>Nenhum pagamento feito</h3><p>As despesas pagas a este fornecedor aparecerão aqui.</p></div>
+      <?php else: ?>
+      <div class="finance-table-wrap" role="region" tabindex="0" aria-label="Pagamentos ao fornecedor">
+        <table class="finance-table finance-entries">
+          <thead><tr><th scope="col">Descrição</th><th scope="col">Pago em</th><th scope="col">Conta</th><th scope="col" class="num">Valor</th></tr></thead>
+          <tbody><?php foreach ($payablesPaid as $bill): ?><tr><td><strong><?= $e($bill['description']) ?></strong></td><td class="nowrap"><?= $e($date($bill['paid_at'])) ?></td><td><?= $e($bill['account']) ?></td><td class="num red"><?= $e(Finance::money((int) $bill['amount_cents'])) ?></td></tr><?php endforeach; ?></tbody>
+        </table>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php else: ?>
     <div data-tab-panel="charges">
       <?php if ($failed): ?>
       <div class="finance-empty"><h3>Não foi possível carregar as cobranças</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
@@ -88,10 +129,20 @@ $address = trim(implode(', ', array_filter([$row['street'] ?? null, $row['addres
       </div>
       <?php endif; ?>
     </div>
+    <?php endif; ?>
     <div data-tab-panel="notes" hidden><p class="detail-notes"><?= $e($row['notes'] ?: 'Sem observações.') ?></p></div>
   </section>
   <aside class="card detail-side" aria-label="Resumo financeiro">
     <h2 class="section-title">Resumo financeiro</h2>
+    <?php if ($listSection === 'fornecedores'): ?>
+    <div class="detail-stats">
+      <div><span>A pagar</span><strong><?= $e(Finance::money($sum($payablesOpen, 'amount_cents'))) ?></strong></div>
+      <div><span>Em atraso</span><strong class="<?= $payablesLate !== [] ? 'red' : '' ?>"><?= $e(Finance::money($sum($payablesLate, 'amount_cents'))) ?></strong></div>
+      <div><span>Pago</span><strong><?= $e(Finance::money($sum($payablesPaid, 'amount_cents'))) ?></strong></div>
+      <div><span>Total lançado</span><strong><?= $e(Finance::money($sum($payables, 'amount_cents'))) ?></strong></div>
+    </div>
+    <p class="muted">Calculado com as despesas vinculadas a este fornecedor em Pagar.</p>
+    <?php else: ?>
     <div class="detail-stats">
       <div><span>A receber</span><strong><?= $e(Finance::money($sum($billable, 'balance_cents'))) ?></strong></div>
       <div><span>Em atraso</span><strong class="<?= $overdue !== [] ? 'red' : '' ?>"><?= $e(Finance::money($sum($overdue, 'balance_cents'))) ?></strong></div>
@@ -99,6 +150,7 @@ $address = trim(implode(', ', array_filter([$row['street'] ?? null, $row['addres
       <div><span>Total faturado</span><strong><?= $e(Finance::money($sum($billable, 'amount_cents'))) ?></strong></div>
     </div>
     <p class="muted">Calculado com os recebimentos vinculados a este contato, sem os cancelados.</p>
+    <?php endif; ?>
   </aside>
 </div>
 <dialog class="finance-dialog finance-dialog-wide" id="contact-edit" aria-labelledby="contact-edit-title">

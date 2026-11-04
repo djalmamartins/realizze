@@ -106,6 +106,12 @@ final class Contacts
         $s->execute([$this->contextId]); return $s->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function selectableSuppliers(): array
+    {
+        $s = $this->pdo->prepare("SELECT id, legal_name, trade_name FROM finance_contacts WHERE financial_context_id = ? AND status = 'active' AND is_supplier = 1 ORDER BY legal_name");
+        $s->execute([$this->contextId]); return $s->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function financialSummary(int $id): array
     {
         $this->find($id);

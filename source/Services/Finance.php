@@ -91,7 +91,8 @@ final class Finance
             $filter .= ' AND e.description LIKE ?';
             $params[] = '%' . addcslashes($filters['search'], '%_\\') . '%';
         }
-        foreach (['category_id' => 'e.category_id', 'account_id' => 'e.account_id'] as $key => $column) {
+        $hasCostCenter = $this->hasCostCenterColumn();
+        foreach (['category_id' => 'e.category_id', 'account_id' => 'e.account_id', 'contact_id' => 'e.contact_id'] + ($hasCostCenter ? ['cost_center_id' => 'e.cost_center_id'] : []) as $key => $column) {
             if (!empty($filters[$key])) {
                 $filter .= " AND {$column} = ?";
                 $params[] = (int) $filters[$key];
@@ -102,11 +103,14 @@ final class Finance
             $params[] = $filters['tag'];
         }
         $statement = $this->pdo->prepare(
-            "SELECT e.id, e.description, e.amount_cents, e.due_date, e.paid_at,
-                    c.name AS category, c.color AS category_color, a.name AS account
+            "SELECT e.id, e.description, e.amount_cents, e.due_date, e.paid_at, e.contact_id,
+                    c.name AS category, c.color AS category_color, a.name AS account,
+                    COALESCE(NULLIF(ct.trade_name, ''), ct.legal_name) AS contact_name" . ($hasCostCenter ? ', cc.name AS cost_center' : ', NULL AS cost_center') . "
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             LEFT JOIN finance_contacts AS ct ON ct.id = e.contact_id AND ct.financial_context_id = e.financial_context_id" . ($hasCostCenter ? '
+             LEFT JOIN finance_cost_centers AS cc ON cc.id = e.cost_center_id AND cc.financial_context_id = e.financial_context_id' : '') . "
              WHERE e.financial_context_id = ? AND e.kind = ? AND e.due_date BETWEEN ? AND ?{$filter}
              ORDER BY e.due_date, e.id"
         );
@@ -114,7 +118,6 @@ final class Finance
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** @return array{expected:int,paid:int,overdue:int,count:int} */
     /**
      * Previsto, realizado e atrasado do período. O realizado conta as baixas, inclusive parciais,
      * do mesmo jeito que Receber e o saldo das contas; lançamento quitado conta inteiro.
@@ -230,6 +233,7 @@ final class Finance
         }
         $categoryId = $this->ownedId('finance_categories', $data['category_id'] ?? null);
         $costCenterId = $this->ownedCostCenter($data['cost_center_id'] ?? null);
+        $supplierId = $kind === 'expense' ? $this->ownedSupplier($data['supplier_id'] ?? null) : null;
         // Data futura paga agora conta como paga hoje; data passada, no próprio dia informado.
         $paidAt = !empty($data['paid']) ? min($due, date('Y-m-d')) : null;
         $amount = self::parseCents($data['amount'] ?? null);
@@ -253,8 +257,8 @@ final class Finance
             return $existing;
         }
         $seriesId = $total > 1 ? bin2hex(random_bytes(16)) : null;
-        $hasCostCenter = $this->pdo->query("SHOW COLUMNS FROM finance_entries LIKE 'cost_center_id'")->fetchColumn() !== false;
-        $insert = $this->pdo->prepare('INSERT INTO finance_entries (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, '.($hasCostCenter?'cost_center_id, ':'').'created_by, notes, idempotency_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '.($hasCostCenter?'?, ':'').'?, ?, ?)');
+        $hasCostCenter = $this->hasCostCenterColumn();
+        $insert = $this->pdo->prepare('INSERT INTO finance_entries (financial_context_id, kind, description, amount_cents, due_date, paid_at, account_id, category_id, contact_id, '.($hasCostCenter?'cost_center_id, ':'').'created_by, notes, idempotency_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '.($hasCostCenter?'?, ':'').'?, ?, ?)');
         $stored = [];
         $firstId = 0;
         $this->pdo->beginTransaction();
@@ -262,7 +266,7 @@ final class Finance
             foreach ($occurrences as $index => $occurrence) {
                 $insert->execute([
                     $this->contextId, $kind, $occurrence['description'], $occurrence['amount'], $occurrence['due'],
-                    $index === 0 ? $paidAt : null, $accountId, $categoryId, ...($hasCostCenter ? [$costCenterId] : []), $userId, $notes === '' ? null : $notes,
+                    $index === 0 ? $paidAt : null, $accountId, $categoryId, $supplierId, ...($hasCostCenter ? [$costCenterId] : []), $userId, $notes === '' ? null : $notes,
                     $key === null ? null : ($index === 0 ? $key : hash('sha256', $key . '-' . $index)),
                 ]);
                 $entryId = (int) $this->pdo->lastInsertId();
@@ -309,6 +313,12 @@ final class Finance
             throw new InvalidArgumentException('Escolha uma conta.');
         }
         $categoryId = $this->ownedId('finance_categories', $data['category_id'] ?? null);
+        // Campo ausente no envio (a tela não tinha fornecedor ou centro para escolher) mantém o que está gravado.
+        $keepSupplier = !array_key_exists('supplier_id', $data);
+        $supplierId = $keepSupplier ? null : $this->ownedSupplier($data['supplier_id']);
+        $hasCostCenter = $this->hasCostCenterColumn();
+        $keepCostCenter = !$hasCostCenter || !array_key_exists('cost_center_id', $data);
+        $costCenterId = $keepCostCenter ? null : $this->ownedCostCenter($data['cost_center_id']);
         $amount = self::parseCents($data['amount'] ?? null);
         $notes = trim((string) ($data['notes'] ?? ''));
         if (mb_strlen($notes) > 5000) {
@@ -331,8 +341,8 @@ final class Finance
         if (GoalWallets::ready() && (new GoalWallets($this->contextId))->operationForEntry($entryId) !== null) {
             throw new InvalidArgumentException('Esta despesa foi paga com uma meta. Para mudar, exclua e lance novamente.');
         }
-        $this->pdo->prepare('UPDATE finance_entries SET description = ?, amount_cents = ?, due_date = ?, account_id = ?, category_id = ?, notes = ? WHERE id = ? AND financial_context_id = ?')
-            ->execute([$description, $amount, $due, $accountId, $categoryId, $notes === '' ? null : $notes, $entryId, $this->contextId]);
+        $this->pdo->prepare('UPDATE finance_entries SET description = ?, amount_cents = ?, due_date = ?, account_id = ?, category_id = ?, ' . ($keepSupplier ? '' : 'contact_id = ?, ') . ($keepCostCenter ? '' : 'cost_center_id = ?, ') . 'notes = ? WHERE id = ? AND financial_context_id = ?')
+            ->execute([$description, $amount, $due, $accountId, $categoryId, ...($keepSupplier ? [] : [$supplierId]), ...($keepCostCenter ? [] : [$costCenterId]), $notes === '' ? null : $notes, $entryId, $this->contextId]);
         $this->updateEntryExtras($entryId, $data, $userId, $files);
     }
 
@@ -378,7 +388,7 @@ final class Finance
         }
         $marks = implode(',', array_fill(0, count($entryIds), '?'));
         $statement = $this->pdo->prepare(
-            "SELECT id, kind, description, amount_cents, due_date, competency_date, counterparty_name, contact_id, notes, document_number, payment_method, account_id, category_id
+            "SELECT id, kind, description, amount_cents, due_date, competency_date, counterparty_name, contact_id, notes, document_number, payment_method, account_id, category_id" . ($this->hasCostCenterColumn() ? ', cost_center_id' : ', NULL AS cost_center_id') . "
              FROM finance_entries WHERE financial_context_id = ? AND kind IN ('income','expense') AND id IN ({$marks})"
         );
         $statement->execute([$this->contextId, ...$entryIds]);
@@ -391,7 +401,7 @@ final class Finance
                 'id' => $id, 'source' => 'entry', 'kind' => $row['kind'], 'description' => $row['description'],
                 'amount' => number_format((int) $row['amount_cents'] / 100, 2, ',', '.'), 'due_date' => $row['due_date'],
                 'account_id' => (int) $row['account_id'], 'category_id' => (int) $row['category_id'], 'notes' => (string) $row['notes'],
-                'competence' => substr((string) ($row['competency_date'] ?? $row['due_date']), 0, 7), 'contact_id' => (int) $row['contact_id'],
+                'competence' => substr((string) ($row['competency_date'] ?? $row['due_date']), 0, 7), 'contact_id' => (int) $row['contact_id'], 'cost_center_id' => (int) $row['cost_center_id'],
                 'counterparty_name' => (string) $row['counterparty_name'], 'document_number' => (string) $row['document_number'],
                 'payment_method' => (string) ($row['payment_method'] ?: 'other'),
                 'tags' => $detail['tags'] ?? [], 'attachments' => $detail['attachments'] ?? [],
@@ -1615,6 +1625,22 @@ final class Finance
         $statement = $this->pdo->prepare("SELECT id FROM {$table} WHERE id = ? AND financial_context_id = ?");
         $statement->execute([$id, $this->contextId]);
         return $statement->fetchColumn() === false ? null : $id;
+    }
+
+    private function hasCostCenterColumn(): bool
+    {
+        return $this->pdo->query("SHOW COLUMNS FROM finance_entries LIKE 'cost_center_id'")->fetchColumn() !== false;
+    }
+
+    /** Fornecedor da despesa: contato desta área marcado como fornecedor. */
+    private function ownedSupplier(mixed $id): ?int
+    {
+        if ($id === null || $id === '') return null;
+        $id = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $q = $this->pdo->prepare('SELECT id FROM finance_contacts WHERE id = ? AND financial_context_id = ? AND is_supplier = 1');
+        $q->execute([$id === false ? 0 : $id, $this->contextId]);
+        if ($id === false || $q->fetchColumn() === false) throw new InvalidArgumentException('Fornecedor inválido.');
+        return (int) $id;
     }
 
     private function ownedCostCenter(mixed $id): ?int

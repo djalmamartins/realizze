@@ -23,6 +23,9 @@ $search = is_string($_GET['busca'] ?? null) ? mb_substr(trim($_GET['busca']), 0,
 $categoryFilter = (int) filter_var($_GET['categoria'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 0]]);
 $accountFilter = (int) filter_var($_GET['conta'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 0]]);
 $tagFilter = is_string($_GET['tag'] ?? null) ? mb_substr(trim($_GET['tag']), 0, 40) : '';
+// Fornecedor e centro de custo existem só na empresa; na PF os filtros ficam sem opções e não aparecem.
+$supplierFilter = $isIncome ? 0 : (int) filter_var($_GET['fornecedor'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 0]]);
+$centerFilter = (int) filter_var($_GET['centro'] ?? 0, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'default' => 0]]);
 $validDate = static fn (mixed $value): bool => is_string($value) && ($parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $value)) !== false && $parsed->format('Y-m-d') === $value;
 $customPeriod = $validDate($_GET['inicio'] ?? null) && $validDate($_GET['fim'] ?? null) && $_GET['inicio'] <= $_GET['fim'];
 $rangeStart = $customPeriod ? $_GET['inicio'] : $start->format('Y-m-d');
@@ -31,7 +34,7 @@ if ($customPeriod) {
     $monthLabel = (new DateTimeImmutable($rangeStart))->format('d/m/Y') . ' a ' . (new DateTimeImmutable($rangeEnd))->format('d/m/Y');
 }
 $loadFailed = false;
-$accounts = $categories = $entries = $tags = $details = $editData = [];
+$accounts = $categories = $entries = $tags = $details = $editData = $suppliers = $centers = [];
 $extras = false;
 $summary = ['expected' => 0, 'paid' => 0, 'overdue' => 0, 'count' => 0];
 try {
@@ -40,7 +43,11 @@ try {
     (new RecurringFinance((int) FinanceContext::currentId()))->generateDue(new DateTimeImmutable('last day of this month'), 100);
     $accounts = $finance->accounts();
     $categories = $finance->categories($kind);
-    $entries = $finance->entries($kind, $rangeStart, $rangeEnd, $status, ['search' => $search, 'category_id' => $categoryFilter, 'account_id' => $accountFilter, 'tag' => $tagFilter]);
+    if (\Moves\Services\OrganizationContext::current() !== null) {
+        $suppliers = $isIncome ? [] : array_map(static fn (array $s): array => ['id' => $s['id'], 'name' => $s['trade_name'] ?: $s['legal_name']], (new \Moves\Services\Contacts((int) FinanceContext::currentId()))->selectableSuppliers());
+        $centers = $finance->costCenters();
+    }
+    $entries = $finance->entries($kind, $rangeStart, $rangeEnd, $status, ['search' => $search, 'category_id' => $categoryFilter, 'account_id' => $accountFilter, 'tag' => $tagFilter, 'contact_id' => $supplierFilter, 'cost_center_id' => $centerFilter]);
     $summary = $finance->summary($kind, $rangeStart, $rangeEnd);
     $extras = $finance->supportsEntryExtras();
     $tags = $finance->tags();
@@ -52,7 +59,7 @@ try {
 }
 // Previstas somem da tela quando o usuário filtra por situação ou busca: não são lançamentos.
 $planned = [];
-if (!$loadFailed && in_array($status, ['all', 'open'], true) && $search === '' && $categoryFilter === 0 && $accountFilter === 0 && $tagFilter === '') {
+if (!$loadFailed && in_array($status, ['all', 'open'], true) && $search === '' && $categoryFilter === 0 && $accountFilter === 0 && $tagFilter === '' && $supplierFilter === 0 && $centerFilter === 0) {
     try {
         $planned = (new RecurringFinance((int) FinanceContext::currentId()))->planned($kind, $rangeStart, $rangeEnd);
     } catch (Throwable $exception) {
@@ -62,7 +69,7 @@ if (!$loadFailed && in_array($status, ['all', 'open'], true) && $search === '' &
 $flash = $_SESSION['finance_flash'] ?? null;
 unset($_SESSION['finance_flash']);
 $today = date('Y-m-d');
-$activeFilters = array_filter(['inicio' => $customPeriod ? $rangeStart : '', 'fim' => $customPeriod ? $rangeEnd : '', 'busca' => $search, 'categoria' => $categoryFilter, 'conta' => $accountFilter, 'tag' => $tagFilter]);
+$activeFilters = array_filter(['inicio' => $customPeriod ? $rangeStart : '', 'fim' => $customPeriod ? $rangeEnd : '', 'busca' => $search, 'categoria' => $categoryFilter, 'conta' => $accountFilter, 'tag' => $tagFilter, 'fornecedor' => $supplierFilter, 'centro' => $centerFilter]);
 $link = static fn (string $target, string $situation = 'all', array $filters = []): string => \Moves\Services\AppUrl::section($page, null, ['mes' => $target] + ($situation === 'all' ? [] : ['situacao' => $situation]) + $filters);
 $nameOf = static function (array $items, int $id): string {
     foreach ($items as $item) {
@@ -70,7 +77,7 @@ $nameOf = static function (array $items, int $id): string {
     }
     return '';
 };
-$chipLabels = ['busca' => 'Busca: ' . $search, 'categoria' => 'Categoria: ' . $nameOf($categories, $categoryFilter), 'conta' => 'Conta: ' . $nameOf($accounts, $accountFilter), 'tag' => 'Tag: ' . $tagFilter];
+$chipLabels = ['busca' => 'Busca: ' . $search, 'categoria' => 'Categoria: ' . $nameOf($categories, $categoryFilter), 'conta' => 'Conta: ' . $nameOf($accounts, $accountFilter), 'tag' => 'Tag: ' . $tagFilter, 'fornecedor' => 'Fornecedor: ' . $nameOf($suppliers, $supplierFilter), 'centro' => 'Centro de custo: ' . $nameOf($centers, $centerFilter)];
 $filterChips = [];
 if ($customPeriod) {
     $filterChips['Vencimento: ' . $monthLabel] = $link($month, $status, array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]));
@@ -112,6 +119,8 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
     <label>Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Descrição"></label>
     <label>Categoria<select name="categoria"><option value="">Todas</option><?php foreach ($categories as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $categoryFilter === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
     <label>Conta ou cartão<select name="conta"><option value="">Todas</option><?php foreach ($accounts as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $accountFilter === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label>
+    <?php if ($suppliers !== []): ?><label>Fornecedor<select name="fornecedor"><option value="">Todos</option><?php foreach ($suppliers as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $supplierFilter === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
+    <?php if ($centers !== []): ?><label>Centro de custo<select name="centro"><option value="">Todos</option><?php foreach ($centers as $item): ?><option value="<?= (int) $item['id'] ?>"<?= $centerFilter === (int) $item['id'] ? ' selected' : '' ?>><?= $e($item['name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
     <?php if ($tags !== []): ?><label>Tag<select name="tag"><option value="">Todas</option><?php foreach ($tags as $item): ?><option value="<?= $e($item) ?>"<?= $tagFilter === $item ? ' selected' : '' ?>><?= $e($item) ?></option><?php endforeach; ?></select></label><?php endif; ?>
     <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Aplicar</button></footer>
   </form>
@@ -127,7 +136,7 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
       <tbody>
       <?php foreach ($entries as $entry): $overdue = $entry['paid_at'] === null && $entry['due_date'] < $today; $detail = $details[(int) $entry['id']] ?? null; ?>
       <tr id="lancamento-<?= (int) $entry['id'] ?>">
-        <td><strong><?= $e($entry['description']) ?></strong>
+        <td><strong><?= $e($entry['description']) ?></strong><?php if ($entry['contact_name'] || $entry['cost_center']): ?><small class="contact-legal"><?= $e(implode(' · ', array_filter([$entry['contact_name'], $entry['cost_center'] ? 'Centro: ' . $entry['cost_center'] : null]))) ?></small><?php endif; ?>
           <?php require __DIR__ . '/entry-meta.php'; ?>
         </td>
         <td><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?></td>
