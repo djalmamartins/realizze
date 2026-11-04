@@ -7,7 +7,8 @@ Controle da missão de concluir o ambiente Empresa do App, na `dev-claude`. O c�
 - A `dev-claude` estava contida na `main` (0 commits próprios). Foi avançada por fast-forward até `810fe02`, sem merge commit, para trazer cartões, conciliação, centros de custo e as migrations 014 e 015 do Codex.
 - Testes rodam no container `realizze-pjtest-db` (banco `realizze_pjtest`, cópia do backup de 02/11 com as migrations até a 016). O `realizze_dev` não é tocado.
 - Usuários de teste só nesse banco: `pj-dono@example.invalid` (dono de "Missao Alfa Ltda" e "Missao Beta ME") e `pj-leitor@example.invalid` (Visualizador na Alfa).
-- Verificação HTTP: `php -S` temporário dentro do `dev-apache`, com `DB_*` do banco isolado, e um cliente que reenvia o cookie Secure à mão.
+- Verificação HTTP: `php -S` temporário dentro do `dev-apache`, com `DB_*` do banco isolado e `TMPDIR` próprio (o limitador de login guarda arquivos no diretório temporário e seria compartilhado com o App real), e um cliente que reenvia o cookie Secure à mão (`tests/http/client.php`).
+- `registration-002-signup` falha neste ambiente por permissão nos arquivos do limitador em `/tmp/realizze-auth-limits` do `dev-apache`; não tem relação com o módulo Empresa.
 
 ## Inventário real das rotas `/e/{empresa}`
 
@@ -48,7 +49,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Configurações da empresa | Concluída | Editar razão social, nome fantasia, CNPJ (com dígito verificador), e-mail e telefone; só leitura para quem não tem `team.manage`; últimas alterações | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
 | Auditoria | Concluída | Consulta de `organization_audit_logs` com filtros por ação, pessoa e período, paginação; exige `team.manage` na rota e no menu | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
 | Segurança | Concluída | 2FA e sessões da própria conta; para quem tem `team.manage`, 2FA de cada membro e mudanças de acesso recentes. Não existe política por empresa (exigir 2FA): dito na tela | `tests/http/enterprise-security-flow.php` | ver abaixo |
-| Dashboard | Pendente | Conferir números com os serviços | — | — |
+| Dashboard | Concluída | Baixa parcial de recebimento passou a contar em Receitas, Resultado, A receber, Fechamento previsto e no gráfico mensal (antes sumia, embora entrasse no saldo); "A pagar vencido" leva a Pagar filtrado e mostra a quantidade; cabeçalho e aba dizem Dashboard. `Finance::summary` e `monthlySeries` são compartilhados com a PF: suíte inteira rodada | `finance-017-dashboard-consistency` + suíte PF | ver abaixo |
 | Pagar | Pendente | Fornecedor, baixa parcial, histórico | — | — |
 | Centros de custo | Pendente | Editar, inativar, filtro | — | — |
 | Conciliação | Pendente | Conciliar linha com lançamento existente | — | — |

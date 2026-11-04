@@ -16,10 +16,9 @@ try {
     $expense = $finance->summary('expense', $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
     $overdueIncome = $receivables->listing(['start' => '2000-01-01', 'end' => $yesterday, 'status' => 'overdue', 'per_page' => 5]);
     $overdueIncomeTotal = $receivables->summary('2000-01-01', $yesterday)['overdue'];
-    $overdueExpense = array_sum(array_map(
-        static fn (array $row): int => (int) $row['amount_cents'],
-        array_filter($finance->entries('expense', '2000-01-01', $yesterday, 'all'), static fn (array $row): bool => empty($row['paid_at']) && ($row['status'] ?? '') !== 'cancelled')
-    ));
+    $overdueExpenseRows = array_filter($finance->entries('expense', '2000-01-01', $yesterday, 'all'), static fn (array $row): bool => empty($row['paid_at']) && ($row['status'] ?? '') !== 'cancelled');
+    $overdueExpense = array_sum(array_map(static fn (array $row): int => (int) $row['amount_cents'], $overdueExpenseRows));
+    $overdueExpenseCount = count($overdueExpenseRows);
 } catch (Throwable $exception) {
     error_log('Realizze executive panel: ' . $exception->getMessage());
     return;
@@ -30,7 +29,7 @@ try {
     <div class="finance-goal-stat finance-indicator <?= $income['paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Receitas de <?= $e($period['short']) ?></span><strong><?= $e(Finance::money($income['paid'])) ?></strong><small>Já recebidas</small></div>
     <div class="finance-goal-stat finance-indicator <?= $expense['paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Despesas de <?= $e($period['short']) ?></span><strong><?= $e(Finance::money($expense['paid'])) ?></strong><small>Já pagas</small></div>
     <a class="finance-goal-stat finance-indicator <?= $overdueIncomeTotal > 0 ? 'is-overdue' : 'is-neutral' ?>" href="<?= $e(AppUrl::section('receber', null, ['situacao' => 'overdue', 'inicio' => '2000-01-01', 'fim' => $yesterday])) ?>"><span>A receber vencido</span><strong><?= $e(Finance::money($overdueIncomeTotal)) ?></strong><small><?= (int) $overdueIncome['total'] ?> cobrança<?= (int) $overdueIncome['total'] === 1 ? '' : 's' ?> em atraso</small></a>
-    <a class="finance-goal-stat finance-indicator <?= $overdueExpense > 0 ? 'is-overdue' : 'is-neutral' ?>" href="<?= $e(AppUrl::section('fluxo-de-caixa')) ?>"><span>A pagar vencido</span><strong><?= $e(Finance::money($overdueExpense)) ?></strong><small>Ver fluxo de caixa</small></a>
+    <a class="finance-goal-stat finance-indicator <?= $overdueExpense > 0 ? 'is-overdue' : 'is-neutral' ?>" href="<?= $e(AppUrl::section('pagar', null, ['situacao' => 'overdue', 'inicio' => '2000-01-01', 'fim' => $yesterday])) ?>"><span>A pagar vencido</span><strong><?= $e(Finance::money($overdueExpense)) ?></strong><small><?= $overdueExpenseCount ?> conta<?= $overdueExpenseCount === 1 ? '' : 's' ?> em atraso</small></a>
   </div>
   <?php if ($overdueIncome['rows'] !== []): ?>
   <div class="executive-overdue">

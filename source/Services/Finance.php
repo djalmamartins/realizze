@@ -115,18 +115,27 @@ final class Finance
     }
 
     /** @return array{expected:int,paid:int,overdue:int,count:int} */
+    /**
+     * Previsto, realizado e atrasado do período. O realizado conta as baixas, inclusive parciais,
+     * do mesmo jeito que Receber e o saldo das contas; lançamento quitado conta inteiro.
+     */
     public function summary(string $kind, string $start, string $end): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT COALESCE(SUM(CASE WHEN paid_at IS NULL THEN amount_cents END), 0) AS expected,
-                    COALESCE(SUM(CASE WHEN paid_at IS NOT NULL THEN amount_cents END), 0) AS paid,
-                    COALESCE(SUM(CASE WHEN paid_at IS NULL AND due_date < CURDATE() THEN amount_cents END), 0) AS overdue,
+            'SELECT COALESCE(SUM(q.amount_cents - q.done), 0) AS expected,
+                    COALESCE(SUM(q.done), 0) AS paid,
+                    COALESCE(SUM(CASE WHEN q.due_date < CURDATE() THEN q.amount_cents - q.done END), 0) AS overdue,
                     COUNT(*) AS count
-             FROM finance_entries
-             WHERE financial_context_id = ? AND kind = ? AND due_date BETWEEN ? AND ?
-               AND (status IS NULL OR status <> \'cancelled\')'
+             FROM (
+                SELECT e.amount_cents, e.due_date,
+                       CASE WHEN e.paid_at IS NOT NULL THEN e.amount_cents ELSE LEAST(e.amount_cents, COALESCE(s.settled, 0)) END AS done
+                FROM finance_entries AS e
+                LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS settled FROM finance_entry_settlements WHERE financial_context_id = ? GROUP BY entry_id) AS s ON s.entry_id = e.id
+                WHERE e.financial_context_id = ? AND e.kind = ? AND e.due_date BETWEEN ? AND ?
+                  AND (e.status IS NULL OR e.status <> \'cancelled\')
+             ) AS q'
         );
-        $statement->execute([$this->contextId, $kind, $start, $end]);
+        $statement->execute([$this->contextId, $this->contextId, $kind, $start, $end]);
         return array_map('intval', $statement->fetch(PDO::FETCH_ASSOC));
     }
 
@@ -802,13 +811,24 @@ final class Finance
     public function monthlySeries(DateTimeImmutable $end, int $months = 6): array
     {
         $first = $end->modify('first day of this month')->modify('-' . ($months - 1) . ' month');
+        // Com baixas, cada uma entra no mês em que foi recebida; sem baixas, vale a data de pagamento.
         $statement = $this->pdo->prepare(
-            "SELECT DATE_FORMAT(paid_at, '%Y-%m') AS month, kind, SUM(amount_cents) AS total
-             FROM finance_entries
-             WHERE financial_context_id = ? AND kind IN ('income','expense') AND paid_at BETWEEN ? AND ?
+            "SELECT month, kind, SUM(total) AS total FROM (
+                SELECT DATE_FORMAT(e.paid_at, '%Y-%m') AS month, e.kind, e.amount_cents AS total
+                FROM finance_entries AS e
+                WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND e.paid_at BETWEEN ? AND ?
+                  AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS x WHERE x.entry_id = e.id)
+                UNION ALL
+                SELECT DATE_FORMAT(s.received_at, '%Y-%m'), e.kind, s.amount_cents
+                FROM finance_entry_settlements AS s
+                INNER JOIN finance_entries AS e ON e.id = s.entry_id AND e.financial_context_id = s.financial_context_id
+                WHERE s.financial_context_id = ? AND e.kind IN ('income','expense') AND s.received_at BETWEEN ? AND ?
+                  AND (e.status IS NULL OR e.status <> 'cancelled')
+             ) AS q
              GROUP BY month, kind"
         );
-        $statement->execute([$this->contextId, $first->format('Y-m-d'), $end->format('Y-m-t')]);
+        $range = [$first->format('Y-m-d'), $end->format('Y-m-t')];
+        $statement->execute([$this->contextId, ...$range, $this->contextId, ...$range]);
         $series = [];
         for ($i = 0; $i < $months; $i++) {
             $series[$first->modify("+{$i} month")->format('Y-m')] = ['income' => 0, 'expense' => 0];
