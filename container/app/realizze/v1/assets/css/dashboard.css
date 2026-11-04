@@ -1559,3 +1559,8 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .reconcile-match{display:inline-flex;align-items:center;gap:6px}
 .reconcile-match select{max-width:220px;min-height:34px;padding:0 8px;border:1px solid #d6e2dc;border-radius:8px;background:#fff;font:inherit;font-size:13px}
 @media(max-width:650px){.reconcile-match{display:flex;flex-wrap:wrap}.reconcile-match select{max-width:100%}}
+
+/* PJ-PAPEIS: papel só de consulta não vê botões que levariam a um 403. O servidor valida de qualquer forma. */
+.readonly-note{margin:0 0 18px;padding:12px 16px;border:1px solid #cfe3d8;border-radius:12px;background:#f3faf6;color:#145c3a;font-size:14px}
+body[data-readonly~="finance"] [data-entry-open],body[data-readonly~="finance"] [data-entry-edit],body[data-readonly~="finance"] form[action^="/minha-conta/financeiro/"]:not([action$="/empresa"]),body[data-readonly~="finance"] button[data-finance-open]:not([data-finance-open^="goal-history"]):not([data-finance-open^="receivable-history"]):not([data-finance-open="company-dialog"]):not([data-finance-open^="contact"]){display:none!important}
+body[data-readonly~="contacts"] button[data-finance-open^="contact"],body[data-readonly~="contacts"] form[action^="/minha-conta/contatos/"]{display:none!important}

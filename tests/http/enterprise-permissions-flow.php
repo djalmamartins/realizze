@@ -19,6 +19,7 @@ foreach (['pj-leitor@example.invalid' => 'Visualizador', 'pj-operacional@example
     $u = new H(); $u->login($email, 'PjMissao#2026');
     $page = $u->req('GET', "/e/$slug/pagar"); $csrf = $u->csrf($page['body']);
     $check($page['code'] === 200, "$role abre Pagar");
+    $check(str_contains($page['body'], 'data-readonly="finance') && str_contains($page['body'], 'papel nesta empresa é de consulta'), "$role vê o aviso de consulta e a tela esconde o que não pode gravar");
     $refused = [];
     foreach ($writes as $path => $fields) {
         $r = $u->req('POST', '/minha-conta/financeiro/' . $path, ['csrf_token' => $csrf, 'back' => 'pagar'] + $fields);
@@ -33,4 +34,6 @@ foreach (['pj-leitor@example.invalid' => 'Visualizador', 'pj-operacional@example
     $check($role === 'Operacional' ? $contact['code'] === 303 : $contact['code'] === 403, $role === 'Operacional' ? 'Operacional cadastra cliente (contacts.manage)' : 'Visualizador não cadastra cliente');
     $check($u->req('GET', '/e/missao-beta-me')['code'] === 404, "$role não abre a outra empresa do dono");
 }
+$owner = new H(); $owner->login('pj-dono@example.invalid', 'PjMissao#2026');
+$check(!str_contains($owner->req('GET', "/e/$slug/pagar")['body'], 'data-readonly'), 'Dono não tem tela de consulta');
 echo "$ok OK, $fail falha(s)\n"; exit($fail ? 1 : 0);

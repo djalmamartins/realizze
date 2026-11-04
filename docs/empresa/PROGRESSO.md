@@ -64,6 +64,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Obrigações PJ/MEI, Ordens de serviço | Bloqueada | Fora das etapas desta missão e sem tabela; continuam "Em breve" com o que falta | — | — |
 
 | Permissões (PJ-03) | Concluída | Matriz por HTTP no MySQL: Visualizador e Operacional recebem 403 em todas as 20 ações financeiras de escrita, não exportam, não convidam, não abrem a auditoria nem outra empresa; Operacional cadastra clientes (`contacts.manage`). Nenhuma linha mudou no banco | `tests/http/enterprise-permissions-flow.php` | ver abaixo |
+| Papéis de consulta na tela | Concluída | Quem não tem `finance.manage` vê um aviso e não vê botões de lançar, editar, baixar ou excluir (CSS por `data-readonly` no `body`); sem `contacts.manage`, some o cadastro de contatos. É conveniência: o servidor continua recusando | `tests/http/enterprise-permissions-flow.php`, captura | ver abaixo |
 | Convite depois do login (PJ-13) | Concluída | O login recriava a sessão e perdia o convite; agora volta para `/convite-empresa`, inclusive com 2FA | `tests/http/enterprise-invite-login-flow.php` | ver abaixo |
 
 ## Migrations da missão

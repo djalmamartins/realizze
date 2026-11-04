@@ -109,6 +109,7 @@ $items += $activeOrganization !== null
 // Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
 $pendingSections = ['dre', 'obrigacoes', 'ordens-de-servico'];
 $navGroups = null;
+$readOnly = [];
 if ($activeOrganization !== null) {
     $items['overview'][1] = 'Dashboard';
     $items['receber'][1] = 'Receber e cobranças';
@@ -128,6 +129,8 @@ if ($activeOrganization !== null) {
     // Esconder é só conveniência: as rotas e as ações validam a permissão de novo.
     $navPermission = ['overview' => 'finance.view', 'receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'categorias' => 'finance.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'auditoria' => 'team.manage'];
     $ownPermissions = \Moves\Services\OrganizationTeam::permissionsFor((int) $user['id'], (int) $activeOrganization['id']);
+    // Papel só de consulta: a tela esconde o que ele não pode gravar (as ações validam de novo no servidor).
+    $readOnly = array_keys(array_filter(['finance' => 'finance.manage', 'contacts' => 'contacts.manage'], static fn (string $permission): bool => !in_array($permission, $ownPermissions, true)));
     foreach ($navGroups as $groupIndex => $group) {
         $navGroups[$groupIndex][2] = array_values(array_filter($group[2], static fn (string $key): bool => !isset($navPermission[$key]) || in_array($navPermission[$key], $ownPermissions, true)));
     }
@@ -194,7 +197,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
 </style>
 </noscript>
 </head>
-<body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>" data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>" data-logo-pf="<?= htmlspecialchars($personalLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>" data-logo-pj="<?= htmlspecialchars($enterpriseLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>">
+<body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>"<?= $readOnly !== [] ? ' data-readonly="' . implode(' ', $readOnly) . '"' : '' ?> data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>" data-logo-pf="<?= htmlspecialchars($personalLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>" data-logo-pj="<?= htmlspecialchars($enterpriseLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>">
 <a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
 <noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros interativos não estão disponíveis nesta prévia.</p></noscript>
 <div class="shell" id="shell">
@@ -216,6 +219,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
 <main class="main" id="overview" tabindex="-1">
 <?php if ($section === 'overview'): ?>
 <?= $appView->render('components::dashboard-header', ['name' => $name, 'user' => $user, 'appView' => $appView]) ?>
+<?php if (in_array('finance', $readOnly, true)): ?><p class="readonly-note" role="note">Seu papel nesta empresa é de consulta: você vê os dados, mas não lança nem altera valores.</p><?php endif; ?>
 <?php if ($activeOrganization !== null): ?><?= $appView->render('components::executive-panel') ?><?php endif; ?>
 <?= $appView->render('components::overview-live', ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView]) ?>
 <?php else: ?>
@@ -232,6 +236,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
     'name' => $name,
     'user' => $user,
 ]) ?>
+<?php if (in_array('finance', $readOnly, true) && !in_array($section, ['perfil', 'notificacoes', 'integracoes', 'permissoes', 'seguranca', 'auditoria', 'equipe', 'empresa'], true)): ?><p class="readonly-note" role="note">Seu papel nesta empresa é de consulta: você vê os dados, mas não lança nem altera valores.</p><?php endif; ?>
 <?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'auditoria', 'seguranca', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView, 'activeOrganization' => $activeOrganization]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
