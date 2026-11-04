@@ -45,27 +45,27 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 
 | Página | Estado | Funcionalidades | Testes | Commit |
 |---|---|---|---|---|
-| Equipe | Concluída | Migration 016 libera os papéis do catálogo no MySQL; convites, papel, suspensão e remoção registrados na auditoria | `enterprise-002-team`, `enterprise-003-company-audit`, `tests/http/enterprise-company-flow.php` | ver abaixo |
-| Configurações da empresa | Concluída | Editar razão social, nome fantasia, CNPJ (com dígito verificador), e-mail e telefone; só leitura para quem não tem `team.manage`; últimas alterações | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
-| Auditoria | Concluída | Consulta de `organization_audit_logs` com filtros por ação, pessoa e período, paginação; exige `team.manage` na rota e no menu | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
-| Segurança | Concluída | 2FA e sessões da própria conta; para quem tem `team.manage`, 2FA de cada membro e mudanças de acesso recentes. Não existe política por empresa (exigir 2FA): dito na tela | `tests/http/enterprise-security-flow.php` | ver abaixo |
-| Dashboard | Concluída | Baixa parcial de recebimento passou a contar em Receitas, Resultado, A receber, Fechamento previsto e no gráfico mensal (antes sumia, embora entrasse no saldo); "A pagar vencido" leva a Pagar filtrado e mostra a quantidade; cabeçalho e aba dizem Dashboard. `Finance::summary` e `monthlySeries` são compartilhados com a PF: suíte inteira rodada | `finance-017-dashboard-consistency` + suíte PF | ver abaixo |
-| Bancos e contas | Concluída | Cadastro de cartão com limite, fechamento e vencimento (o formulário não tinha esses campos e Faturas dependia deles); editar nome, instituição e regras do cartão; arquivar só com saldo zero, sem lançamento em aberto, sem reserva de meta e sem assinatura ativa, para o saldo consolidado não mudar. Tipo e saldo inicial não se editam | `finance-018-accounts`, `tests/http/enterprise-accounts-flow.php`, capturas 1440 e 390 px | ver abaixo |
-| Pagar | Concluída | Fornecedor e centro de custo na despesa (criar e editar; editar sem os campos na tela mantém o que está gravado); fornecedor e centro aparecem na linha; filtros por fornecedor e centro de custo com chip. Baixa parcial de despesa não é suportada: o saldo das contas soma toda baixa como entrada, e mudar isso mexe no saldo da PF; fica registrado como pendência | `finance-019-payables-suppliers`, `tests/http/enterprise-payables-flow.php`, capturas | ver abaixo |
-| Fornecedores | Concluída | Detalhe do fornecedor com contas a pagar, pagamentos e resumo (a pagar, em atraso, pago, total) | `tests/http/enterprise-payables-flow.php` | ver abaixo |
-| Cartões e faturas | Concluída | Correções no serviço do Codex: (1) a parcela guardava um vencimento que não caía na janela da fatura, e com vencimento antes do fechamento ficava antes da própria compra; agora cada compra vai para a fatura do fechamento e vence no primeiro dia de vencimento depois dele; (2) pagar a fatura criava uma despesa além das compras, contando a despesa duas vezes e deixando o cartão negativo; agora é transferência da conta para o cartão; (3) reenviar o formulário de pagamento dava erro em vez de devolver o pagamento já feito; (4) o estorno apagava a saída e, pela FK em cascata, o próprio registro do pagamento; agora cancela a transferência. Tela: navegação por fatura, pagamento total ou parcial em janela própria, histórico de pagamentos com estorno, categoria e centro de custo na compra | `finance-020-card-invoices`, `tests/http/enterprise-invoices-flow.php`, capturas | ver abaixo |
-| Centros de custo | Concluída | Editar nome, código e situação; inativo some dos formulários e guarda o histórico; nome ou código repetido com mensagem clara (antes era erro genérico); resultado do mês por centro, com realizado e previsto e a linha "Sem centro de custo"; nome do centro leva a Pagar filtrado. Receber ignorava o centro escolhido na modal; agora grava e mantém ao editar | `finance-022-cost-centers`, `finance-019-payables-suppliers`, captura | ver abaixo |
-| Conciliação | Concluída | Sugestões de lançamento (mesma conta, valor e sentido, até 7 dias, ainda não conciliado), conciliar, ignorar e desfazer; o serviço passou a recusar conciliação com lançamento de outra conta ou valor; importação de OFX; CSV com vírgula ou BOM (antes só funcionava com ponto e vírgula); mesmo arquivo recusado com mensagem clara; filtros por situação e conta; contadores. Nenhum saldo muda | `finance-021-reconciliation`, `tests/http/enterprise-reconciliation-flow.php`, capturas | ver abaixo |
-| Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver abaixo |
+| Equipe | Concluída | Migration 016 libera os papéis do catálogo no MySQL; convites, papel, suspensão e remoção registrados na auditoria | `enterprise-002-team`, `enterprise-003-company-audit`, `tests/http/enterprise-company-flow.php` | ver "Commits" |
+| Configurações da empresa | Concluída | Editar razão social, nome fantasia, CNPJ (com dígito verificador), e-mail e telefone; só leitura para quem não tem `team.manage`; últimas alterações | `enterprise-003-company-audit`, fluxo HTTP | ver "Commits" |
+| Auditoria | Concluída | Consulta de `organization_audit_logs` com filtros por ação, pessoa e período, paginação; exige `team.manage` na rota e no menu | `enterprise-003-company-audit`, fluxo HTTP | ver "Commits" |
+| Segurança | Concluída | 2FA e sessões da própria conta; para quem tem `team.manage`, 2FA de cada membro e mudanças de acesso recentes. Não existe política por empresa (exigir 2FA): dito na tela | `tests/http/enterprise-security-flow.php` | ver "Commits" |
+| Dashboard | Concluída | Baixa parcial de recebimento passou a contar em Receitas, Resultado, A receber, Fechamento previsto e no gráfico mensal (antes sumia, embora entrasse no saldo); "A pagar vencido" leva a Pagar filtrado e mostra a quantidade; cabeçalho e aba dizem Dashboard. `Finance::summary` e `monthlySeries` são compartilhados com a PF: suíte inteira rodada | `finance-017-dashboard-consistency` + suíte PF | ver "Commits" |
+| Bancos e contas | Concluída | Cadastro de cartão com limite, fechamento e vencimento (o formulário não tinha esses campos e Faturas dependia deles); editar nome, instituição e regras do cartão; arquivar só com saldo zero, sem lançamento em aberto, sem reserva de meta e sem assinatura ativa, para o saldo consolidado não mudar. Tipo e saldo inicial não se editam | `finance-018-accounts`, `tests/http/enterprise-accounts-flow.php`, capturas 1440 e 390 px | ver "Commits" |
+| Pagar | Concluída | Fornecedor e centro de custo na despesa (criar e editar; editar sem os campos na tela mantém o que está gravado); fornecedor e centro aparecem na linha; filtros por fornecedor e centro de custo com chip. Baixa parcial de despesa não é suportada: o saldo das contas soma toda baixa como entrada, e mudar isso mexe no saldo da PF; fica registrado como pendência | `finance-019-payables-suppliers`, `tests/http/enterprise-payables-flow.php`, capturas | ver "Commits" |
+| Fornecedores | Concluída | Detalhe do fornecedor com contas a pagar, pagamentos e resumo (a pagar, em atraso, pago, total) | `tests/http/enterprise-payables-flow.php` | ver "Commits" |
+| Cartões e faturas | Concluída | Correções no serviço do Codex: (1) a parcela guardava um vencimento que não caía na janela da fatura, e com vencimento antes do fechamento ficava antes da própria compra; agora cada compra vai para a fatura do fechamento e vence no primeiro dia de vencimento depois dele; (2) pagar a fatura criava uma despesa além das compras, contando a despesa duas vezes e deixando o cartão negativo; agora é transferência da conta para o cartão; (3) reenviar o formulário de pagamento dava erro em vez de devolver o pagamento já feito; (4) o estorno apagava a saída e, pela FK em cascata, o próprio registro do pagamento; agora cancela a transferência. Tela: navegação por fatura, pagamento total ou parcial em janela própria, histórico de pagamentos com estorno, categoria e centro de custo na compra | `finance-020-card-invoices`, `tests/http/enterprise-invoices-flow.php`, capturas | ver "Commits" |
+| Centros de custo | Concluída | Editar nome, código e situação; inativo some dos formulários e guarda o histórico; nome ou código repetido com mensagem clara (antes era erro genérico); resultado do mês por centro, com realizado e previsto e a linha "Sem centro de custo"; nome do centro leva a Pagar filtrado. Receber ignorava o centro escolhido na modal; agora grava e mantém ao editar | `finance-022-cost-centers`, `finance-019-payables-suppliers`, captura | ver "Commits" |
+| Conciliação | Concluída | Sugestões de lançamento (mesma conta, valor e sentido, até 7 dias, ainda não conciliado), conciliar, ignorar e desfazer; o serviço passou a recusar conciliação com lançamento de outra conta ou valor; importação de OFX; CSV com vírgula ou BOM (antes só funcionava com ponto e vírgula); mesmo arquivo recusado com mensagem clara; filtros por situação e conta; contadores. Nenhum saldo muda | `finance-021-reconciliation`, `tests/http/enterprise-reconciliation-flow.php`, capturas | ver "Commits" |
+| Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver "Commits" |
 
-| Fluxo de caixa | Concluída | O realizado passou a contar cada baixa na data em que entrou (antes a baixa parcial sumia e a quitação entrava com o valor inteiro na última data); o previsto de Receber usa só o que falta receber | `finance-017-dashboard-consistency` | ver abaixo |
-| Relatórios | Concluída | Na empresa, painel "Resultado por centro de custo" no período; o restante (dia a dia, categorias, série mensal, CSV, PDF) já existia | captura | ver abaixo |
+| Fluxo de caixa | Concluída | O realizado passou a contar cada baixa na data em que entrou (antes a baixa parcial sumia e a quitação entrava com o valor inteiro na última data); o previsto de Receber usa só o que falta receber | `finance-017-dashboard-consistency` | ver "Commits" |
+| Relatórios | Concluída | Na empresa, painel "Resultado por centro de custo" no período; o restante (dia a dia, categorias, série mensal, CSV, PDF) já existia | captura | ver "Commits" |
 | DRE gerencial | Bloqueada | Falta a decisão de Djalma entre caixa e competência e a classificação das categorias em receita, custo e despesa. A tela diz isso, sem números simulados | — | — |
 | Obrigações PJ/MEI, Ordens de serviço | Bloqueada | Fora das etapas desta missão e sem tabela; continuam "Em breve" com o que falta | — | — |
 
-| Permissões (PJ-03) | Concluída | Matriz por HTTP no MySQL: Visualizador e Operacional recebem 403 em todas as 20 ações financeiras de escrita, não exportam, não convidam, não abrem a auditoria nem outra empresa; Operacional cadastra clientes (`contacts.manage`). Nenhuma linha mudou no banco | `tests/http/enterprise-permissions-flow.php` | ver abaixo |
-| Papéis de consulta na tela | Concluída | Quem não tem `finance.manage` vê um aviso e não vê botões de lançar, editar, baixar ou excluir (CSS por `data-readonly` no `body`); sem `contacts.manage`, some o cadastro de contatos. É conveniência: o servidor continua recusando | `tests/http/enterprise-permissions-flow.php`, captura | ver abaixo |
-| Convite depois do login (PJ-13) | Concluída | O login recriava a sessão e perdia o convite; agora volta para `/convite-empresa`, inclusive com 2FA | `tests/http/enterprise-invite-login-flow.php` | ver abaixo |
+| Permissões (PJ-03) | Concluída | Matriz por HTTP no MySQL: Visualizador e Operacional recebem 403 em todas as 20 ações financeiras de escrita, não exportam, não convidam, não abrem a auditoria nem outra empresa; Operacional cadastra clientes (`contacts.manage`). Nenhuma linha mudou no banco | `tests/http/enterprise-permissions-flow.php` | ver "Commits" |
+| Papéis de consulta na tela | Concluída | Quem não tem `finance.manage` vê um aviso e não vê botões de lançar, editar, baixar ou excluir (CSS por `data-readonly` no `body`); sem `contacts.manage`, some o cadastro de contatos. É conveniência: o servidor continua recusando | `tests/http/enterprise-permissions-flow.php`, captura | ver "Commits" |
+| Convite depois do login (PJ-13) | Concluída | O login recriava a sessão e perdia o convite; agora volta para `/convite-empresa`, inclusive com 2FA | `tests/http/enterprise-invite-login-flow.php` | ver "Commits" |
 
 ## Migrations da missão
 
@@ -87,3 +87,34 @@ O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros
 - A auditoria registra o que o serviço aceitou, a partir de `TeamActions`, das rotas de aceite e recusa do convite e de `Organizations::update`. Falha ao gravar o registro vai para o log do servidor e não desfaz a ação.
 
 - Editar os dados da empresa exige `team.manage` (proprietário e Administrador, cujo papel diz "Gerencia dados e pessoas da empresa"). Não foi criada permissão nova.
+
+## Commits da missão (dev-claude, sem push)
+
+| Commit | O quê |
+|---|---|
+| `6b53a5e` | Dados da empresa, Auditoria, migration 016 (papéis no MySQL), inventário |
+| `ea35586` | Segurança com 2FA e sessões reais; rotas antigas redirecionadas; título Dashboard |
+| `107a794` | Baixa parcial nos indicadores e no gráfico do painel |
+| `03674e5` | Editar e arquivar contas; cartão com fechamento e vencimento |
+| `285164b` | Fornecedor e centro de custo na despesa; detalhe do fornecedor |
+| `6154633` | Faturas: ciclo, pagamento como transferência, estorno com histórico |
+| `dbd41f9` | Conciliação: sugestões, conciliar e desfazer, OFX, CSV com vírgula |
+| `c2ca66d` | Centros de custo: editar, inativar, resultado do mês; centro em Receber |
+| `56e5bc9` | Fluxo de caixa com cada baixa na sua data; centros no relatório |
+| `307b3a9` | Convite retomado depois do login; matriz de permissões |
+| `9c90d81` | Rótulo dos vencidos no painel |
+| `a352c96` | Tela de consulta para papéis sem `finance.manage` |
+
+## Para integrar na main
+
+1. Aplicar no `realizze_dev` as migrations 014, 015 e 016, nessa ordem (`aplicar-migrations.sh` já inclui as três; Djalma roda).
+2. Conferir dados de cartão criados antes de `6154633` (vencimento antigo e pagamento de fatura gravado como despesa).
+3. Rodar a suíte com banco de teste e os fluxos de `tests/http/` contra um servidor temporário (receita em "Ponto de partida").
+
+## Pendências conhecidas
+
+- DRE gerencial: decisão entre caixa e competência e classificação das categorias.
+- Baixa parcial de despesa: exige mudar o cálculo de saldo compartilhado com a PF.
+- Logo da empresa e configurações financeiras da empresa: sem coluna nem armazenamento.
+- Obrigações PJ/MEI e Ordens de serviço: módulos novos, fora das etapas da missão.
+- `registration-002-signup` falha no ambiente por permissão de arquivos do limitador em `/tmp` do `dev-apache` (não é do módulo Empresa).
