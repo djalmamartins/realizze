@@ -47,12 +47,12 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Equipe | Concluída | Migration 016 libera os papéis do catálogo no MySQL; convites, papel, suspensão e remoção registrados na auditoria | `enterprise-002-team`, `enterprise-003-company-audit`, `tests/http/enterprise-company-flow.php` | ver abaixo |
 | Configurações da empresa | Concluída | Editar razão social, nome fantasia, CNPJ (com dígito verificador), e-mail e telefone; só leitura para quem não tem `team.manage`; últimas alterações | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
 | Auditoria | Concluída | Consulta de `organization_audit_logs` com filtros por ação, pessoa e período, paginação; exige `team.manage` na rota e no menu | `enterprise-003-company-audit`, fluxo HTTP | ver abaixo |
-| Segurança | Pendente | Ligar ao 2FA e às sessões que já existem | — | — |
+| Segurança | Concluída | 2FA e sessões da própria conta; para quem tem `team.manage`, 2FA de cada membro e mudanças de acesso recentes. Não existe política por empresa (exigir 2FA): dito na tela | `tests/http/enterprise-security-flow.php` | ver abaixo |
 | Dashboard | Pendente | Conferir números com os serviços | — | — |
 | Pagar | Pendente | Fornecedor, baixa parcial, histórico | — | — |
 | Centros de custo | Pendente | Editar, inativar, filtro | — | — |
 | Conciliação | Pendente | Conciliar linha com lançamento existente | — | — |
-| Rotas que sobraram | Pendente | Redirecionar para a tela certa | — | — |
+| Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver abaixo |
 
 ## Migrations da missão
 

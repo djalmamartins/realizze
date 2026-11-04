@@ -54,6 +54,10 @@ $sections = [
     'seguranca' => ['Segurança', 'Acesso, sessões e políticas da empresa'],
     'auditoria' => ['Auditoria', 'Registro das ações administrativas'],
 ];
+if ($activeOrganization !== null) {
+    // Na empresa, o menu e a aba do navegador usam o mesmo nome.
+    $sections['overview'] = ['Dashboard', 'Situação financeira da empresa'];
+}
 $requestedSection = $_GET['pagina'] ?? 'overview';
 $section = is_string($requestedSection) && isset($sections[$requestedSection]) ? $requestedSection : 'overview';
 if ($section === 'contato-detalhe') {
@@ -103,7 +107,7 @@ $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
     : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
 // Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
-$pendingSections = ['dre', 'obrigacoes', 'ordens-de-servico', 'seguranca'];
+$pendingSections = ['dre', 'obrigacoes', 'ordens-de-servico'];
 $navGroups = null;
 if ($activeOrganization !== null) {
     $items['overview'][1] = 'Dashboard';
@@ -228,7 +232,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
     'name' => $name,
     'user' => $user,
 ]) ?>
-<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'auditoria', 'contato-detalhe'], true)): ?>
+<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'auditoria', 'seguranca', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView, 'activeOrganization' => $activeOrganization]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
 <?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>

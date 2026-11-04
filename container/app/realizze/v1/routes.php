@@ -92,6 +92,13 @@ return [
                     return;
                 }
             }
+            // Prévias antigas que ficaram fora do menu da empresa levam à tela que as substituiu.
+            $replaced = ['empresarial' => 'overview', 'configuracoes' => 'empresa', 'assistente' => 'overview', 'contatos' => 'clientes'];
+            if ($organization !== null && isset($replaced[$section])) {
+                header('Cache-Control: no-store');
+                header('Location: ' . AppUrl::section($replaced[$section], $organization), true, 302);
+                return;
+            }
             // Sair das Dívidas é um módulo PF: não existe dentro de uma empresa.
             if ($section === 'sair-das-dividas' && $organization !== null) {
                 $renderError(404);
