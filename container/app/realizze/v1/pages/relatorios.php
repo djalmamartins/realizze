@@ -11,10 +11,15 @@ $months = $monthly ? 6 : 12;
 $loadFailed = false;
 $report = null;
 $series = [];
+$centerRows = [];
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $report = $finance->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
     $series = $finance->monthlySeries($period['end'], $months);
+    // Na empresa, o resultado também sai por centro de custo, quando há centros cadastrados.
+    $centerRows = OrganizationContext::current() !== null && $finance->costCenters() !== []
+        ? array_values(array_filter((new \Moves\Services\CostCenters((int) FinanceContext::currentId()))->totals($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d')), static fn (array $r): bool => $r['income_done'] + $r['income_open'] + $r['expense_done'] + $r['expense_open'] > 0))
+        : [];
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -103,6 +108,15 @@ $situation = static function (array $entry) use ($brDate): array {
         <?php endforeach; ?>
       </ul><?php endif; ?>
     </section>
+    <?php if ($centerRows !== []): ?>
+    <section class="finance-report-panel"><h3>Resultado por centro de custo</h3>
+      <ul class="report-bars">
+        <?php foreach ($centerRows as $center): $centerResult = $center['income_done'] - $center['expense_done']; ?>
+        <li><span><?= $e($center['name']) ?><b class="<?= $centerResult < 0 ? 'red' : '' ?>"><?= $e(Finance::money($centerResult)) ?></b></span><small class="muted">Recebido <?= $e(Finance::money($center['income_done'])) ?> · pago <?= $e(Finance::money($center['expense_done'])) ?><?= $center['income_open'] + $center['expense_open'] > 0 ? ' · em aberto ' . $e(Finance::money($center['income_open'] - $center['expense_open'])) : '' ?></small></li>
+        <?php endforeach; ?>
+      </ul>
+    </section>
+    <?php endif; ?>
   </div>
   <section class="report-daily-list" aria-labelledby="report-days-title">
     <h3 id="report-days-title">Dia a dia <small><?= (int) $report['count'] ?> <?= $report['count'] === 1 ? 'lançamento' : 'lançamentos' ?>, pela data de vencimento</small></h3>

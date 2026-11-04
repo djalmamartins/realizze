@@ -38,9 +38,9 @@ try {
         $buckets[$key][$column] += $cents;
         $totals[$column] += $cents;
     };
-    foreach ($finance->movements($start->format('Y-m-d'), $end->format('Y-m-d')) as $row) {
-        if ($row['kind'] === 'transfer') continue;
-        $add($bucketOf(new DateTimeImmutable($row['paid_at'])), $row['kind'] === 'income' ? 'in_done' : 'out_done', (int) $row['amount_cents']);
+    // Cada baixa parcial entra na data em que o dinheiro chegou.
+    foreach ($finance->cashMovements($start->format('Y-m-d'), $end->format('Y-m-d')) as $row) {
+        $add($bucketOf(new DateTimeImmutable($row['date'])), $row['kind'] === 'income' ? 'in_done' : 'out_done', $row['amount_cents']);
     }
     // Receitas vêm de Receivables, que conhece cancelamentos; Finance::entries não informa a situação.
     $open = array_map(static fn (array $row): array => $row + ['column' => 'out_open'], array_filter($finance->entries('expense', $start->format('Y-m-d'), $end->format('Y-m-d'), 'open')));
@@ -49,7 +49,8 @@ try {
     do {
         $listing = $receivables->listing(['start' => $start->format('Y-m-d'), 'end' => $end->format('Y-m-d'), 'page' => $page, 'per_page' => 50]);
         foreach ($listing['rows'] as $row) {
-            if (!in_array($row['display_status'], ['cancelled', 'received'], true)) $open[] = $row + ['column' => 'in_open'];
+            // Previsto é só o que falta receber.
+            if (!in_array($row['display_status'], ['cancelled', 'received'], true)) $open[] = ['amount_cents' => (int) $row['balance_cents']] + $row + ['column' => 'in_open'];
         }
     } while ($page++ < $listing['pages']);
     foreach ($open as $row) {

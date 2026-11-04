@@ -812,6 +812,27 @@ final class Finance
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Entradas e saídas realizadas, na data em que o dinheiro se moveu: cada baixa (inclusive parcial)
+     * na sua data; sem baixa, a data de pagamento. Sem transferências, que não mudam o caixa total.
+     *
+     * @return list<array{kind:string,date:string,amount_cents:int}>
+     */
+    public function cashMovements(string $start, string $end): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT e.kind, e.paid_at AS date, e.amount_cents FROM finance_entries AS e
+             WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND e.paid_at BETWEEN ? AND ?
+               AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS x WHERE x.entry_id = e.id)
+             UNION ALL
+             SELECT e.kind, s.received_at, s.amount_cents FROM finance_entry_settlements AS s
+             INNER JOIN finance_entries AS e ON e.id = s.entry_id AND e.financial_context_id = s.financial_context_id
+             WHERE s.financial_context_id = ? AND s.received_at BETWEEN ? AND ? AND (e.status IS NULL OR e.status <> 'cancelled')"
+        );
+        $statement->execute([$this->contextId, $start, $end, $this->contextId, $start, $end]);
+        return array_map(static fn (array $row): array => ['kind' => (string) $row['kind'], 'date' => (string) $row['date'], 'amount_cents' => (int) $row['amount_cents']], $statement->fetchAll(PDO::FETCH_ASSOC));
+    }
+
     /** Período da query string: mês (?mes=AAAA-MM) ou ano (?visao=anual&ano=AAAA). */
     public static function period(array $query, ?DateTimeImmutable $today = null): array
     {

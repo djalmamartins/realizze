@@ -58,6 +58,11 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Conciliação | Concluída | Sugestões de lançamento (mesma conta, valor e sentido, até 7 dias, ainda não conciliado), conciliar, ignorar e desfazer; o serviço passou a recusar conciliação com lançamento de outra conta ou valor; importação de OFX; CSV com vírgula ou BOM (antes só funcionava com ponto e vírgula); mesmo arquivo recusado com mensagem clara; filtros por situação e conta; contadores. Nenhum saldo muda | `finance-021-reconciliation`, `tests/http/enterprise-reconciliation-flow.php`, capturas | ver abaixo |
 | Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver abaixo |
 
+| Fluxo de caixa | Concluída | O realizado passou a contar cada baixa na data em que entrou (antes a baixa parcial sumia e a quitação entrava com o valor inteiro na última data); o previsto de Receber usa só o que falta receber | `finance-017-dashboard-consistency` | ver abaixo |
+| Relatórios | Concluída | Na empresa, painel "Resultado por centro de custo" no período; o restante (dia a dia, categorias, série mensal, CSV, PDF) já existia | captura | ver abaixo |
+| DRE gerencial | Bloqueada | Falta a decisão de Djalma entre caixa e competência e a classificação das categorias em receita, custo e despesa. A tela diz isso, sem números simulados | — | — |
+| Obrigações PJ/MEI, Ordens de serviço | Bloqueada | Fora das etapas desta missão e sem tabela; continuam "Em breve" com o que falta | — | — |
+
 ## Migrations da missão
 
 | Migration | O que faz | Depende de | Aplicada em |
