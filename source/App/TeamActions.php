@@ -8,6 +8,7 @@ use Moves\Services\AppError;
 use Moves\Services\AppUrl;
 use Moves\Services\Csrf;
 use Moves\Services\MailQueue;
+use Moves\Services\OrganizationAudit;
 use Moves\Services\OrganizationContext;
 use Moves\Services\OrganizationTeam;
 use Moves\Services\SessionAuth;
@@ -39,6 +40,10 @@ final class TeamActions
                 'remove' => $this->done(OrganizationTeam::remove($orgId, $actor, $id), 'Acesso revogado.'),
                 default => throw new InvalidArgumentException('Ação inválida.'),
             };
+            // Só chega aqui o que o serviço aceitou. E-mail do convite fica fora do registro.
+            $event = ['invite' => 'team.invited', 'resend' => 'team.invite_resent', 'revoke' => 'team.invite_revoked', 'role' => 'team.role_changed', 'suspend' => 'team.suspended', 'activate' => 'team.activated', 'remove' => 'team.removed'][$action];
+            $resource = in_array($action, ['invite', 'resend', 'revoke'], true) ? 'invitation' : 'member';
+            OrganizationAudit::record($orgId, $actor, $event, $resource, $action === 'invite' ? null : $id, in_array($action, ['invite', 'role'], true) ? ['role' => $role] : []);
         } catch (InvalidArgumentException $exception) {
             $message = ['error', $exception->getMessage()];
         } catch (Throwable $exception) {

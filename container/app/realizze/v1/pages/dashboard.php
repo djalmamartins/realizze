@@ -103,7 +103,7 @@ $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
     : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
 // Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
-$pendingSections = ['faturas', 'conciliacao', 'centros-de-custo', 'dre', 'obrigacoes', 'ordens-de-servico', 'seguranca', 'auditoria'];
+$pendingSections = ['dre', 'obrigacoes', 'ordens-de-servico', 'seguranca'];
 $navGroups = null;
 if ($activeOrganization !== null) {
     $items['overview'][1] = 'Dashboard';
@@ -122,7 +122,7 @@ if ($activeOrganization !== null) {
         ['Plataforma', 'message-circle', ['integracoes', 'notificacoes', 'suporte']],
     ];
     // Esconder é só conveniência: as rotas e as ações validam a permissão de novo.
-    $navPermission = ['overview' => 'finance.view', 'receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'categorias' => 'finance.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view'];
+    $navPermission = ['overview' => 'finance.view', 'receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'categorias' => 'finance.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'auditoria' => 'team.manage'];
     $ownPermissions = \Moves\Services\OrganizationTeam::permissionsFor((int) $user['id'], (int) $activeOrganization['id']);
     foreach ($navGroups as $groupIndex => $group) {
         $navGroups[$groupIndex][2] = array_values(array_filter($group[2], static fn (string $key): bool => !isset($navPermission[$key]) || in_array($navPermission[$key], $ownPermissions, true)));
@@ -228,7 +228,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
     'name' => $name,
     'user' => $user,
 ]) ?>
-<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'contato-detalhe'], true)): ?>
+<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'auditoria', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView, 'activeOrganization' => $activeOrganization]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
 <?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>

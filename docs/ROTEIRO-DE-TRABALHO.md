@@ -61,16 +61,18 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 
 ## App PJ
 
+Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empresa/PROGRESSO.md`. A rotina não deve pegar itens desta seção.
+
 ### P0
 
 - [x] **PJ-01. Convite de equipe nunca é enviado.** `TeamActions` coloca o e-mail na fila, mas nada chama `MailQueue::work`: não há script nem cron. Quem é convidado nunca recebe. Vale para tudo que usa `Email::queue`.
-- [ ] **PJ-02. Dados da empresa só leitura.** `/e/{empresa}/empresa` não edita nada, e "Alterar logo" está desativado. Contrato C14.
+- [x] **PJ-02. Dados da empresa só leitura.** `/e/{empresa}/empresa` não edita nada, e "Alterar logo" está desativado. Contrato C14.
 - [ ] **PJ-03. Validar equipe e permissões no MySQL e no navegador.** O teste `enterprise-002-team` roda em SQLite. Testar membro sem permissão em cada tela e ação.
 
 ### P1
 
 - [ ] **PJ-04. Contas a pagar à altura de Receber.** Falta fornecedor, baixa parcial e histórico. Sem `contact_id` na despesa, Fornecedores não mostra pagamentos. Contrato C5.
-- [ ] **PJ-05. Auditoria.** A tela diz "Em breve", mas a tabela `organization_audit_logs` existe. É o módulo pendente mais fácil. Contrato C23.
+- [x] **PJ-05. Auditoria.** A tela diz "Em breve", mas a tabela `organization_audit_logs` existe. É o módulo pendente mais fácil. Contrato C23.
 - [ ] **PJ-06. Segurança.** O texto diz que 2FA e sessões não existem, mas já existem em Perfil (`TwoFactorAuth`, `UserSessions`). Ligar a tela ao que há e corrigir o texto. Contrato C22.
 - [ ] **PJ-07. Centros de custo.** Tabela, cadastro e vínculo no lançamento. Contrato C9.
 - [ ] **PJ-08. Conciliação bancária.** Importar OFX/CSV para revisão, nunca conciliar sozinho. Contrato C12.
@@ -79,7 +81,7 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 - [ ] **PJ-11. Obrigações PJ/MEI.** Regime da empresa e calendário, sem cálculo de tributo. Contrato C13.
 - [ ] **PJ-12. Ordens de serviço.** Módulo opcional por empresa. Contrato C20.
 - [ ] **PJ-13. Voltar ao convite depois do login.** Quem aceita o convite sem sessão perde o caminho.
-- [ ] **PJ-14. Histórico administrativo de equipe** em `organization_audit_logs`.
+- [x] **PJ-14. Histórico administrativo de equipe** em `organization_audit_logs`.
 
 ### P2
 

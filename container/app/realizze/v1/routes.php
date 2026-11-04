@@ -85,7 +85,7 @@ return [
                 return;
             }
             if ($organization !== null) {
-                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view'][$section] ?? null;
+                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view', 'auditoria' => 'team.manage'][$section] ?? null;
                 $sessionUser = \Moves\Services\SessionAuth::current();
                 if ($sectionPermission !== null && !\Moves\Services\OrganizationTeam::can((int) $sessionUser['id'], (int) $organization['id'], $sectionPermission)) {
                     $renderError(403);
@@ -388,6 +388,11 @@ return [
             }, 'app.team.' . $action);
         }
 
+        $router->post('/minha-conta/empresa/dados', static function () use ($requirePreview): void {
+            if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+            (new \Moves\App\CompanyActions())->handle('update');
+        }, 'app.company.update');
+
         // Convite de empresa: o token sai da URL na primeira abertura e fica só na sessão.
         $router->get('/convite-empresa', static function () use ($requirePreview): void {
             if (!$requirePreview()) return;
@@ -411,11 +416,15 @@ return [
                 header('Cache-Control: no-store');
                 try {
                     if ($inviteAction === 'recusar') {
+                        $declined = \Moves\Services\OrganizationTeam::invitationByToken($token);
                         \Moves\Services\OrganizationTeam::decline($token, (string) $user['email']);
+                        \Moves\Services\OrganizationAudit::record((int) ($declined['organization_id'] ?? 0), (int) $user['id'], 'team.invite_declined', 'invitation', $declined['id'] ?? null);
                         header('Location: /p', true, 303);
                         return;
                     }
+                    $accepted = \Moves\Services\OrganizationTeam::invitationByToken($token);
                     $organizationId = \Moves\Services\OrganizationTeam::accept($token, (int) $user['id'], (string) $user['email']);
+                    \Moves\Services\OrganizationAudit::record($organizationId, (int) $user['id'], 'team.invite_accepted', 'invitation', $accepted['id'] ?? null, ['role' => $accepted['role'] ?? null]);
                     $organization = \Moves\Services\OrganizationAccess::authorizedOrganization($organizationId);
                     header('Location: ' . ($organization === null ? '/p' : \Moves\Services\AppUrl::base($organization)), true, 303);
                 } catch (\InvalidArgumentException) {
