@@ -422,6 +422,10 @@ return [
             $router->post('/minha-conta/obrigacoes/'.$slug, static function()use($requirePreview,$action):void{if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;(new \Moves\App\ObligationActions())->handle($action);}, 'app.obligations.'.$action);
         }
         $router->get('/minha-conta/obrigacoes/comprovante/{attachment}', static function(array$params)use($requirePreview):void{if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;(new \Moves\App\ObligationActions())->download((int)($params['attachment']??0));}, 'app.obligations.attachment');
+        foreach (['create'=>'salvar','update'=>'atualizar','status'=>'situacao','receivable'=>'gerar-cobranca'] as $action=>$slug) {
+            $router->post('/minha-conta/ordens-de-servico/'.$slug, static function()use($requirePreview,$action):void{if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;(new \Moves\App\ServiceOrderActions())->handle($action);}, 'app.service_orders.'.$action);
+        }
+        $router->get('/minha-conta/ordens-de-servico/anexo/{attachment}', static function(array$params)use($requirePreview):void{if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;(new \Moves\App\ServiceOrderActions())->download((int)($params['attachment']??0));}, 'app.service_orders.attachment');
 
         // Convite de empresa: o token sai da URL na primeira abertura e fica só na sessão.
         $router->get('/convite-empresa', static function () use ($requirePreview): void {

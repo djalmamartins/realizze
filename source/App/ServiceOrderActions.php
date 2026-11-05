@@ -1,0 +1,12 @@
+<?php
+declare(strict_types=1);namespace Moves\App;
+use InvalidArgumentException;use Moves\Services\{AppError,AppUrl,Csrf,Helpdesk,OrganizationContext,OrganizationFiles,OrganizationTeam,ServiceOrders,SessionAuth};use Throwable;
+final class ServiceOrderActions
+{
+ public function handle(string$action):void{$user=SessionAuth::current();$org=OrganizationContext::current();if($user===null||$org===null||!Csrf::validate($_POST['csrf_token']??null)){AppError::render(403);return;}if(!OrganizationTeam::can((int)$user['id'],(int)$org['id'],'finance.manage')){AppError::render(403);return;}$s=new ServiceOrders((int)$org['id']);try{$id=(int)filter_var($_POST['id']??0,FILTER_VALIDATE_INT);$message=match($action){'create'=>$this->create($s,(int)$user['id']),'update'=>$this->update($s,$id,(int)$user['id']),'status'=>$this->status($s,$id,(int)$user['id']),'receivable'=>$this->receivable($s,$id,(int)$user['id']),default=>throw new InvalidArgumentException('Ação inválida.')};}catch(InvalidArgumentException$e){$message=['error',$e->getMessage()];}catch(Throwable$e){error_log('Realizze service orders: '.$e->getMessage());$message=['error','Não foi possível concluir a operação.'];}$_SESSION['service_orders_flash']=$message;header('Cache-Control: no-store');header('Location: '.AppUrl::section('ordens-de-servico'),true,303);}
+ public function download(int$id):void{$user=SessionAuth::current();$org=OrganizationContext::current();if($user===null||$org===null){AppError::render(404);return;}$row=(new ServiceOrders((int)$org['id']))->attachment($id);if($row===null){AppError::render(404);return;}OrganizationFiles::stream((int)$org['id'],'service-orders',$row);}
+ private function create(ServiceOrders$s,int$user):array{$r=$s->create($_POST,$user,Helpdesk::uploadedFiles('attachments'));return['success',$r['duplicate']?'Esta ordem já havia sido criada.':'Ordem de serviço criada.'];}
+ private function update(ServiceOrders$s,int$id,int$user):array{$s->update($id,$_POST,$user,Helpdesk::uploadedFiles('attachments'));return['success','Ordem atualizada.'];}
+ private function status(ServiceOrders$s,int$id,int$user):array{$s->setStatus($id,(string)($_POST['status']??''),$user);return['success','Situação da ordem atualizada.'];}
+ private function receivable(ServiceOrders$s,int$id,int$user):array{$r=$s->generateReceivable($id,$_POST,$user);return['success',$r['duplicate']?'A cobrança já estava vinculada.':'Cobrança criada em Contas a Receber, ainda em aberto.'];}
+}
