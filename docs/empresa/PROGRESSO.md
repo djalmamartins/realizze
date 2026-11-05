@@ -29,10 +29,10 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | `/categorias` | Categorias | Funcional | Compartilhada com PF |
 | `/centros-de-custo` | Centros de custo | Parcial (Codex) | Cria; a tela não edita nem inativa |
 | `/relatorios` | Relatórios | Funcional | `Finance::report` |
-| `/dre` | DRE gerencial | Ausente | "Em breve"; depende da decisão caixa ou competência (PJ-09) |
+| `/dre` | DRE gerencial | Funcional | Visões por competência e caixa com dados reais |
 | `/planejamento`, `/metas` | Gestão | Funcional | Compartilhadas com PF |
-| `/obrigacoes` | Obrigações PJ/MEI | Ausente | "Em breve"; sem enquadramento no banco |
-| `/ordens-de-servico` | Ordens de serviço | Ausente | "Em breve" |
+| `/obrigacoes` | Obrigações PJ/MEI | Funcional | Agenda manual, recorrência, comprovantes e histórico |
+| `/ordens-de-servico` | Ordens de serviço | Funcional | Itens, anexos, histórico e cobrança opcional vinculada |
 | `/equipe` | Equipe | Com erro | Primeiro convite falhava no MySQL (corrigido pela 016) |
 | `/permissoes` | Permissões | Funcional | Catálogo de `OrganizationTeam` |
 | `/empresa` | Configurações | Parcial | Só leitura; logo desativado |
@@ -58,13 +58,12 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Conciliação | Concluída | Sugestões de lançamento (mesma conta, valor e sentido, até 7 dias, ainda não conciliado), conciliar, ignorar e desfazer; o serviço passou a recusar conciliação com lançamento de outra conta ou valor; importação de OFX; CSV com vírgula ou BOM (antes só funcionava com ponto e vírgula); mesmo arquivo recusado com mensagem clara; filtros por situação e conta; contadores. Nenhum saldo muda | `finance-021-reconciliation`, `tests/http/enterprise-reconciliation-flow.php`, capturas | ver "Commits" |
 | Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver "Commits" |
 | Logotipo empresarial | Concluída | Upload JPG/PNG validado por MIME e dimensões, normalização JPEG, substituição, remoção, prévia e entrega privada somente a membros autorizados | `enterprise-005-company-logo` | `ver histórico Git` |
-| Obrigações empresariais | Concluída | Agenda manual com competência, vencimento, responsável, recorrência idempotente, estados, comprovantes privados e histórico; sem cálculo fiscal e sem gerar despesas | `enterprise-006-obligations` | `ver histórico Git` |
-| Ordens de serviço | Concluída | Numeração por empresa, clientes, itens/serviços, quantidades, descontos, responsáveis, datas, estados, anexos e histórico; cobrança opcional e idempotente vinculada ao Receber, sempre em aberto | `enterprise-007-service-orders` | `ver histórico Git` |
+| Obrigações empresariais | Concluída | Agenda manual com competência, vencimento, responsável, recorrência idempotente, edição individual, estados, comprovantes privados e histórico visível; sem cálculo fiscal e sem gerar despesas | `enterprise-006-obligations`, `enterprise-008-business-attachments`, fluxo HTTP | `1c7e71e`, `9037cba` |
+| Ordens de serviço | Concluída | Numeração por empresa, clientes ativos, múltiplos itens/serviços, quantidades, descontos, edição, responsáveis, datas, estados, anexos e histórico visível; cobrança opcional e idempotente vinculada ao Receber | `enterprise-007-service-orders`, `enterprise-008-business-attachments`, fluxo HTTP | `e12285d`, `3c1dccd` |
 
 | Fluxo de caixa | Concluída | O realizado passou a contar cada baixa na data em que entrou (antes a baixa parcial sumia e a quitação entrava com o valor inteiro na última data); o previsto de Receber usa só o que falta receber | `finance-017-dashboard-consistency` | ver "Commits" |
 | Relatórios | Concluída | Na empresa, painel "Resultado por centro de custo" no período; o restante (dia a dia, categorias, série mensal, CSV, PDF) já existia | captura | ver "Commits" |
-| DRE gerencial | Bloqueada | Falta a decisão de Djalma entre caixa e competência e a classificação das categorias em receita, custo e despesa. A tela diz isso, sem números simulados | — | — |
-| Obrigações PJ/MEI, Ordens de serviço | Bloqueada | Fora das etapas desta missão e sem tabela; continuam "Em breve" com o que falta | — | — |
+| DRE gerencial | Concluída | Alternância entre competência e caixa com dados reais, sem simular apuração fiscal | regressões financeiras e validação da página | `a5d4408` |
 
 | Permissões (PJ-03) | Concluída | Matriz por HTTP no MySQL: Visualizador e Operacional recebem 403 em todas as 20 ações financeiras de escrita, não exportam, não convidam, não abrem a auditoria nem outra empresa; Operacional cadastra clientes (`contacts.manage`). Nenhuma linha mudou no banco | `tests/http/enterprise-permissions-flow.php` | ver "Commits" |
 | Papéis de consulta na tela | Concluída | Quem não tem `finance.manage` vê um aviso e não vê botões de lançar, editar, baixar ou excluir (CSS por `data-readonly` no `body`); sem `contacts.manage`, some o cadastro de contatos. É conveniência: o servidor continua recusando | `tests/http/enterprise-permissions-flow.php`, captura | ver "Commits" |
@@ -79,7 +78,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | `018_create_organization_obligations.sql` | Agenda, comprovantes e histórico de obrigações manuais | base de organizações | só `realizze_pjtest` |
 | `019_create_service_orders.sql` | Ordens, itens, anexos, histórico, sequência e vínculo opcional com Receber | migrations financeiras e contatos | só `realizze_pjtest` |
 
-O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros de custo e Equipe funcionarem. Quem aplica é Djalma.
+O `realizze_dev` permanece intacto. Para receber todas as funcionalidades desta branch, precisa das migrations 014 a 019, na ordem, depois de backup e autorização expressa de Djalma.
 
 ## Decisões
 
@@ -110,17 +109,22 @@ O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros
 | `307b3a9` | Convite retomado depois do login; matriz de permissões |
 | `9c90d81` | Rótulo dos vencidos no painel |
 | `a352c96` | Tela de consulta para papéis sem `finance.manage` |
+| `857228a` | Baixa parcial de despesas |
+| `a5d4408` | DRE gerencial por competência e caixa |
+| `d6021df` | Logotipo empresarial privado |
+| `1c7e71e` | Obrigações empresariais |
+| `e12285d` | Ordens de serviço e cobrança vinculada |
+| `9037cba` | Edição e histórico visível de obrigações |
+| `3c1dccd` | Edição, múltiplos itens e histórico visível de ordens |
 
 ## Para integrar na main
 
-1. Aplicar no `realizze_dev` as migrations 014, 015 e 016, nessa ordem (`aplicar-migrations.sh` já inclui as três; Djalma roda).
+1. Aplicar no `realizze_dev` as migrations 014 a 019, nessa ordem, somente após backup e autorização de Djalma.
 2. Conferir dados de cartão criados antes de `6154633` (vencimento antigo e pagamento de fatura gravado como despesa).
 3. Rodar a suíte com banco de teste e os fluxos de `tests/http/` contra um servidor temporário (receita em "Ponto de partida").
 
 ## Pendências conhecidas
 
-- DRE gerencial: decisão entre caixa e competência e classificação das categorias.
-- Baixa parcial de despesa: exige mudar o cálculo de saldo compartilhado com a PF.
-- Logo da empresa e configurações financeiras da empresa: sem coluna nem armazenamento.
-- Obrigações PJ/MEI e Ordens de serviço estão implementadas; nenhuma delas altera saldos sem baixa financeira explícita.
+- As migrations 014 a 019 ainda não foram aplicadas em `realizze_dev`; toda escrita e validação desta missão ocorreu em `realizze_pjtest`.
+- A cobrança da OS nasce em aberto e só altera saldo quando for efetivamente baixada.
 - `registration-002-signup` falha no ambiente por permissão de arquivos do limitador em `/tmp` do `dev-apache` (não é do módulo Empresa).
