@@ -85,7 +85,7 @@ return [
                 return;
             }
             if ($organization !== null) {
-                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'dre' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view', 'auditoria' => 'team.manage'][$section] ?? null;
+                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'obrigacoes' => 'finance.view', 'ordens-de-servico' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'dre' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view', 'auditoria' => 'team.manage'][$section] ?? null;
                 $sessionUser = \Moves\Services\SessionAuth::current();
                 if ($sectionPermission !== null && !\Moves\Services\OrganizationTeam::can((int) $sessionUser['id'], (int) $organization['id'], $sectionPermission)) {
                     $renderError(403);
@@ -418,6 +418,10 @@ return [
             $user=\Moves\Services\SessionAuth::current();
             \Moves\Services\OrganizationLogos::streamAuthorized((int)($params['organization']??0),(int)($user['id']??0));
         }, 'app.company.logo_file');
+        foreach (['create'=>'salvar','update'=>'atualizar','complete'=>'concluir','reopen'=>'reabrir','cancel'=>'cancelar'] as $action=>$slug) {
+            $router->post('/minha-conta/obrigacoes/'.$slug, static function()use($requirePreview,$action):void{if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;(new \Moves\App\ObligationActions())->handle($action);}, 'app.obligations.'.$action);
+        }
+        $router->get('/minha-conta/obrigacoes/comprovante/{attachment}', static function(array$params)use($requirePreview):void{if(!$requirePreview()||!\Moves\Services\AccessPolicy::requireAccess('app'))return;(new \Moves\App\ObligationActions())->download((int)($params['attachment']??0));}, 'app.obligations.attachment');
 
         // Convite de empresa: o token sai da URL na primeira abertura e fica só na sessão.
         $router->get('/convite-empresa', static function () use ($requirePreview): void {

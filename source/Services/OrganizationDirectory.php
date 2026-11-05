@@ -28,7 +28,7 @@ final class OrganizationDirectory
     public static function members(int $organizationId): array
     {
         $statement = Connection::get()->prepare(
-            "SELECT u.first_name, u.last_name, u.email, r.name AS role, m.status, m.joined_at
+            "SELECT u.id AS user_id, u.first_name, u.last_name, u.email, r.name AS role, m.status, m.joined_at
              FROM organization_members AS m
              INNER JOIN users AS u ON u.id = m.user_id
              INNER JOIN organization_roles AS r ON r.id = m.role_id

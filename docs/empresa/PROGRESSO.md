@@ -58,6 +58,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Conciliação | Concluída | Sugestões de lançamento (mesma conta, valor e sentido, até 7 dias, ainda não conciliado), conciliar, ignorar e desfazer; o serviço passou a recusar conciliação com lançamento de outra conta ou valor; importação de OFX; CSV com vírgula ou BOM (antes só funcionava com ponto e vírgula); mesmo arquivo recusado com mensagem clara; filtros por situação e conta; contadores. Nenhum saldo muda | `finance-021-reconciliation`, `tests/http/enterprise-reconciliation-flow.php`, capturas | ver "Commits" |
 | Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver "Commits" |
 | Logotipo empresarial | Concluída | Upload JPG/PNG validado por MIME e dimensões, normalização JPEG, substituição, remoção, prévia e entrega privada somente a membros autorizados | `enterprise-005-company-logo` | `ver histórico Git` |
+| Obrigações empresariais | Concluída | Agenda manual com competência, vencimento, responsável, recorrência idempotente, estados, comprovantes privados e histórico; sem cálculo fiscal e sem gerar despesas | `enterprise-006-obligations` | `ver histórico Git` |
 
 | Fluxo de caixa | Concluída | O realizado passou a contar cada baixa na data em que entrou (antes a baixa parcial sumia e a quitação entrava com o valor inteiro na última data); o previsto de Receber usa só o que falta receber | `finance-017-dashboard-consistency` | ver "Commits" |
 | Relatórios | Concluída | Na empresa, painel "Resultado por centro de custo" no período; o restante (dia a dia, categorias, série mensal, CSV, PDF) já existia | captura | ver "Commits" |
@@ -74,6 +75,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 |---|---|---|---|
 | `016_allow_organization_team_roles.sql` | Troca a restrição de `organization_roles.role_key` para aceitar os papéis de `OrganizationTeam::ROLES` | base de organizações | só `realizze_pjtest` |
 | `017_add_organization_logo.sql` | Adiciona somente a referência do logotipo privado e validado | base de organizações | só `realizze_pjtest` |
+| `018_create_organization_obligations.sql` | Agenda, comprovantes e histórico de obrigações manuais | base de organizações | só `realizze_pjtest` |
 
 O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros de custo e Equipe funcionarem. Quem aplica é Djalma.
 
@@ -118,5 +120,5 @@ O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros
 - DRE gerencial: decisão entre caixa e competência e classificação das categorias.
 - Baixa parcial de despesa: exige mudar o cálculo de saldo compartilhado com a PF.
 - Logo da empresa e configurações financeiras da empresa: sem coluna nem armazenamento.
-- Obrigações PJ/MEI e Ordens de serviço: módulos novos, fora das etapas da missão.
+- Ordens de serviço permanece como a próxima etapa; Obrigações PJ/MEI já está implementada sem automação fiscal.
 - `registration-002-signup` falha no ambiente por permissão de arquivos do limitador em `/tmp` do `dev-apache` (não é do módulo Empresa).
