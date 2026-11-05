@@ -107,7 +107,7 @@ $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
     : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
 // Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
-$pendingSections = ['dre', 'obrigacoes', 'ordens-de-servico'];
+$pendingSections = ['obrigacoes', 'ordens-de-servico'];
 $navGroups = null;
 $readOnly = [];
 if ($activeOrganization !== null) {
@@ -237,7 +237,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
     'user' => $user,
 ]) ?>
 <?php if (in_array('finance', $readOnly, true) && !in_array($section, ['perfil', 'notificacoes', 'integracoes', 'permissoes', 'seguranca', 'auditoria', 'equipe', 'empresa'], true)): ?><p class="readonly-note" role="note">Seu papel nesta empresa é de consulta: você vê os dados, mas não lança nem altera valores.</p><?php endif; ?>
-<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'permissoes', 'auditoria', 'seguranca', 'contato-detalhe'], true)): ?>
+<?php if (in_array($section, ['receber', 'sair-das-dividas', 'pagar', 'movimentacoes', 'contas', 'relatorios', 'planejamento', 'metas', 'categorias', 'recorrencias', 'contatos', 'clientes', 'fornecedores', 'perfil', 'equipe', 'empresa', 'notificacoes', 'integracoes', 'assistente', 'configuracoes', 'empresarial', 'fluxo-de-caixa', 'faturas', 'conciliacao', 'centros-de-custo', 'dre', 'permissoes', 'auditoria', 'seguranca', 'contato-detalhe'], true)): ?>
 <?= $appView->render('pages/' . (in_array($section, ['clientes', 'fornecedores'], true) ? 'contatos' : ($section === 'fluxo-de-caixa' ? 'fluxo-caixa' : $section)), ['icon' => $icon, 'csrf' => $csrf, 'appView' => $appView, 'activeOrganization' => $activeOrganization]) ?>
 <?php elseif (in_array($section, $pendingSections, true)): ?>
 <?= $appView->render('components::module-pending', ['section' => $section, 'icon' => $icon, 'title' => $sections[$section][0]]) ?>
