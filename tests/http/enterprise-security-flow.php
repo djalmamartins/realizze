@@ -20,5 +20,11 @@ $check($o->req('GET', '/p/assistente')['code'] === 200, 'Na PF, /p/assistente co
 $d = $o->req('GET', "/e/$slug");
 $check(str_contains($d['body'], '<title>Dashboard | Realizze'), 'Aba do navegador diz Dashboard na empresa');
 $check(str_contains($o->req('GET', '/p')['body'], '<title>Visão Geral | Realizze'), 'Na PF continua Visão Geral');
-$check(substr_count($d['body'], 'class="nav-soon"') === 3, 'Menu marca "Em breve" só em DRE, Obrigações e Ordens de serviço');
+$check(
+    substr_count($d['body'], 'class="nav-soon"') === 0
+    && str_contains($d['body'], "/e/$slug/dre")
+    && str_contains($d['body'], "/e/$slug/obrigacoes")
+    && str_contains($d['body'], "/e/$slug/ordens-de-servico"),
+    'Menu empresarial expõe DRE, Obrigações e Ordens de serviço sem marcadores de pendência'
+);
 echo "$ok OK, $fail falha(s)\n"; exit($fail ? 1 : 0);
