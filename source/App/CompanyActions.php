@@ -9,6 +9,7 @@ use Moves\Services\AppUrl;
 use Moves\Services\Csrf;
 use Moves\Services\OrganizationContext;
 use Moves\Services\Organizations;
+use Moves\Services\OrganizationLogos;
 use Moves\Services\SessionAuth;
 use Throwable;
 
@@ -28,6 +29,8 @@ final class CompanyActions
                 'update' => Organizations::update((int) $organization['id'], (int) $user['id'], $_POST) === []
                     ? ['success', 'Nada foi alterado.']
                     : ['success', 'Dados da empresa salvos.'],
+                'logo' => [OrganizationLogos::replace((int) $organization['id'], (int) $user['id'], $_FILES['logo'] ?? null) !== '' ? 'success' : 'error', 'Logotipo atualizado.'],
+                'logo_remove' => $this->removeLogo((int) $organization['id'], (int) $user['id']),
                 default => throw new InvalidArgumentException('Ação inválida.'),
             };
         } catch (InvalidArgumentException $exception) {
@@ -40,5 +43,11 @@ final class CompanyActions
         $_SESSION['finance_flash'] = $message;
         header('Cache-Control: no-store');
         header('Location: ' . AppUrl::section('empresa'), true, 303);
+    }
+
+    private function removeLogo(int $organizationId, int $userId): array
+    {
+        OrganizationLogos::remove($organizationId, $userId);
+        return ['success', 'Logotipo removido. A identidade padrão voltou a ser usada.'];
     }
 }

@@ -57,6 +57,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Centros de custo | Concluída | Editar nome, código e situação; inativo some dos formulários e guarda o histórico; nome ou código repetido com mensagem clara (antes era erro genérico); resultado do mês por centro, com realizado e previsto e a linha "Sem centro de custo"; nome do centro leva a Pagar filtrado. Receber ignorava o centro escolhido na modal; agora grava e mantém ao editar | `finance-022-cost-centers`, `finance-019-payables-suppliers`, captura | ver "Commits" |
 | Conciliação | Concluída | Sugestões de lançamento (mesma conta, valor e sentido, até 7 dias, ainda não conciliado), conciliar, ignorar e desfazer; o serviço passou a recusar conciliação com lançamento de outra conta ou valor; importação de OFX; CSV com vírgula ou BOM (antes só funcionava com ponto e vírgula); mesmo arquivo recusado com mensagem clara; filtros por situação e conta; contadores. Nenhum saldo muda | `finance-021-reconciliation`, `tests/http/enterprise-reconciliation-flow.php`, capturas | ver "Commits" |
 | Rotas que sobraram | Concluída | `/empresarial` e `/assistente` levam ao Dashboard, `/configuracoes` a Configurações, `/contatos` a Clientes; aba do navegador diz Dashboard; textos "Em breve" de módulos que já existem removidos | `tests/http/enterprise-security-flow.php` | ver "Commits" |
+| Logotipo empresarial | Concluída | Upload JPG/PNG validado por MIME e dimensões, normalização JPEG, substituição, remoção, prévia e entrega privada somente a membros autorizados | `enterprise-005-company-logo` | `ver histórico Git` |
 
 | Fluxo de caixa | Concluída | O realizado passou a contar cada baixa na data em que entrou (antes a baixa parcial sumia e a quitação entrava com o valor inteiro na última data); o previsto de Receber usa só o que falta receber | `finance-017-dashboard-consistency` | ver "Commits" |
 | Relatórios | Concluída | Na empresa, painel "Resultado por centro de custo" no período; o restante (dia a dia, categorias, série mensal, CSV, PDF) já existia | captura | ver "Commits" |
@@ -72,6 +73,7 @@ Levantado logado como dono e como Visualizador, lendo rota, página e serviço d
 | Migration | O que faz | Depende de | Aplicada em |
 |---|---|---|---|
 | `016_allow_organization_team_roles.sql` | Troca a restrição de `organization_roles.role_key` para aceitar os papéis de `OrganizationTeam::ROLES` | base de organizações | só `realizze_pjtest` |
+| `017_add_organization_logo.sql` | Adiciona somente a referência do logotipo privado e validado | base de organizações | só `realizze_pjtest` |
 
 O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros de custo e Equipe funcionarem. Quem aplica é Djalma.
 
@@ -83,7 +85,7 @@ O `realizze_dev` precisa das 014, 015 e 016 para Faturas, Conciliação, Centros
 - Saldo inicial de conta não é editável: o saldo vem dos lançamentos e uma correção entra como lançamento de ajuste.
 
 - Visual PJ conferido em captura: barra lateral verde-escura com logo branco e fundo verde-claro, diferente da PF (roteiro PJ-18).
-- Logo da empresa: não há coluna nem armazenamento para ele. O botão desativado saiu da tela; fica como pendência, sem migration nova por enquanto.
+- Logo da empresa: implementação concluída pela migration 017; o original não é publicado e a versão normalizada fica isolada por empresa.
 - A auditoria registra o que o serviço aceitou, a partir de `TeamActions`, das rotas de aceite e recusa do convite e de `Organizations::update`. Falha ao gravar o registro vai para o log do servidor e não desfaz a ação.
 
 - Editar os dados da empresa exige `team.manage` (proprietário e Administrador, cujo papel diz "Gerencia dados e pessoas da empresa"). Não foi criada permissão nova.

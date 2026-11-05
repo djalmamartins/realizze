@@ -12,6 +12,8 @@ final class OrganizationAudit
 {
     public const EVENTS = [
         'company.updated' => 'Dados da empresa alterados',
+        'company.logo_updated' => 'Logotipo da empresa alterado',
+        'company.logo_removed' => 'Logotipo da empresa removido',
         'team.invited' => 'Convite enviado',
         'team.invite_resent' => 'Convite reenviado',
         'team.invite_revoked' => 'Convite cancelado',

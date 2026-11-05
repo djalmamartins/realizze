@@ -5,6 +5,7 @@ use Moves\Services\OrganizationAudit;
 use Moves\Services\OrganizationContext;
 use Moves\Services\OrganizationDirectory;
 use Moves\Services\OrganizationTeam;
+use Moves\Services\OrganizationLogos;
 use Moves\Services\SessionAuth;
 
 $e = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -35,10 +36,11 @@ if ($canEdit) {
     }
 }
 $labels = ['name' => 'Razão social', 'trade_name' => 'Nome fantasia', 'document_value' => 'CNPJ', 'email' => 'E-mail', 'phone' => 'Telefone'];
+$logoUrl = OrganizationLogos::url($company);
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
 <section class="profile-hero card">
-  <span class="profile-photo is-square" aria-hidden="true"><?= $e(mb_strtoupper(mb_substr((string) ($company['trade_name'] ?: $company['name']), 0, 2))) ?></span>
+  <span class="profile-photo is-square company-logo-preview" aria-hidden="true" data-company-logo-preview><?php if ($logoUrl !== null): ?><img src="<?= $e($logoUrl) ?>" alt=""><?php else: ?><?= $e(mb_strtoupper(mb_substr((string) ($company['trade_name'] ?: $company['name']), 0, 2))) ?><?php endif; ?></span>
   <div><h2><?= $e($company['trade_name'] ?: $company['name']) ?></h2><p class="muted"><?= $e($active['role'] === 'owner' ? 'Você é o proprietário' : 'Você é membro') ?> · cadastrada em <?= $e((new DateTimeImmutable((string) $company['created_at']))->format('d/m/Y')) ?></p></div>
 </section>
 <section class="card" aria-labelledby="company-data">
@@ -65,6 +67,17 @@ $labels = ['name' => 'Razão social', 'trade_name' => 'Nome fantasia', 'document
   </dl>
   <p class="profile-pending">Somente o proprietário e administradores alteram estes dados.</p>
   <?php endif; ?>
+</section>
+<section class="card" aria-labelledby="company-identity">
+  <div class="profile-heading"><div><h2 id="company-identity" class="section-title">Identidade empresarial</h2><p class="muted">O logotipo aparece somente para pessoas autorizadas nesta empresa. Na ausência dele, o Realizze usa a identidade padrão.</p></div></div>
+  <?php if ($canEdit && OrganizationLogos::ready()): ?>
+  <form class="user-form" method="post" action="/minha-conta/empresa/logo" enctype="multipart/form-data" data-company-logo-form>
+    <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>">
+    <label class="is-wide">Logotipo JPG ou PNG<input type="file" name="logo" accept="image/jpeg,image/png,.jpg,.jpeg,.png" required data-company-logo-input><small>Até 5 MB, mínimo 40×40 px. A imagem é redimensionada e regravada sem metadados.</small></label>
+    <div class="is-wide profile-actions"><button class="finance-button is-primary" type="submit"><?= $logoUrl === null ? 'Enviar logotipo' : 'Substituir logotipo' ?></button></div>
+  </form>
+  <?php if ($logoUrl !== null): ?><form method="post" action="/minha-conta/empresa/logo-remover" data-finance-confirm="Remover o logotipo desta empresa?"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><button type="submit" class="finance-button is-danger">Remover logotipo</button></form><?php endif; ?>
+  <?php elseif (!$canEdit): ?><p class="profile-pending">Somente o proprietário e administradores alteram a identidade.</p><?php else: ?><p class="profile-pending">A migration de identidade empresarial precisa ser aplicada antes do upload.</p><?php endif; ?>
 </section>
 <?php if ($canEdit): ?>
 <section class="card" aria-labelledby="company-history">

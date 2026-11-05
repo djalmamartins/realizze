@@ -12,7 +12,7 @@ final class OrganizationDirectory
     public static function profile(int $organizationId): ?array
     {
         $statement = Connection::get()->prepare(
-            'SELECT id, name, trade_name, document_type, document_value, email, phone, status, created_at FROM organizations WHERE id = ?'
+            'SELECT id, name, trade_name, document_type, document_value, email, phone, ' . (OrganizationLogos::ready() ? 'logo_file' : 'NULL AS logo_file') . ', status, created_at FROM organizations WHERE id = ?'
         );
         $statement->execute([$organizationId]);
         return $statement->fetch(PDO::FETCH_ASSOC) ?: null;

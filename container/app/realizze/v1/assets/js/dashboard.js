@@ -922,6 +922,18 @@ syncAppFavicon();
 
   // Foto da meta: mostra a imagem escolhida antes de salvar e avisa logo se passar do limite.
   document.addEventListener('change', (event) => {
+    const companyLogo = event.target.closest?.('[data-company-logo-input]');
+    if (companyLogo) {
+      const file = companyLogo.files?.[0];
+      const preview = document.querySelector('[data-company-logo-preview]');
+      if (file && preview) {
+        const url = URL.createObjectURL(file);
+        const image = Object.assign(document.createElement('img'), { src: url, alt: '' });
+        image.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+        preview.replaceChildren(image);
+      }
+      return;
+    }
     const input = event.target.closest?.('[data-goal-photo-input]');
     if (!input) return;
     const box = input.closest('[data-goal-photo]');

@@ -407,6 +407,17 @@ return [
             if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
             (new \Moves\App\CompanyActions())->handle('update');
         }, 'app.company.update');
+        foreach (['logo' => 'logo', 'logo_remove' => 'logo-remover'] as $action => $slug) {
+            $router->post('/minha-conta/empresa/' . $slug, static function () use ($requirePreview, $action): void {
+                if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+                (new \Moves\App\CompanyActions())->handle($action);
+            }, 'app.company.' . $action);
+        }
+        $router->get('/minha-conta/empresa/logo/{organization}', static function (array $params) use ($requirePreview): void {
+            if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
+            $user=\Moves\Services\SessionAuth::current();
+            \Moves\Services\OrganizationLogos::streamAuthorized((int)($params['organization']??0),(int)($user['id']??0));
+        }, 'app.company.logo_file');
 
         // Convite de empresa: o token sai da URL na primeira abertura e fica só na sessão.
         $router->get('/convite-empresa', static function () use ($requirePreview): void {
