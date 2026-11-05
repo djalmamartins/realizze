@@ -66,7 +66,7 @@ final class FinanceActions
                 'account_update' => $finance->updateAccount($id, $_POST) ? ['success', 'Conta atualizada.'] : ['error', 'Conta não encontrada.'],
                 'account_archive' => $finance->archiveAccount($id) ? ['success', 'Conta arquivada. O histórico continua nos relatórios.'] : ['error', 'Conta não encontrada.'],
                 'transfer' => [$finance->transfer($_POST, (int) $user['id']) > 0 ? 'success' : 'error', 'Transferência registrada.'],
-                'settle' => $finance->settle($id) ? ['success', $kind === 'income' ? 'Recebimento confirmado.' : 'Pagamento confirmado.'] : ['error', 'Lançamento não encontrado.'],
+                'settle' => $this->settle($finance, $kind, $id, (int) $user['id']),
                 'delete' => $finance->delete($id, (int) $user['id']) ? ['success', 'Lançamento excluído.'] : ['error', 'Lançamento não encontrado.'],
                 default => ['error', 'Ação inválida.'],
             };
@@ -109,6 +109,17 @@ final class FinanceActions
     {
         (new GoalWallets($contextId))->saveSchedule($goalId, $_POST, $userId);
         return ['success', 'Aporte programado salvo.'];
+    }
+
+    /** @return array{0:string,1:string} */
+    private function settle(Finance $finance, string $kind, int $entryId, int $userId): array
+    {
+        if ($kind !== 'expense') {
+            return $finance->settle($entryId) ? ['success', 'Recebimento confirmado.'] : ['error', 'Lançamento não encontrado.'];
+        }
+        $result = $finance->settleExpense($entryId, $_POST, $userId);
+        if ($result['duplicate']) return ['success', 'Este pagamento já havia sido processado.'];
+        return ['success', $result['balance_cents'] === 0 ? 'Despesa quitada.' : 'Pagamento parcial registrado. Saldo em aberto: ' . Finance::money($result['balance_cents']) . '.'];
     }
 
     /** @return array{0:string,1:string} */

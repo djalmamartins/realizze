@@ -103,17 +103,20 @@ final class Finance
             $params[] = $filters['tag'];
         }
         $statement = $this->pdo->prepare(
-            "SELECT e.id, e.description, e.amount_cents, e.due_date, e.paid_at, e.contact_id,
+            "SELECT e.id, e.description, e.amount_cents, e.due_date, e.paid_at, e.status, e.account_id, e.contact_id,
                     c.name AS category, c.color AS category_color, a.name AS account,
+                    COALESCE(s.settled_cents, 0) AS settled_cents,
                     COALESCE(NULLIF(ct.trade_name, ''), ct.legal_name) AS contact_name" . ($hasCostCenter ? ', cc.name AS cost_center' : ', NULL AS cost_center') . "
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS settled_cents FROM finance_entry_settlements WHERE financial_context_id = ? GROUP BY entry_id) AS s ON s.entry_id = e.id
              LEFT JOIN finance_contacts AS ct ON ct.id = e.contact_id AND ct.financial_context_id = e.financial_context_id" . ($hasCostCenter ? '
              LEFT JOIN finance_cost_centers AS cc ON cc.id = e.cost_center_id AND cc.financial_context_id = e.financial_context_id' : '') . "
              WHERE e.financial_context_id = ? AND e.kind = ? AND e.due_date BETWEEN ? AND ?{$filter}
              ORDER BY e.due_date, e.id"
         );
+        array_splice($params, 0, 0, [$this->contextId]);
         $statement->execute($params);
         return $statement->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -531,6 +534,69 @@ final class Finance
         return $statement->rowCount() === 1;
     }
 
+    /**
+     * Baixa uma despesa sem criar outro lançamento: o movimento de caixa é a própria baixa.
+     * A tabela de settlements é compartilhada com Receber; o sinal vem do kind da origem.
+     *
+     * @return array{id:int,duplicate:bool,balance_cents:int,settled_cents:int}
+     */
+    public function settleExpense(int $entryId, array $data, int $userId): array
+    {
+        $key = $this->settlementKey($data['idempotency_key'] ?? null);
+        $amount = self::parseCents($data['amount'] ?? null);
+        $date = self::date($data['paid_at'] ?? null);
+        $accountId = $this->ownedId('finance_accounts', $data['account_id'] ?? null);
+        if ($accountId === null) throw new InvalidArgumentException('Escolha uma conta válida para o pagamento.');
+        $method = in_array($data['payment_method'] ?? null, ['pix', 'transfer', 'cash', 'boleto', 'card', 'other'], true) ? $data['payment_method'] : 'other';
+        $notes = trim((string) ($data['notes'] ?? ''));
+        if (mb_strlen($notes) > 500) throw new InvalidArgumentException('A observação da baixa pode ter no máximo 500 caracteres.');
+
+        $this->pdo->beginTransaction();
+        try {
+            $duplicate = $this->expenseSettlementByKey($key);
+            if ($duplicate !== null) { $this->pdo->commit(); return $duplicate + ['duplicate' => true]; }
+            $entry = $this->pdo->prepare("SELECT id, amount_cents, status FROM finance_entries WHERE id = ? AND financial_context_id = ? AND kind = 'expense' FOR UPDATE");
+            $entry->execute([$entryId, $this->contextId]); $row = $entry->fetch(PDO::FETCH_ASSOC);
+            if ($row === false || $row['status'] === 'cancelled') throw new InvalidArgumentException('Despesa não disponível para baixa.');
+            $sum = $this->pdo->prepare('SELECT COALESCE(SUM(amount_cents), 0) FROM finance_entry_settlements WHERE entry_id = ? AND financial_context_id = ? FOR UPDATE');
+            $sum->execute([$entryId, $this->contextId]); $settled = (int) $sum->fetchColumn();
+            $balance = (int) $row['amount_cents'] - $settled;
+            if ($amount > $balance) throw new InvalidArgumentException('O pagamento não pode superar o saldo em aberto.');
+            $insert = $this->pdo->prepare('INSERT INTO finance_entry_settlements (financial_context_id, entry_id, account_id, amount_cents, received_at, payment_method, notes, idempotency_key, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $insert->execute([$this->contextId, $entryId, $accountId, $amount, $date, $method, $notes === '' ? null : $notes, $key, $userId]);
+            $settled += $amount; $balance -= $amount; $complete = $balance === 0;
+            $this->pdo->prepare('UPDATE finance_entries SET status = ?, paid_at = ? WHERE id = ? AND financial_context_id = ?')->execute([$complete ? 'received' : 'pending', $complete ? $date : null, $entryId, $this->contextId]);
+            $this->pdo->commit();
+            return ['id' => (int) $this->pdo->lastInsertId(), 'duplicate' => false, 'balance_cents' => $balance, 'settled_cents' => $settled];
+        } catch (\Throwable $exception) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $exception;
+        }
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function expenseSettlements(int $entryId): array
+    {
+        $q = $this->pdo->prepare('SELECT s.id, s.amount_cents, s.received_at, s.payment_method, s.notes, a.name AS account FROM finance_entry_settlements AS s INNER JOIN finance_accounts AS a ON a.id = s.account_id WHERE s.entry_id = ? AND s.financial_context_id = ? ORDER BY s.received_at, s.id');
+        $q->execute([$entryId, $this->contextId]);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function settlementKey(mixed $value): string
+    {
+        $key = is_string($value) ? trim($value) : '';
+        if (!preg_match('/^[a-f0-9]{32,64}$/', $key)) throw new InvalidArgumentException('Solicitação de pagamento inválida. Atualize a página e tente novamente.');
+        return $key;
+    }
+
+    private function expenseSettlementByKey(string $key): ?array
+    {
+        $q = $this->pdo->prepare("SELECT s.id, e.amount_cents, COALESCE((SELECT SUM(x.amount_cents) FROM finance_entry_settlements AS x WHERE x.entry_id = e.id AND x.financial_context_id = e.financial_context_id), 0) AS settled_cents FROM finance_entry_settlements AS s INNER JOIN finance_entries AS e ON e.id = s.entry_id WHERE s.financial_context_id = ? AND s.idempotency_key = ? AND e.kind = 'expense'");
+        $q->execute([$this->contextId, $key]); $row = $q->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) return null;
+        return ['id' => (int) $row['id'], 'balance_cents' => max(0, (int) $row['amount_cents'] - (int) $row['settled_cents']), 'settled_cents' => (int) $row['settled_cents']];
+    }
+
     public function delete(int $entryId, ?int $userId = null): bool
     {
         // Apagar aqui deixaria a dívida com o saldo abatido e sem a saída correspondente.
@@ -584,11 +650,14 @@ final class Finance
                         WHEN e.paid_at IS NULL THEN 0
                         WHEN e.kind = 'income' AND e.account_id = a.id
                             AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS es WHERE es.entry_id = e.id) THEN e.amount_cents
-                        WHEN e.kind = 'expense' AND e.account_id = a.id THEN -CAST(e.amount_cents AS SIGNED)
+                        WHEN e.kind = 'expense' AND e.account_id = a.id
+                            AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS es WHERE es.entry_id = e.id) THEN -CAST(e.amount_cents AS SIGNED)
                         WHEN e.kind = 'transfer' AND e.account_id = a.id THEN -CAST(e.amount_cents AS SIGNED)
                         WHEN e.kind = 'transfer' AND e.target_account_id = a.id THEN e.amount_cents
                         ELSE 0 END), 0)
-                    + COALESCE((SELECT SUM(s.amount_cents) FROM finance_entry_settlements AS s
+                    + COALESCE((SELECT SUM(CASE WHEN se.kind = 'expense' THEN -CAST(s.amount_cents AS SIGNED) ELSE s.amount_cents END)
+                        FROM finance_entry_settlements AS s
+                        INNER JOIN finance_entries AS se ON se.id = s.entry_id AND se.financial_context_id = s.financial_context_id
                         WHERE s.account_id = a.id AND s.financial_context_id = a.financial_context_id), 0) AS balance_cents
              FROM finance_accounts AS a
              {$institutionJoin}
