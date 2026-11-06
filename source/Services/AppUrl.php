@@ -29,6 +29,7 @@ final class AppUrl
         'pagar' => ['mes', 'ano', 'datas'], 'movimentacoes' => ['mes', 'ano', 'datas'],
         'relatorios' => ['mes', 'ano'], 'categorias' => ['mes', 'ano'],
         'planejamento' => ['mes', 'ano'], 'fluxo-de-caixa' => ['mes', 'datas'],
+        'dre' => ['mes', 'datas'],
     ];
 
     /** Seções com período na URL, para o registro das rotas. */

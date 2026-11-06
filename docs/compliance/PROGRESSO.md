@@ -21,6 +21,8 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - orçamento empresarial separa limite gerencial, compromisso por vencimento e caixa pago até a data-base; baixas posteriores não reescrevem o período encerrado;
 - pagamentos de fatura só entram no realizado do orçamento quando alocados às compras e são removidos do caixa gerencial após estorno;
 - na DRE por caixa, pagamentos de fatura são rastreados até as compras e categorias pelas alocações, sem dupla contagem;
+- classificação da DRE é gerencial, configurável por categoria e restrita a grupos compatíveis; alterações exigem gestão financeira e são auditadas;
+- categorias sem configuração explícita mantêm fallback documentado por prefixo, sem inferir plano contábil ou tratamento fiscal;
 - transferências internas excluídas de receitas e despesas;
 - CSV da DRE aplica neutralização de fórmulas em textos fornecidos pelo usuário;
 - CSV do fluxo de caixa aplica neutralização de fórmulas e mantém a separação entre realizado e saldo previsto;

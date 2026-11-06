@@ -14,6 +14,7 @@ final class OrganizationAudit
         'company.updated' => 'Dados da empresa alterados',
         'company.logo_updated' => 'Logotipo da empresa alterado',
         'company.logo_removed' => 'Logotipo da empresa removido',
+        'dre.category_classified' => 'Classificação gerencial da categoria alterada',
         'team.invited' => 'Convite enviado',
         'team.invite_resent' => 'Convite reenviado',
         'team.invite_revoked' => 'Convite cancelado',

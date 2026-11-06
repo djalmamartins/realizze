@@ -8,6 +8,7 @@ use Moves\Services\CardInvoices;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\ManagementDre;
+use Moves\Services\AppUrl;
 use Moves\Services\Receivables;
 use MovesCode\Model\Connection;
 
@@ -37,6 +38,7 @@ try {
     $incomeCategory = $finance->createCategory(['name' => 'Vendas', 'category_kind' => 'income', 'color' => '#000000']);
     $costCategory = $finance->createCategory(['name' => 'Custos diretos', 'category_kind' => 'expense', 'color' => '#000000']);
     $expenseCategory = $finance->createCategory(['name' => 'Administrativo', 'category_kind' => 'expense', 'color' => '#000000']);
+    $deductionCategory = $finance->createCategory(['name' => 'Taxa comercial', 'category_kind' => 'expense', 'color' => '#000000']);
     $receivables = new Receivables($ctx);
     $income = (int) $receivables->create([
         'description' => 'Venda competência', 'amount' => '1.000,00', 'due_date' => '2033-01-10',
@@ -50,6 +52,10 @@ try {
     $finance->createEntry('expense', [
         'description' => 'Admin', 'amount' => '100,00', 'due_date' => '2033-01-12',
         'account_id' => $account, 'category_id' => $expenseCategory,
+    ], $user);
+    $finance->createEntry('expense', [
+        'description' => 'Dedução configurada', 'amount' => '50,00', 'due_date' => '2033-01-12',
+        'account_id' => $account, 'category_id' => $deductionCategory,
     ], $user);
     $receivables->settle($income, [
         'amount' => '300,00', 'received_at' => '2033-02-02', 'account_id' => $account,
@@ -72,12 +78,20 @@ try {
     ], $user);
 
     $dre = new ManagementDre($ctx);
+    $ok($dre->classificationReady(), 'Migration de classificação gerencial está disponível no banco isolado');
+    $ok($dre->saveCategoryClassification($deductionCategory, 'deductions'), 'Categoria recebe grupo gerencial explícito');
     $competence = $dre->report('2033-01-01', '2033-01-31');
     $cash = $dre->report('2033-02-01', '2033-02-28', 'cash');
     $ok($competence['groups']['gross']['total'] === 100000
         && $competence['groups']['costs']['total'] === 40000
-        && $competence['groups']['operating']['total'] === 10000,
+        && $competence['groups']['operating']['total'] === 10000
+        && $competence['groups']['deductions']['total'] === 5000,
         'Competência reconhece obrigações completas no mês');
+    $classified=array_values(array_filter($dre->categoryClassifications(),static fn(array$row):bool=>$row['id']===$deductionCategory));
+    $ok(count($classified)===1&&$classified[0]['configured_group']==='deductions','Consulta expõe classificação configurada da categoria');
+    try{$dre->saveCategoryClassification($deductionCategory,'gross');$ok(false,'Grupo incompatível deveria ser recusado');}catch(InvalidArgumentException){$ok(true,'Grupo incompatível com despesa é recusado');}
+    $custom=AppUrl::periodFromSegments('dre','2033-01-10','2033-02-08');
+    $ok($custom===['inicio'=>'2033-01-10','fim'=>'2033-02-08'],'DRE aceita período personalizado em URL canônica');
     $ok($cash['groups']['gross']['total'] === 30000
         && $cash['groups']['costs']['total'] === 32000,
         'Caixa usa baixas parciais e pagamento categorizado da fatura');
@@ -100,6 +114,7 @@ try {
         'Estorno de fatura remove somente a parcela paga do caixa');
 
     $other = new ManagementDre(FinanceContext::forUser($users[1]));
+    $ok(!$other->saveCategoryClassification($deductionCategory,'costs'),'Outro contexto não altera classificação da categoria');
     $isolated = $other->report('2033-01-01', '2033-02-28');
     $ok($isolated['result'] === 0, 'Outro contexto financeiro não enxerga a DRE');
     $ok($dre->report('2033-02-01', '2033-02-28', 'unknown')['criterion'] === 'competence',

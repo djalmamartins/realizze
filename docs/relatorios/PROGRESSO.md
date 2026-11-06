@@ -16,7 +16,7 @@
 | Relatório | Situação | Próxima melhoria |
 |---|---|---|
 | Fluxo de Caixa | Concluído — período personalizado, saldos, projeção, rastreabilidade e CSV entregues | acompanhar regressões e avaliar cenários salvos sem inventar premissas |
-| DRE Gerencial | Em evolução — caixa e competência reconciliados, comparação mensal e CSV específico | período personalizado e classificação configurável |
+| DRE Gerencial | Concluída — caixa/competência, período personalizado, classificação por categoria, comparação e CSV | acompanhar regressões e validação contábil da terminologia |
 | Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
 | Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
@@ -53,15 +53,18 @@ Entregue:
 - pagamentos de fatura são rateados pelas alocações das compras, preservando categoria e valor sem contar a compra e o pagamento duas vezes;
 - estornos de fatura deixam de compor o caixa;
 - cada linha expõe lançamento, data, categoria, origem e valor;
-- comparação com o mês anterior e variação por linha da DRE;
+- período mensal ou personalizado; o mensal compara o mês anterior e o personalizado usa o intervalo imediatamente anterior de igual duração;
+- classificação gerencial explícita e isolada por categoria, limitada a grupos compatíveis com receita ou despesa;
+- fallback compatível por prefixo enquanto uma categoria não possui escolha explícita;
+- alteração da classificação exige gestão financeira e gera evento na auditoria empresarial;
 - exportação CSV específica para o critério selecionado, protegida pela permissão existente de exportação;
 - datas civis inválidas recusadas e consultas isoladas por contexto financeiro.
 
 Fórmula do resultado gerencial: `receita bruta - deduções - custos - despesas operacionais + outras receitas - outras despesas`.
 
-A classificação continua gerencial e explícita pelo nome da categoria: prefixos `Custo`/`CMV`, `Dedução`/`Imposto` e `Outra receita`/`Outra despesa`. Não há cálculo automático de tributos.
+A classificação continua estritamente gerencial. A configuração por categoria depende da migration `020_add_management_dre_group.sql`; sem ela, o relatório permanece operacional com os prefixos `Custo`/`CMV`, `Dedução`/`Imposto` e `Outra receita`/`Outra despesa`. Não há cálculo automático de tributos.
 
-Teste isolado ampliado: `enterprise-004-management-dre` no banco `realizze_pjtest`.
+Testes isolados aprovados: `enterprise-004-management-dre`, `finance-009-transfer-balance`, `finance-017-dashboard-consistency`, `finance-020-card-invoices`, `finance-024-report-as-of` e `ui-002-view-smoke` no banco `realizze_pjtest`. A migration 020 foi aplicada somente nesse banco, após backup local; `realizze_dev` permaneceu sem a coluna nova.
 
 ## Incremento 2026-11-06 — Faturamento Gerencial
 

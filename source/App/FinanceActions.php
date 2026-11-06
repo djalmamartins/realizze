@@ -50,6 +50,7 @@ final class FinanceActions
                 'company' => $this->company((int) $user['id']),
                 'category' => [$finance->createCategory($_POST) > 0 ? 'success' : 'error', 'Categoria criada.'],
                 'category_delete' => $finance->deleteCategory($id) ? ['success', 'Categoria excluída. Os lançamentos ficaram sem categoria.'] : ['error', 'Categoria não encontrada.'],
+                'category_dre' => $this->categoryDre($contextId, $id, (int) $user['id']),
                 'budget' => $this->budget($finance),
                 'budget_delete' => $finance->deleteBudget($_POST['category_id'] ?? null, (string) ($_POST['mes'] ?? '')) ? ['success', 'Orçamento excluído. Os lançamentos não mudaram.'] : ['error', 'Orçamento não encontrado.'],
                 'budget_copy' => $this->budgetCopy($finance),
@@ -104,6 +105,14 @@ final class FinanceActions
             header('Location: ' . \Moves\Services\AppUrl::section('receber', null, $query), true, 303);
             return;
         }
+        if ($back === 'dre') {
+            $query = ['criterio' => ($_POST['criterio'] ?? '') === 'caixa' ? 'caixa' : 'competencia'];
+            foreach (['inicio', 'fim'] as $name) {
+                if (is_string($_POST[$name] ?? null)) $query[$name] = $_POST[$name];
+            }
+            header('Location: ' . \Moves\Services\AppUrl::section('dre', OrganizationContext::current(), $query), true, 303);
+            return;
+        }
         $page = in_array($back, ['contas', 'movimentacoes', 'overview', 'categorias', 'planejamento', 'metas', 'pagar'], true) ? $back : self::PAGES[$kind];
         header('Location: ' . \Moves\Services\AppUrl::backTo($page, \Moves\Services\AppUrl::section($page, null, ['mes' => $month])), true, 303);
     }
@@ -131,6 +140,20 @@ final class FinanceActions
     {
         $finance->saveBudget($_POST);
         return ['success', 'Orçamento salvo.'];
+    }
+
+    /** @return array{0:string,1:string} */
+    private function categoryDre(int $contextId, int $categoryId, int $userId): array
+    {
+        $service = new ManagementDre($contextId);
+        if (!$service->saveCategoryClassification($categoryId, is_string($_POST['management_dre_group'] ?? null) ? $_POST['management_dre_group'] : null)) {
+            return ['error', 'Categoria não encontrada.'];
+        }
+        $organization = OrganizationContext::current();
+        if ($organization !== null) {
+            \Moves\Services\OrganizationAudit::record((int)$organization['id'],$userId,'dre.category_classified','finance_category',$categoryId,['group'=>$_POST['management_dre_group']??null]);
+        }
+        return ['success', 'Classificação gerencial atualizada.'];
     }
 
     /** @return array{0:string,1:string} */
@@ -265,7 +288,7 @@ final class FinanceActions
                 $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), $criterion
             );
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="realizze-dre-' . $criterion . '-' . $period['start']->format('Y-m') . '.csv"');
+            header('Content-Disposition: attachment; filename="realizze-dre-' . $criterion . '-' . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
             header('Cache-Control: no-store');
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
