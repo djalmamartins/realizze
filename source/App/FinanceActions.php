@@ -9,6 +9,7 @@ use Moves\Services\Csrf;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\GoalWallets;
+use Moves\Services\ManagementDre;
 use Moves\Services\OrganizationContext;
 use Moves\Services\Organizations;
 use Moves\Services\PersonalAccessContext;
@@ -150,6 +151,31 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'dre') {
+            $criterion = ($_GET['criterio'] ?? '') === 'caixa' ? 'cash' : 'competence';
+            $dre = (new ManagementDre((int) FinanceContext::currentId()))->report(
+                $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), $criterion
+            );
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-dre-' . $criterion . '-' . $period['start']->format('Y-m') . '.csv"');
+            header('Cache-Control: no-store');
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Critério', 'Data', 'Grupo', 'Lançamento', 'Categoria', 'Origem', 'Valor'], ';', '"', '');
+            $safe = static fn (?string $text): string => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $text) ?? '';
+            $sources = ['direct' => 'Pagamento direto', 'settlement' => 'Baixa', 'card_payment' => 'Pagamento de fatura', 'competence' => 'Competência'];
+            foreach ($dre['groups'] as $group) {
+                foreach ($group['rows'] as $row) {
+                    fputcsv($out, [
+                        $criterion === 'cash' ? 'Caixa' : 'Competência', $row['occurred_at'], $safe($group['label']),
+                        $safe($row['description']), $safe($row['category']), $sources[$row['source']] ?? 'Lançamento',
+                        number_format((int) $row['amount_cents'] / 100, 2, ',', ''),
+                    ], ';', '"', '');
+                }
+            }
+            fclose($out);
+            return;
+        }
         $rows = (new Finance((int) FinanceContext::currentId()))->exportRows($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="realizze-' . $period['start']->format('Y-m') . '.csv"');

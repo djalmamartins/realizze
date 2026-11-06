@@ -13,7 +13,9 @@ A Central de Relatórios entrega informações **gerenciais** com rastreabilidad
 - baixas parciais reconhecidas na data e pelo valor efetivamente liquidado;
 - isolamento por contexto financeiro e por empresa no backend;
 - compras no cartão separadas do pagamento bancário da fatura;
+- na DRE por caixa, pagamentos de fatura são rastreados até as compras e categorias pelas alocações, sem dupla contagem;
 - transferências internas excluídas de receitas e despesas;
+- CSV da DRE aplica neutralização de fórmulas em textos fornecidos pelo usuário;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 
 ## Pendências
