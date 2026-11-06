@@ -1,4 +1,5 @@
 <?php
+use Moves\Services\BillingReport;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\OrganizationContext;
@@ -12,6 +13,7 @@ $loadFailed = false;
 $report = null;
 $series = [];
 $centerRows = [];
+$billing = null;
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $report = $finance->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
@@ -20,6 +22,9 @@ try {
     $centerRows = OrganizationContext::current() !== null && $finance->costCenters() !== []
         ? array_values(array_filter((new \Moves\Services\CostCenters((int) FinanceContext::currentId()))->totals($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d')), static fn (array $r): bool => $r['income_done'] + $r['income_open'] + $r['expense_done'] + $r['expense_open'] > 0))
         : [];
+    if (OrganizationContext::current() !== null) {
+        $billing = (new BillingReport((int) FinanceContext::currentId()))->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+    }
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
     $loadFailed = true;
@@ -56,6 +61,11 @@ $situation = static function (array $entry) use ($brDate): array {
     if ($entry['overdue']) return ['Vencido', 'is-late'];
     return [$entry['kind'] === 'income' ? 'A receber' : ($entry['kind'] === 'expense' ? 'A pagar' : 'Pendente'), 'is-open'];
 };
+$billingQuery = $monthly ? ['mes' => $period['start']->format('Y-m')]
+    : ($period['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $period['start']->format('Y')]
+        : ['inicio' => $period['start']->format('Y-m-d'), 'fim' => $period['end']->format('Y-m-d')]);
+$billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery);
+$billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial','is-open'], 'partial_overdue' => ['Parcial vencido','is-late'], 'overdue' => ['Vencido','is-late'], 'open' => ['Em aberto','is-open']];
 ?>
 <section class="card finance-workspace finance-report" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
   <header class="report-print-head">
@@ -82,6 +92,43 @@ $situation = static function (array $entry) use ($brDate): array {
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Resultado previsto</span><strong><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado até agora <?= $e(Finance::money($resultPaid)) ?></small></div>
     <?php $overdueTotal = $totals['expense_overdue'] + $totals['income_overdue']; ?><div class="finance-goal-stat finance-indicator <?= $overdueTotal > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($overdueTotal)) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
+  <?php if ($billing !== null): $bill = $billing['totals']; ?>
+  <section class="report-daily-list" aria-labelledby="billing-title">
+    <div class="finance-toolbar">
+      <div><h3 id="billing-title">Faturamento gerencial</h3><p class="muted">Receitas reconhecidas por competência. Não representa emissão de nota fiscal.</p></div>
+      <a class="finance-button" href="<?= $e($billingExport) ?>" download>Exportar faturamento</a>
+    </div>
+    <div class="finance-goal-summary is-four" aria-label="Indicadores de faturamento">
+      <div class="finance-goal-stat finance-indicator is-forecast"><span>Faturado</span><strong><?= $e(Finance::money($bill['billed_cents'])) ?></strong><small><?= (int) $bill['entries'] ?> <?= $bill['entries'] === 1 ? 'receita reconhecida' : 'receitas reconhecidas' ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-realized"><span>Recebido no período</span><strong><?= $e(Finance::money($bill['cash_received_cents'])) ?></strong><small>Baixas pela data efetiva, de qualquer competência</small></div>
+      <div class="finance-goal-stat finance-indicator <?= $bill['open_cents'] > 0 ? 'is-forecast' : 'is-neutral' ?>"><span>Em aberto do faturado</span><strong><?= $e(Finance::money($bill['open_cents'])) ?></strong><small>Posição no fim do período<?= $bill['overdue_cents'] > 0 ? ' · vencido ' . $e(Finance::money($bill['overdue_cents'])) : '' ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-neutral"><span>Origem</span><strong><?= $e(Finance::money($bill['service_order_cents'])) ?></strong><small>Ordens de serviço · manual <?= $e(Finance::money($bill['manual_cents'])) ?></small></div>
+    </div>
+    <?php if ($billing['rows'] === []): ?>
+    <div class="finance-empty"><h3>Nenhuma receita reconhecida</h3><p>As receitas de competência do período aparecerão aqui.</p></div>
+    <?php else: ?>
+    <div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="billing-title">
+      <table class="report-table">
+        <thead><tr><th scope="col">Competência</th><th scope="col">Cliente e lançamento</th><th scope="col">Origem</th><th scope="col">Situação no fim do período</th><th scope="col" class="is-money">Faturado</th><th scope="col" class="is-money">Recebido</th><th scope="col" class="is-money">Em aberto</th></tr></thead>
+        <tbody>
+        <?php foreach (array_slice($billing['rows'],0,100) as $row): [$billingLabel,$billingTone] = $billingStatuses[$row['status']]; ?>
+        <tr>
+          <td><?= $e((new DateTimeImmutable($row['competency_date']))->format('m/Y')) ?><small>Vence <?= $e($brDate($row['due_date'])) ?></small></td>
+          <td><?= $e($row['customer_name'] ?: 'Cliente não informado') ?><small>#<?= (int) $row['id'] ?> · <?= $e($row['description']) ?></small></td>
+          <td><?= $row['origin'] === 'service_order' ? 'OS ' . $e($row['order_number']) : 'Manual' ?></td>
+          <td><span class="report-situation <?= $billingTone ?>"><?= $billingLabel ?></span></td>
+          <td class="is-money"><?= $e(Finance::money($row['amount_cents'])) ?></td>
+          <td class="is-money green"><?= $e(Finance::money($row['received_cents'])) ?></td>
+          <td class="is-money <?= $row['open_cents'] > 0 ? 'red' : '' ?>"><?= $e(Finance::money($row['open_cents'])) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php if (count($billing['rows']) > 100): ?><p class="report-note">Exibindo os primeiros 100 lançamentos. O CSV contém todo o período.</p><?php endif; ?>
+    <?php endif; ?>
+  </section>
+  <?php endif; ?>
   <div class="finance-report-panels<?= $monthly ? ' has-daily' : '' ?>">
     <?php if ($monthly): ?>
     <section class="finance-report-panel"><h3>Receitas e despesas por dia</h3>

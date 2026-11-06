@@ -17,7 +17,7 @@
 |---|---|---|
 | Fluxo de Caixa | Em evolução — saldo inicial histórico, saldo realizado e projeção cumulativa entregues | período personalizado, exportação e rastreabilidade por linha |
 | DRE Gerencial | Em evolução — caixa e competência reconciliados, comparação mensal e CSV específico | período personalizado e classificação configurável |
-| Faturamento | Pendente de consolidação | inventariar fontes válidas de Receber e Ordens de Serviço |
+| Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
 | Pagar/Receber | Pendente de consolidação | previsto x realizado e detalhamento de baixas parciais |
 | Posição de Contas | Pendente | saldos por conta e data-base |
 | Orçamento Empresarial | Pendente | comparar orçamento existente com realizado por categoria |
@@ -55,4 +55,24 @@ Fórmula do resultado gerencial: `receita bruta - deduções - custos - despesas
 A classificação continua gerencial e explícita pelo nome da categoria: prefixos `Custo`/`CMV`, `Dedução`/`Imposto` e `Outra receita`/`Outra despesa`. Não há cálculo automático de tributos.
 
 Teste isolado ampliado: `enterprise-004-management-dre` no banco `realizze_pjtest`.
+
+## Incremento 2026-11-06 — Faturamento Gerencial
+
+Fonte única: receitas de **Contas a Receber**. Ordens de Serviço só entram quando geram uma cobrança vinculada; uma OS sem cobrança não é tratada como faturamento.
+
+Entregue:
+
+- faturado por competência, excluindo cobranças canceladas;
+- recebido no período pela data efetiva de cada baixa, inclusive de competências anteriores;
+- posição histórica do faturado (`recebido até a data-base` e `em aberto na data-base`);
+- vencidos integrais e parcialmente recebidos calculados pelo saldo ainda aberto;
+- separação entre cobranças manuais e originadas por Ordem de Serviço;
+- rastreabilidade até o lançamento, cliente e número da OS;
+- detalhamento na Central de Relatórios e exportação CSV completa;
+- limite visual de 100 linhas, mantendo todo o período no CSV;
+- isolamento entre empresas validado no backend.
+
+Este relatório não representa emissão de Nota Fiscal, documento fiscal, receita tributável ou apuração de imposto.
+
+Teste isolado: `enterprise-009-billing-report` no banco `realizze_pjtest`.
 

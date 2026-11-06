@@ -5,6 +5,7 @@ namespace Moves\App;
 
 use InvalidArgumentException;
 use Moves\Services\Authorization;
+use Moves\Services\BillingReport;
 use Moves\Services\Csrf;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
@@ -151,6 +152,28 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'faturamento') {
+            $billing = (new BillingReport((int) FinanceContext::currentId()))->report(
+                $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d')
+            );
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-faturamento-' . $period['start']->format('Y-m') . '.csv"');
+            header('Cache-Control: no-store');
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Competência', 'Vencimento', 'Cliente', 'Descrição', 'Origem', 'Documento', 'Faturado', 'Recebido até o período', 'Em aberto'], ';', '"', '');
+            $safe = static fn (?string $text): string => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $text) ?? '';
+            foreach ($billing['rows'] as $row) {
+                fputcsv($out, [
+                    $row['competency_date'], $row['due_date'], $safe($row['customer_name']), $safe($row['description']),
+                    $row['origin'] === 'service_order' ? 'Ordem de serviço' : 'Lançamento manual', $safe($row['order_number'] ?? $row['document_number']),
+                    number_format($row['amount_cents'] / 100,2,',',''), number_format($row['received_cents'] / 100,2,',',''),
+                    number_format($row['open_cents'] / 100,2,',',''),
+                ], ';', '"', '');
+            }
+            fclose($out);
+            return;
+        }
         if (($_GET['relatorio'] ?? '') === 'dre') {
             $criterion = ($_GET['criterio'] ?? '') === 'caixa' ? 'cash' : 'competence';
             $dre = (new ManagementDre((int) FinanceContext::currentId()))->report(
