@@ -31,3 +31,10 @@
 - Estados vazio, erro e carregamento não inventam dados.
 - PF/PJ e permissões continuam isolados.
 - AJAX, refresh e histórico do navegador preservam filtros e rota.
+
+## Páginas já consolidadas
+
+- Central de Relatórios, DRE e Fluxo de Caixa: cabeçalho, exportação e período compartilhados.
+- Contas a Pagar e Contas a Receber: cabeçalho e ação principal estruturados pelo mesmo componente, preservando o formulário financeiro existente.
+- Faturamento gerencial e Posição de Contas: cabeçalhos de subseção e exportações compartilham a composição dos demais relatórios.
+- Navegação móvel: drawer com `inert`, foco restaurado, fechamento por Escape, backdrop e troca de breakpoint cobertos por teste JavaScript.

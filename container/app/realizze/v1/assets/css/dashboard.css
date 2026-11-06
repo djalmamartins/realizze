@@ -1576,10 +1576,12 @@ body[data-readonly~="contacts"] button[data-finance-open^="contact"],body[data-r
 }
 .report-heading{padding-bottom:18px}
 .report-heading .finance-toolbar-actions{align-items:center}
+.report-heading-subsection{padding:22px 0 14px}
+.report-heading-subsection h3{font-size:17px}
 .report-period-form{justify-content:flex-start;padding:14px 16px;border:1px solid var(--ds-color-border);border-radius:var(--ds-radius-lg);background:#f9fbfa}
 .report-period-form label{display:grid;gap:6px;color:var(--ds-color-muted);font-size:12px;font-weight:650}
 .report-period-form input{min-height:40px;padding:0 11px;border:1px solid var(--ds-color-border);border-radius:var(--ds-radius-md);background:var(--ds-color-surface);color:var(--ds-color-text);font:inherit}
 .report-period-form button{align-self:end;min-height:calc(40px - var(--app-button-trim));padding:0 16px;border:1px solid var(--ds-color-brand);border-radius:var(--ds-radius-md);background:var(--ds-color-brand);color:#fff;font:inherit;font-weight:650}
 .report-period-form input:focus-visible,.report-period-form button:focus-visible{outline:3px solid var(--ds-color-focus);outline-offset:2px}
-@media(max-width:650px){.report-heading .finance-toolbar-actions{width:100%}.report-heading .finance-toolbar-actions>*{flex:1;justify-content:center}.report-period-form{display:grid;grid-template-columns:1fr;margin-inline:20px}.report-period-form button{width:100%}}
+@media(max-width:650px){.report-heading .finance-toolbar-actions{width:100%}.report-heading .finance-toolbar-actions>*{flex:1;justify-content:center}.report-heading-subsection{padding-inline:0}.report-period-form{display:grid;grid-template-columns:1fr;margin-inline:20px}.report-period-form button{width:100%}}
 @media(forced-colors:active){.report-period-form{border-color:CanvasText}.report-period-form button{border:1px solid ButtonText}}

@@ -88,10 +88,13 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
 <section class="card finance-workspace" aria-labelledby="entries-title">
-  <div class="finance-toolbar">
-    <div><h2 id="entries-title"><?= $e($labels['title']) ?></h2><p class="muted"><?= $e($labels['lead']) ?></p></div>
-    <button type="button" class="primary" data-entry-open="<?= $e($kind) ?>"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ <?= $e($labels['new']) ?></button>
-  </div>
+  <?= $appView->render('components::report-heading', [
+      'reportHeading' => ['id' => 'entries-title', 'title' => $labels['title'], 'description' => $labels['lead']],
+      'reportActions' => [[
+          'type' => 'button', 'label' => '+ ' . $labels['new'], 'class' => 'primary', 'entry_open' => $kind,
+          'disabled' => $accounts === [], 'title' => $accounts === [] ? 'Cadastre uma conta primeiro' : null,
+      ]],
+  ]) ?>
   <div class="finance-goal-summary" aria-label="Resumo do mês">
     <div class="finance-goal-stat finance-indicator <?= $summary['expected'] > 0 ? 'is-pending' : 'is-neutral' ?>"><span><?= $e($labels['expected']) ?></span><strong><?= $e(Finance::money($summary['expected'])) ?></strong><small><?= $e($monthLabel) ?></small></div>
     <div class="finance-goal-stat finance-indicator <?= $summary['paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span><?= $e($labels['done']) ?></span><strong><?= $e(Finance::money($summary['paid'])) ?></strong><small><?= (int) $summary['count'] ?> lançamento<?= $summary['count'] === 1 ? '' : 's' ?> no mês</small></div>

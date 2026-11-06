@@ -6,7 +6,7 @@
 
 ## Cabeçalho de relatório
 
-`components/report-heading.php` recebe dados estruturados:
+`components/report-heading.php` recebe dados estruturados e atende tanto o topo do workspace quanto subseções analíticas (`level => 3`, `subsection => true`):
 
 ```php
 $appView->render('components::report-heading', [
@@ -16,6 +16,8 @@ $appView->render('components::report-heading', [
 ```
 
 Use links para navegação/exportação e botão somente para ações locais, como impressão. Não passe HTML nos rótulos.
+
+Nos módulos Pagar e Receber, o mesmo componente recebe a ação estruturada `entry_open`, mantendo o formulário financeiro existente. O componente aceita estados `disabled` e `title`, sem atributos HTML livres.
 
 ## Período de relatório
 

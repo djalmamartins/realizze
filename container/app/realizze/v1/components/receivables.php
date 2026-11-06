@@ -91,10 +91,13 @@ $renderState = static function () use ($state, $e): void {
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
 <section class="card finance-workspace receivables-workspace" aria-labelledby="receivables-title">
-  <div class="finance-toolbar">
-    <div><h2 id="receivables-title">Contas a receber</h2><p class="muted">Cadastre, acompanhe e baixe recebimentos do contexto financeiro atual.</p></div>
-    <button type="button" class="primary" data-entry-open="income"<?= $accounts === [] ? ' disabled title="Cadastre uma conta primeiro"' : '' ?>>+ Nova receita</button>
-  </div>
+  <?= $appView->render('components::report-heading', [
+      'reportHeading' => ['id' => 'receivables-title', 'title' => 'Contas a receber', 'description' => 'Cadastre, acompanhe e baixe recebimentos do contexto financeiro atual.'],
+      'reportActions' => [[
+          'type' => 'button', 'label' => '+ Nova receita', 'class' => 'primary', 'entry_open' => 'income',
+          'disabled' => $accounts === [], 'title' => $accounts === [] ? 'Cadastre uma conta primeiro' : null,
+      ]],
+  ]) ?>
 
   <div class="finance-goal-summary is-four" aria-label="Indicadores de contas a receber">
     <div class="finance-goal-stat finance-indicator <?= $summary['to_receive'] > 0 ? 'is-pending' : 'is-neutral' ?>"><span>Total a receber</span><strong><?= $e(Finance::money($summary['to_receive'])) ?></strong><small>Saldo em aberto no período</small></div>

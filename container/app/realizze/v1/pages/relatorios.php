@@ -189,10 +189,10 @@ $billingComparison = static function (int $current, int $previous): string {
     <?php $overdueTotal = $totals['expense_overdue'] + $totals['income_overdue']; ?><div class="finance-goal-stat finance-indicator <?= $overdueTotal > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($overdueTotal)) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
   <section class="report-daily-list" aria-labelledby="account-position-title">
-    <div class="finance-toolbar">
-      <div><h3 id="account-position-title">Posição de contas</h3><p class="muted">Saldos de contas bancárias e carteiras; cartões e seus limites não compõem o caixa.</p></div>
-      <a class="finance-button" href="<?= $e($positionExport) ?>" download>Exportar posição</a>
-    </div>
+    <?= $appView->render('components::report-heading', [
+        'reportHeading' => ['id' => 'account-position-title', 'title' => 'Posição de contas', 'description' => 'Saldos de contas bancárias e carteiras; cartões e seus limites não compõem o caixa.', 'level' => 3, 'subsection' => true],
+        'reportActions' => [['label' => 'Exportar posição', 'href' => $positionExport, 'download' => true]],
+    ]) ?>
     <div class="finance-goal-summary is-four" aria-label="Resumo da posição de contas">
       <div class="finance-goal-stat finance-indicator is-neutral"><span>Saldo inicial</span><strong><?= $e(Finance::money($positionOpening)) ?></strong><small><?= $e($brDate($accountPositionOpeningDate)) ?></small></div>
       <?php $netMovement=$positionClosing-$positionOpening; ?><div class="finance-goal-stat finance-indicator <?= $netMovement<0?'is-negative':($netMovement>0?'is-positive':'is-neutral') ?>"><span>Movimentação líquida</span><strong><?= $e(Finance::money($netMovement)) ?></strong><small>Entradas − saídas; transferências internas são neutras</small></div>
@@ -208,10 +208,13 @@ $billingComparison = static function (int $current, int $previous): string {
   </section>
   <?php if ($billing !== null): $bill = $billing['totals']; $billPrevious = $billingPrevious['totals'] ?? []; ?>
   <section class="report-daily-list" aria-labelledby="billing-title">
-    <div class="finance-toolbar">
-      <div><h3 id="billing-title">Faturamento gerencial</h3><p class="muted">Receitas reconhecidas por competência. Comparação com <?= $e($period['compareStart']->format('d/m/Y')) ?> a <?= $e($period['compareEnd']->format('d/m/Y')) ?>. Não representa emissão de nota fiscal.</p></div>
-      <a class="finance-button" href="<?= $e($billingExport) ?>" download>Exportar faturamento</a>
-    </div>
+    <?= $appView->render('components::report-heading', [
+        'reportHeading' => [
+            'id' => 'billing-title', 'title' => 'Faturamento gerencial', 'level' => 3, 'subsection' => true,
+            'description' => 'Receitas reconhecidas por competência. Comparação com ' . $period['compareStart']->format('d/m/Y') . ' a ' . $period['compareEnd']->format('d/m/Y') . '. Não representa emissão de nota fiscal.',
+        ],
+        'reportActions' => [['label' => 'Exportar faturamento', 'href' => $billingExport, 'download' => true]],
+    ]) ?>
     <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">

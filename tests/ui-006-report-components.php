@@ -18,14 +18,14 @@ $heading = $view->render('components::report-heading', [
     ],
     'reportActions' => [
         ['label' => 'Exportar', 'href' => '/exportar?tipo=fluxo&formato=csv', 'download' => true],
-        ['type' => 'button', 'label' => 'Gerar PDF', 'class' => 'primary', 'print' => true],
+        ['type' => 'button', 'label' => 'Gerar PDF', 'class' => 'primary', 'print' => true, 'entry_open' => 'income', 'disabled' => true, 'title' => 'Cadastre uma conta primeiro'],
     ],
 ]);
 
 foreach ([
     'id="cash-title"', '&lt;script&gt;Fluxo&lt;/script&gt;', 'Previsto &amp; realizado',
     'aria-label="Ações do relatório"', 'href="/exportar?tipo=fluxo&amp;formato=csv"',
-    'download', 'data-finance-print',
+    'download', 'data-finance-print', 'data-entry-open="income"', 'disabled', 'title="Cadastre uma conta primeiro"',
 ] as $needle) {
     if (!str_contains($heading, $needle)) {
         throw new RuntimeException('Cabeçalho de relatório incompleto: ' . $needle);

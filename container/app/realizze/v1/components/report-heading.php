@@ -13,11 +13,13 @@ $actions = is_array($reportActions ?? null) ? $reportActions : [];
 $headingId = (string) ($heading['id'] ?? 'report-title');
 $headingTitle = (string) ($heading['title'] ?? 'Relatório');
 $headingDescription = (string) ($heading['description'] ?? '');
+$headingLevel = (int) ($heading['level'] ?? 2) === 3 ? 3 : 2;
+$headingClass = !empty($heading['subsection']) ? ' report-heading-subsection' : '';
 $escapeReportHeading = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
-<div class="finance-toolbar report-heading">
+<div class="finance-toolbar report-heading<?= $headingClass ?>">
   <div>
-    <h2 id="<?= $escapeReportHeading($headingId) ?>"><?= $escapeReportHeading($headingTitle) ?></h2>
+    <?php if ($headingLevel === 3): ?><h3 id="<?= $escapeReportHeading($headingId) ?>"><?= $escapeReportHeading($headingTitle) ?></h3><?php else: ?><h2 id="<?= $escapeReportHeading($headingId) ?>"><?= $escapeReportHeading($headingTitle) ?></h2><?php endif; ?>
     <?php if ($headingDescription !== ''): ?><p class="muted"><?= $escapeReportHeading($headingDescription) ?></p><?php endif; ?>
   </div>
   <?php if ($actions !== []): ?>
@@ -29,7 +31,7 @@ $escapeReportHeading = static fn (mixed $value): string => htmlspecialchars((str
         $label = (string) $action['label'];
     ?>
       <?php if ($type === 'button'): ?>
-      <button type="button" class="<?= $escapeReportHeading($class) ?>"<?= !empty($action['print']) ? ' data-finance-print' : '' ?>><?= $escapeReportHeading($label) ?></button>
+      <button type="button" class="<?= $escapeReportHeading($class) ?>"<?= !empty($action['print']) ? ' data-finance-print' : '' ?><?= isset($action['entry_open']) ? ' data-entry-open="' . $escapeReportHeading($action['entry_open']) . '"' : '' ?><?= !empty($action['disabled']) ? ' disabled' : '' ?><?= isset($action['title']) ? ' title="' . $escapeReportHeading($action['title']) . '"' : '' ?>><?= $escapeReportHeading($label) ?></button>
       <?php else: ?>
       <a class="<?= $escapeReportHeading($class) ?>" href="<?= $escapeReportHeading((string) ($action['href'] ?? '#')) ?>"<?= !empty($action['download']) ? ' download' : '' ?>><?= $escapeReportHeading($label) ?></a>
       <?php endif; ?>

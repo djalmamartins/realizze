@@ -366,6 +366,9 @@ console.log('OK - APP-A11Y-091: orientação PJ acompanha a navegação filtrada
     querySelector: () => null,
     querySelectorAll: (selector) => selector === '.enterprise-jump a[href^="#enterprise-"]' ? [shortcut] : [],
     getElementById: (id) => id === 'enterprise-clientes' ? target : null,
+    // dashboard.js also owns unrelated delegated controls. A real Document
+    // always exposes EventTarget even when this scenario isolates only links.
+    addEventListener: () => {},
   };
   const isolatedWindow = { setTimeout(handler) { pending.push(handler); } };
   vm.runInNewContext(script, { document: isolatedDocument, window: isolatedWindow });
