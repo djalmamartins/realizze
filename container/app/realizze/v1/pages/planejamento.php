@@ -15,16 +15,19 @@ $month = $annual ? date('Y-m') : $period['start']->format('Y-m');
 $rows = [];
 $projection = null;
 $debtPlanned = 0;
+$previousByCategory = [];
 try {
     $contextId = (int) FinanceContext::currentId();
     $finance = new Finance($contextId);
     if ($annual) {
         // Orçamento é mensal: o ano soma os doze meses e só pode ser editado mês a mês.
         for ($m = 1; $m <= 12; $m++) {
-            foreach ($finance->budgets($period['start']->format('Y') . '-' . sprintf('%02d', $m)) as $row) {
+            $budgetMonth = $period['start']->format('Y') . '-' . sprintf('%02d', $m);
+            $cutoff = min((new DateTimeImmutable($budgetMonth . '-01'))->modify('last day of this month')->format('Y-m-d'), date('Y-m-d'));
+            foreach ($finance->budgets($budgetMonth, $cutoff) as $row) {
                 $id = $row['category_id'];
                 if (isset($rows[$id])) {
-                    foreach (['budget', 'realized', 'pending', 'spent'] as $key) {
+                    foreach (['budget', 'realized', 'pending', 'spent', 'committed', 'available'] as $key) {
                         $rows[$id][$key] += $row[$key];
                     }
                 } else {
@@ -35,7 +38,13 @@ try {
         $rows = array_values($rows);
         usort($rows, static fn (array $a, array $b): int => [$b['budget'], $a['name']] <=> [$a['budget'], $b['name']]);
     } else {
-        $rows = $finance->budgets($month);
+        $cutoff = min($period['end']->format('Y-m-d'), date('Y-m-d'));
+        $rows = $finance->budgets($month, $cutoff);
+        $previousMonth = $period['start']->modify('-1 month')->format('Y-m');
+        $previousCutoff = $period['start']->modify('-1 day')->format('Y-m-d');
+        foreach ($finance->budgets($previousMonth, $previousCutoff) as $previous) {
+            $previousByCategory[(int) $previous['category_id']] = (int) $previous['spent'];
+        }
     }
     $projection = $finance->planProjection($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
     // Sair das Dívidas é da PF: na empresa, as parcelas previstas não existem.
@@ -66,6 +75,7 @@ $amountValue = static fn (int $cents): string => number_format($cents / 100, 2, 
     <div><h2 id="planning-title">Planejamento de <?= $e($period['long']) ?></h2><p class="muted"><?= $annual ? 'Soma dos limites de cada mês. Para editar, abra o mês.' : 'Defina um limite por categoria e acompanhe o gasto do mês.' ?></p></div>
     <?php if (!$annual && !$loadFailed): ?>
     <div class="finance-toolbar-actions">
+      <a class="finance-button" href="/minha-conta/financeiro/exportar?<?= $e(http_build_query(['relatorio' => 'orcamento', 'mes' => $month])) ?>" download>Exportar CSV</a>
       <form method="post" action="/minha-conta/financeiro/orcamento-copiar"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="planejamento"><input type="hidden" name="mes" value="<?= $e($month) ?>"><button type="submit">Copiar do mês anterior</button></form>
       <button type="button" class="primary" data-finance-open="budget-dialog"<?= $withoutBudget === [] ? ' disabled title="' . ($rows === [] ? 'Crie uma categoria de despesa primeiro' : 'Todas as categorias já têm limite') . '"' : '' ?>>+ Definir orçamento</button>
     </div>
@@ -78,8 +88,8 @@ $amountValue = static fn (int $cents): string => number_format($cents / 100, 2, 
   <?php else: ?>
   <div class="finance-goal-summary" aria-label="Resumo do orçamento">
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Planejado</span><strong><?= $e(Finance::money($planned)) ?></strong><small><?= count($withBudget) ?> categoria<?= count($withBudget) === 1 ? '' : 's' ?> com limite</small></div>
-    <div class="finance-goal-stat finance-indicator <?= $realized > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Gasto</span><strong><?= $e(Finance::money($realized)) ?></strong><small><?= $pending > 0 ? 'Mais ' . $e(Finance::money($pending)) . ' a pagar' : 'Nada a pagar nessas categorias' ?></small></div>
-    <div class="finance-goal-stat finance-indicator <?= $available > 0 ? 'is-positive' : ($available < 0 ? 'is-negative' : 'is-neutral') ?>"><span><?= $available < 0 ? 'Excedido' : 'Ainda pode gastar' ?></span><strong><?= $e(Finance::money(abs($available))) ?></strong><small>Planejado − gasto − a pagar</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $realized > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Pago</span><strong><?= $e(Finance::money($realized)) ?></strong><small><?= $pending > 0 ? 'Mais ' . $e(Finance::money($pending)) . ' comprometidos' : 'Nada pendente nessas categorias' ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $available > 0 ? 'is-positive' : ($available < 0 ? 'is-negative' : 'is-neutral') ?>"><span><?= $available < 0 ? 'Excedido' : 'Ainda pode gastar' ?></span><strong><?= $e(Finance::money(abs($available))) ?></strong><small>Planejado − comprometido</small></div>
   </div>
   <?php if ($overCount > 0): ?><p class="debt-alert debt-alert-red budget-alert" role="status"><?= $overCount === 1 ? '1 categoria está' : $overCount . ' categorias estão' ?> acima do orçamento.</p>
   <?php elseif ($nearCount > 0): ?><p class="debt-alert debt-alert-amber budget-alert" role="status"><?= $nearCount === 1 ? '1 categoria está' : $nearCount . ' categorias estão' ?> perto do limite.</p><?php endif; ?>
@@ -87,7 +97,7 @@ $amountValue = static fn (int $cents): string => number_format($cents / 100, 2, 
   <div class="finance-empty"><span class="empty-icon" aria-hidden="true"><?= $icon('calendar-days') ?></span><h3>Nenhum orçamento em <?= $e($period['long']) ?></h3><p><?= $annual ? 'Abra um mês para definir os limites.' : 'Defina o limite das categorias ou copie os do mês anterior.' ?></p></div>
   <?php else: ?>
   <ul class="budget-list">
-    <?php foreach ($withBudget as $row): $state = Finance::budgetState($row['budget'], $row['spent']); $left = $row['budget'] - $row['spent']; $share = $row['spent'] * 100 / $row['budget']; ?>
+    <?php foreach ($withBudget as $row): $state = Finance::budgetState($row['budget'], $row['spent']); $left = $row['budget'] - $row['spent']; $share = $row['spent'] * 100 / $row['budget']; $previousSpent = $previousByCategory[(int) $row['category_id']] ?? null; ?>
     <li class="budget-item is-<?= $e($state) ?>">
       <div class="budget-head">
         <strong><span class="finance-dot" style="background:<?= $e($row['color']) ?>"></span><?= $e($row['name']) ?></strong>
@@ -95,7 +105,7 @@ $amountValue = static fn (int $cents): string => number_format($cents / 100, 2, 
       </div>
       <div class="track track-live budget-track" role="img" aria-label="<?= $e(number_format($share, 0, ',', '.')) ?>% do limite"><span class="<?= $state === 'over' ? 'is-over' : '' ?>" data-width="<?= round(min(100, $row['realized'] * 100 / $row['budget']), 1) ?>"></span><span class="is-pending" data-width="<?= round(min(100 - min(100, $row['realized'] * 100 / $row['budget']), $row['pending'] * 100 / $row['budget']), 1) ?>"></span></div>
       <div class="budget-foot">
-        <span class="muted">Planejado <?= $e(Finance::money($row['budget'])) ?> · Gasto <?= $e(Finance::money($row['realized'])) ?><?= $row['pending'] > 0 ? ' · A pagar ' . $e(Finance::money($row['pending'])) : '' ?></span>
+        <span class="muted">Planejado <?= $e(Finance::money($row['budget'])) ?> · Comprometido <?= $e(Finance::money($row['spent'])) ?> · Pago <?= $e(Finance::money($row['realized'])) ?><?= $row['pending'] > 0 ? ' · Em aberto ' . $e(Finance::money($row['pending'])) : '' ?><?php if ($previousSpent !== null): ?> · <?= $row['spent'] >= $previousSpent ? '+' : '−' ?><?= $e(Finance::money(abs($row['spent'] - $previousSpent))) ?> vs. mês anterior<?php endif; ?></span>
         <span class="budget-left"><strong class="<?= $left < 0 ? 'red' : '' ?>"><?= $left < 0 ? 'Excedeu ' . $e(Finance::money(-$left)) : 'Disponível ' . $e(Finance::money($left)) ?></strong><?php if (!$annual): ?> <button type="button" class="budget-edit" data-finance-open="budget-edit-<?= (int) $row['category_id'] ?>" aria-label="Editar orçamento de <?= $e($row['name']) ?>">Editar</button><?php endif; ?></span>
       </div>
     </li>

@@ -34,9 +34,10 @@ try {
     $finance = new Finance($ctx);
     $cards = new CardInvoices($ctx);
     $bank = $finance->createAccount(['name' => 'Banco', 'type' => 'checking', 'opening_balance' => '5.000,00']);
+    $category = $finance->createCategory(['name' => 'Compras corporativas', 'category_kind' => 'expense']);
     // Fecha dia 28 e vence dia 5: compra até o dia 28 entra na fatura que vence no dia 5 do mês seguinte.
     $card = $finance->createAccount(['name' => 'Cartão', 'type' => 'credit_card', 'closing_day' => '28', 'due_day' => '5']);
-    $buy = static fn (string $what, string $amount, string $date, int $parts = 1) => $cards->purchase(['card_account_id' => $card, 'description' => $what, 'amount' => $amount, 'purchased_on' => $date, 'installments' => (string) $parts, 'idempotency_key' => $key()], $userId);
+    $buy = static fn (string $what, string $amount, string $date, int $parts = 1) => $cards->purchase(['card_account_id' => $card, 'description' => $what, 'amount' => $amount, 'purchased_on' => $date, 'installments' => (string) $parts, 'category_id' => $category, 'idempotency_key' => $key()], $userId);
     $buy('Antes do fechamento', '100,00', '2031-03-10');
     $buy('No dia do fechamento', '50,00', '2031-03-28');
     $buy('Depois do fechamento', '70,00', '2031-03-29');
@@ -63,6 +64,9 @@ try {
     $payKey = $key();
     $payment = $cards->pay(['card_account_id' => $card, 'source_account_id' => $bank, 'month' => '2031-03', 'paid_on' => '2031-04-05', 'idempotency_key' => $payKey], $userId);
     $check($cards->pay(['card_account_id' => $card, 'source_account_id' => $bank, 'month' => '2031-03', 'paid_on' => '2031-04-05', 'idempotency_key' => $payKey], $userId) === $payment, 'Duplo envio não paga duas vezes');
+    $aprilBudgetBefore = array_values(array_filter($finance->budgets('2031-04','2031-04-04'), static fn(array $row):bool=>(int)$row['category_id']===$category))[0];
+    $aprilBudgetAfter = array_values(array_filter($finance->budgets('2031-04','2031-04-05'), static fn(array $row):bool=>(int)$row['category_id']===$category))[0];
+    $check($aprilBudgetBefore['spent']===25000 && $aprilBudgetBefore['realized']===0 && $aprilBudgetAfter['realized']===25000, 'Orçamento do cartão separa compromisso e pagamento pela data-base');
     $after = array_column($finance->accountsWithBalance(), 'balance_cents', 'id');
     $check($after[$bank] === 500000 - 25000, 'Banco sai uma vez com o valor da fatura');
     $check($after[$card] === 0, 'Cartão volta a zero depois de pago');

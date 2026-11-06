@@ -20,7 +20,7 @@
 | Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
 | Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
-| Orçamento Empresarial | Pendente | comparar orçamento existente com realizado por categoria |
+| Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
 
 ## Incremento 2026-11-06 — Fluxo de Caixa
 
@@ -75,6 +75,23 @@ Entregue:
 Este relatório não representa emissão de Nota Fiscal, documento fiscal, receita tributável ou apuração de imposto.
 
 Teste isolado: `enterprise-009-billing-report` no banco `realizze_pjtest`.
+
+## Incremento 2026-11-06 — Orçamento Empresarial
+
+Entregue sobre o Planejamento já existente, sem criar módulo paralelo:
+
+- orçamento mensal por categoria comparado ao valor comprometido pela data de vencimento;
+- realizado reconhece somente pagamentos efetivos até a data-base, inclusive baixas parciais;
+- parcelas de cartão permanecem comprometidas no ciclo e só viram realizado quando o pagamento da fatura é alocado à compra;
+- pagamentos e estornos posteriores não reescrevem uma posição histórica encerrada;
+- saldo em aberto e disponível usam `comprometido - pago` e `orçado - comprometido`;
+- comparação do comprometido com o mês anterior por categoria;
+- consolidação anual preserva os mesmos critérios mensais;
+- CSV específico com orçado, comprometido, pago, aberto, disponível e variação, usando a permissão existente de exportação;
+- projeção do resultado passou a reconhecer baixas parciais de despesas, antes ignoradas;
+- isolamento pelo contexto financeiro e exclusão de cancelados preservados.
+
+Testes isolados aprovados no banco `realizze_pjtest`: `finance-015-planning`, `finance-014-partial-settlement`, `finance-017-dashboard-consistency`, `finance-020-card-invoices` e `enterprise-004-management-dre`.
 
 ## Incremento 2026-11-06 — Pagar e Receber
 

@@ -50,9 +50,13 @@ try {
 
     $expense = static fn (string $amount, bool $paid = false) => $a->createEntry('expense', ['description' => 'Mercado', 'amount' => $amount, 'due_date' => '2031-03-10', 'account_id' => $account, 'category_id' => $food] + ($paid ? ['paid' => '1'] : []), $users['a']);
     $expense('100,00', true);
-    $expense('50,00');
+    $partialExpense = $expense('50,00');
+    $a->settleExpense($partialExpense, ['amount'=>'20,00','paid_at'=>'2031-03-15','account_id'=>$account,'payment_method'=>'pix','idempotency_key'=>hash('sha256','planning-partial-1')], $users['a']);
     $current = $row($a, $food);
-    $check($current['realized'] === 10000 && $current['pending'] === 5000 && $current['spent'] === 15000, 'Despesa atualiza realizado e previsto');
+    $check($current['realized'] === 12000 && $current['pending'] === 3000 && $current['spent'] === 15000 && $current['available'] === 35000, 'Orçamento separa pago, em aberto, comprometido e disponível');
+    $historical = $a->budgets($month, '2031-03-14');
+    $historical = array_values(array_filter($historical, static fn(array $r):bool=>(int)$r['category_id']===$food))[0];
+    $check($historical['realized'] === 10000 && $historical['pending'] === 5000, 'Data-base não antecipa baixa parcial posterior');
     $check(Finance::budgetState($current['budget'], $current['spent']) === 'ok', 'Dentro do orçamento');
     $check(Finance::budgetState(100, 80) === 'near' && Finance::budgetState(100, 79) === 'ok' && Finance::budgetState(100, 100) === 'near' && Finance::budgetState(100, 101) === 'over' && Finance::budgetState(0, 50) === null, 'Limites do alerta: 80%, 100% e acima');
 
@@ -69,8 +73,8 @@ try {
     $a->createEntry('income', ['description' => 'Extra', 'amount' => '200,00', 'due_date' => '2031-03-25', 'account_id' => $account], $users['a']);
     $plan = $a->planProjection('2031-03-01', '2031-03-31');
     $check($plan['income_realized'] === 200000 && $plan['income_expected'] === 20000, 'Receita realizada separada da prevista');
-    $check($plan['expense_realized'] === 10000 && $plan['expense_expected'] === 45000, 'Despesa realizada separada da prevista');
-    $check($plan['result_realized'] === 190000 && $plan['result_projected'] === 165000, 'Resultado realizado e projetado');
+    $check($plan['expense_realized'] === 12000 && $plan['expense_expected'] === 43000, 'Projeção separa baixa parcial realizada do saldo previsto');
+    $check($plan['result_realized'] === 188000 && $plan['result_projected'] === 165000, 'Resultado realizado e projetado');
 
     // Mês seguinte, ano e cópia.
     $check($a->copyPreviousBudgets('2031-04') === 1 && $row($a, $food, '2031-04')['budget'] === 50000, 'Copia os limites do mês anterior');

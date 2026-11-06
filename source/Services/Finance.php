@@ -1245,29 +1245,75 @@ final class Finance
     }
 
     /**
-     * Orçamento por categoria de despesa no mês, pela data de vencimento, como em Relatórios.
-     * realized = já pago; pending = a pagar; spent = os dois, o que já compromete o limite.
-     * Cancelados ficam de fora, e transferências não têm kind expense.
+     * Orçamento por categoria e mês de vencimento.
+     * committed/spent é o valor contratado no mês; realized é o caixa efetivamente pago até
+     * a data-base, inclusive baixas parciais e parcelas de cartão alocadas no pagamento da fatura.
+     * Assim uma quitação posterior não reescreve a posição histórica do orçamento.
      */
-    public function budgets(string $month): array
+    public function budgets(string $month, ?string $asOf = null): array
     {
-        $statement = $this->pdo->prepare(
-            "SELECT c.id AS category_id, c.name, c.color, COALESCE(b.amount_cents, 0) AS budget,
-                    COALESCE(SUM(CASE WHEN e.paid_at IS NOT NULL THEN e.amount_cents END), 0) AS realized,
-                    COALESCE(SUM(CASE WHEN e.paid_at IS NULL THEN e.amount_cents END), 0) AS pending
-             FROM finance_categories AS c
-             LEFT JOIN finance_budgets AS b ON b.category_id = c.id AND b.month = ?
-             LEFT JOIN finance_entries AS e ON e.category_id = c.id AND e.financial_context_id = c.financial_context_id
-                  AND e.kind = 'expense' AND (e.status IS NULL OR e.status <> 'cancelled') AND e.due_date BETWEEN ? AND LAST_DAY(?)
-             WHERE c.financial_context_id = ? AND c.kind = 'expense'
-             GROUP BY c.id, c.name, c.color, b.amount_cents
-             ORDER BY budget DESC, c.name"
+        if (!self::validMonth($month)) throw new InvalidArgumentException('Escolha o mês.');
+        $end = (new DateTimeImmutable($month . '-01'))->modify('last day of this month')->format('Y-m-d');
+        $asOf ??= $end;
+        if (!preg_match('/^20\d{2}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/D', $asOf)) {
+            throw new InvalidArgumentException('Data-base inválida.');
+        }
+        $asOf = min($asOf, $end);
+
+        $base = $this->pdo->prepare(
+            "SELECT c.id AS category_id,c.name,c.color,COALESCE(b.amount_cents,0) AS budget
+             FROM finance_categories c
+             LEFT JOIN finance_budgets b ON b.category_id=c.id AND b.financial_context_id=c.financial_context_id AND b.month=?
+             WHERE c.financial_context_id=? AND c.kind='expense'"
         );
-        $statement->execute([$month, $month . '-01', $month . '-01', $this->contextId]);
-        return array_map(static fn (array $row): array => [
-            'budget' => (int) $row['budget'], 'realized' => (int) $row['realized'], 'pending' => (int) $row['pending'],
-            'spent' => (int) $row['realized'] + (int) $row['pending'],
-        ] + $row, $statement->fetchAll(PDO::FETCH_ASSOC));
+        $base->execute([$month, $this->contextId]);
+        $rows = [];
+        foreach ($base->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $id = (int) $row['category_id'];
+            $row['category_id']=$id; $row['budget']=(int)$row['budget'];
+            $rows[$id] = $row + ['realized'=>0,'pending'=>0,'spent'=>0,'committed'=>0,'available'=>$row['budget']];
+        }
+
+        $cardReady = $this->pdo->query("SHOW TABLES LIKE 'finance_card_payment_allocations'")->fetchColumn() !== false
+            && $this->pdo->query("SHOW TABLES LIKE 'finance_card_invoice_payments'")->fetchColumn() !== false;
+        $cardJoin = $cardReady
+            ? "LEFT JOIN (SELECT a.card_entry_id,SUM(a.amount_cents) paid FROM finance_card_payment_allocations a
+                 INNER JOIN finance_card_invoice_payments p ON p.id=a.payment_id AND p.financial_context_id=a.financial_context_id
+                 WHERE a.financial_context_id=? AND p.paid_on<=? AND p.reversed_at IS NULL GROUP BY a.card_entry_id) cp ON cp.card_entry_id=e.id"
+            : '';
+        $cardColumn = $cardReady ? 'COALESCE(cp.paid,0)' : '0';
+        $entries = $this->pdo->prepare(
+            "SELECT e.category_id,e.amount_cents,e.paid_at,a.type AS account_type,
+                    COALESCE(s.paid,0) AS settlement_paid,{$cardColumn} AS card_paid
+             FROM finance_entries e
+             LEFT JOIN finance_accounts a ON a.id=e.account_id AND a.financial_context_id=e.financial_context_id
+             LEFT JOIN (SELECT entry_id,SUM(amount_cents) paid FROM finance_entry_settlements
+                        WHERE financial_context_id=? AND received_at<=? GROUP BY entry_id) s ON s.entry_id=e.id
+             {$cardJoin}
+             WHERE e.financial_context_id=? AND e.kind='expense' AND e.category_id IS NOT NULL
+               AND (e.status IS NULL OR e.status<>'cancelled') AND e.due_date BETWEEN ? AND ?"
+        );
+        $parameters = [$this->contextId,$asOf];
+        if ($cardReady) array_push($parameters,$this->contextId,$asOf);
+        array_push($parameters,$this->contextId,$month . '-01',$end);
+        $entries->execute($parameters);
+        foreach ($entries->fetchAll(PDO::FETCH_ASSOC) as $entry) {
+            $id=(int)$entry['category_id'];
+            if (!isset($rows[$id])) continue;
+            $amount=(int)$entry['amount_cents'];
+            $paid=$entry['account_type']==='credit_card'
+                ? min($amount,(int)$entry['card_paid'])
+                : ((int)$entry['settlement_paid']>0
+                    ? min($amount,(int)$entry['settlement_paid'])
+                    : ($entry['paid_at']!==null && $entry['paid_at']<=$asOf ? $amount : 0));
+            $rows[$id]['committed'] += $amount;
+            $rows[$id]['spent'] += $amount;
+            $rows[$id]['realized'] += $paid;
+            $rows[$id]['pending'] += $amount-$paid;
+            $rows[$id]['available'] -= $amount;
+        }
+        usort($rows,static fn(array $a,array $b):int=>[$b['budget'],$a['name']]<=>[$a['budget'],$b['name']]);
+        return array_values($rows);
     }
 
     /** Situação do limite: dentro, perto (a partir de 80%) ou acima. Sem limite, null. */
@@ -1332,7 +1378,7 @@ final class Finance
         $totals = ['income_realized' => 0, 'income_expected' => 0, 'expense_realized' => 0, 'expense_expected' => 0];
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $row) {
             $amount = (int) $row['amount_cents'];
-            $done = $row['kind'] === 'income' && $row['settled'] !== null ? min($amount, (int) $row['received']) : ($row['paid_at'] !== null ? $amount : 0);
+            $done = $row['settled'] !== null ? min($amount, (int) $row['received']) : ($row['paid_at'] !== null ? $amount : 0);
             $totals[$row['kind'] . '_realized'] += $done;
             $totals[$row['kind'] . '_expected'] += $amount - $done;
         }

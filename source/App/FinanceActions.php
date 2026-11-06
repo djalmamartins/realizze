@@ -152,6 +152,23 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'orcamento') {
+            $month=$period['start']->format('Y-m');
+            $asOf=min($period['end']->format('Y-m-d'),date('Y-m-d'));
+            $finance=new Finance((int)FinanceContext::currentId());
+            $rows=$finance->budgets($month,$asOf);
+            $previous=[];
+            $previousMonth=$period['start']->modify('-1 month')->format('Y-m');
+            foreach($finance->budgets($previousMonth,$period['start']->modify('-1 day')->format('Y-m-d')) as$row)$previous[(int)$row['category_id']]=$row['spent'];
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-orcamento-' . $month . '.csv"');
+            header('Cache-Control: no-store');
+            $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,['Categoria','Orçado','Comprometido','Pago até a data-base','Em aberto','Disponível','Comprometido no mês anterior','Variação'],';','"','');
+            $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
+            foreach($rows as$row){$before=(int)($previous[(int)$row['category_id']]??0);fputcsv($out,[$safe($row['name']),number_format($row['budget']/100,2,',',''),number_format($row['spent']/100,2,',',''),number_format($row['realized']/100,2,',',''),number_format($row['pending']/100,2,',',''),number_format($row['available']/100,2,',',''),number_format($before/100,2,',',''),number_format(($row['spent']-$before)/100,2,',','')],';','"','');}
+            fclose($out);return;
+        }
         if (($_GET['relatorio'] ?? '') === 'posicao-contas') {
             $finance=new Finance((int)FinanceContext::currentId());
             $asOf=min($period['end']->format('Y-m-d'),date('Y-m-d'));
