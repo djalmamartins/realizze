@@ -18,7 +18,7 @@
 | Fluxo de Caixa | Concluído — período personalizado, saldos, projeção, rastreabilidade e CSV entregues | acompanhar regressões e avaliar cenários salvos sem inventar premissas |
 | DRE Gerencial | Concluída — caixa/competência, período personalizado, classificação por categoria, comparação e CSV | acompanhar regressões e validação contábil da terminologia |
 | Faturamento | Concluído — competência, caixa, posição histórica, comparação, filtros, origem e CSV | validação fiscal/contábil externa antes de qualquer uso oficial |
-| Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
+| Pagar/Receber | Concluído — posição histórica, previsto/realizado, parciais, filtros e CSV | acompanhar regressões dos serviços financeiros compartilhados |
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
 | Operação de Serviços | Concluído — ordens, status, valores, cobranças, recebimentos e CSV | acrescentar filtros por cliente/status sem perder o corte histórico |
@@ -118,10 +118,14 @@ Entregue:
 - vencido calculado somente sobre o saldo aberto na data-base;
 - pagamentos diretos sem registro de baixa continuam reconhecidos corretamente;
 - cancelamentos e transferências não compõem os totais;
+- filtros por situação histórica, contraparte e conta aplicados às linhas e totalizadores;
+- busca de contraparte considera o contato vinculado ou o nome informado manualmente;
 - CSV geral ganhou realizado, saldo em aberto e situação, usando o mesmo corte histórico da tela;
+- exportação CSV preserva os mesmos filtros selecionados na Central;
 - validação de período no backend e manutenção do isolamento por contexto financeiro.
 
-Testes aprovados: `finance-006-report` e `finance-024-report-as-of`; regressões de Receber, Faturamento e Dashboard executadas no banco `realizze_pjtest`.
+Testes aprovados: `finance-006-report` e `finance-024-report-as-of`; regressões de Receber,
+Faturamento, Dashboard, Cartões/Faturas e templates executadas no banco `realizze_pjtest`.
 
 ## Incremento 2026-11-06 — Posição de Contas
 

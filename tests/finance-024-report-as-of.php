@@ -25,7 +25,7 @@ try{
     $key=static fn():string=>bin2hex(random_bytes(32));
     $income=(int)$receivables->create([
         'description'=>'Receita janeiro','amount'=>'1.000,00','due_date'=>'2025-01-10','competence'=>'2025-01',
-        'account_id'=>$account,'payment_method'=>'pix','idempotency_key'=>$key(),
+        'account_id'=>$account,'counterparty_name'=>'Cliente Histórico','payment_method'=>'pix','idempotency_key'=>$key(),
     ],$user)['id'];
     $receivables->settle($income,['amount'=>'300,00','received_at'=>'2025-01-20','account_id'=>$account,'payment_method'=>'pix','idempotency_key'=>$key()],$user);
     $receivables->settle($income,['amount'=>'200,00','received_at'=>'2025-02-05','account_id'=>$account,'payment_method'=>'pix','idempotency_key'=>$key()],$user);
@@ -44,6 +44,21 @@ try{
 
     $export=[];foreach($finance->exportRows('2025-01-01','2025-01-31')as$row)$export[$row['description']]=$row;
     $check($export['Receita janeiro']['paid_cents']===30000&&$export['Receita janeiro']['open_cents']===70000&&$export['Receita janeiro']['display_status']==='partial_overdue','CSV usa a mesma posição histórica do relatório');
+
+    $otherAccount=$finance->createAccount(['name'=>'Conta secundária','type'=>'checking']);
+    $finance->createEntry('expense',['description'=>'Despesa secundária','amount'=>'25,00','due_date'=>'2025-01-18','account_id'=>$otherAccount],$user);
+    $byAccount=$finance->report('2025-01-01','2025-01-31',['account_id'=>(string)$account]);
+    $check($byAccount['count']===3&&$byAccount['totals']['expense']===55000,'Filtro por conta limita linhas e totalizadores');
+    $byCounterparty=$finance->report('2025-01-01','2025-01-31',['counterparty'=>'histórico']);
+    $check($byCounterparty['count']===1&&$byCounterparty['totals']['income']===100000,'Filtro por contraparte ignora caixa e preserva posição histórica');
+    $partial=$finance->report('2025-01-01','2025-01-31',['status'=>'partial']);
+    $check($partial['count']===2&&$partial['totals']['income_paid']===30000&&$partial['totals']['expense_paid']===15000,'Filtro parcial inclui parciais vencidos pelos valores realizados');
+    $overdue=$finance->report('2025-01-01','2025-01-31',['status'=>'overdue']);
+    $check($overdue['count']===3&&$overdue['totals']['expense_overdue']===37500,'Filtro vencido usa a data-base e os saldos em aberto');
+    $filteredExport=$finance->exportRows('2025-01-01','2025-01-31',['status'=>'partial','account_id'=>(string)$account]);
+    $check(count($filteredExport)===2&&array_sum(array_column($filteredExport,'paid_cents'))===45000,'CSV aplica os mesmos filtros da Central');
+    $invalid=$finance->report('2025-01-01','2025-01-31',['status'=>'hack','account_id'=>'1 OR 1=1']);
+    $check($invalid['filters']===['status'=>'','account_id'=>0,'counterparty'=>'']&&$invalid['count']===4,'Filtros inválidos são neutralizados');
 }finally{
     foreach(['finance_entry_audit_logs','finance_entry_settlements','finance_entries','finance_categories','finance_accounts']as$table)$pdo->prepare("DELETE FROM {$table} WHERE financial_context_id=?")->execute([$context]);
     $pdo->prepare('DELETE FROM financial_contexts WHERE id=?')->execute([$context]);

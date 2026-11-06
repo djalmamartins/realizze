@@ -18,11 +18,27 @@ $billingFilterQuery = array_filter([
     'faturamento_origem' => $billingFilters['origin'],
     'faturamento_cliente' => $billingFilters['customer'],
 ], static fn (string $value): bool => $value !== '');
-$link = static fn (array $query): string => \Moves\Services\AppUrl::section('relatorios', null, $query + $billingFilterQuery);
+$ledgerFilters = [
+    'status' => in_array($_GET['pr_situacao'] ?? '', ['open','paid','partial','overdue','cancelled'], true)
+        ? (string) $_GET['pr_situacao'] : '',
+    'account_id' => is_string($_GET['pr_conta'] ?? null) && ctype_digit($_GET['pr_conta']) && (int) $_GET['pr_conta'] > 0
+        ? (string) $_GET['pr_conta'] : '',
+    'counterparty' => mb_substr(trim(is_string($_GET['pr_contraparte'] ?? null) ? $_GET['pr_contraparte'] : ''), 0, 80),
+];
+$ledgerFilterQuery = array_filter([
+    'pr_situacao' => $ledgerFilters['status'],
+    'pr_conta' => $ledgerFilters['account_id'],
+    'pr_contraparte' => $ledgerFilters['counterparty'],
+], static fn (string $value): bool => $value !== '');
+$link = static fn (array $query): string => \Moves\Services\AppUrl::section(
+    'relatorios', null, $query + $billingFilterQuery + $ledgerFilterQuery
+);
 $monthly = $period['view'] === 'mensal';
 $months = $monthly ? 6 : 12;
 $loadFailed = false;
 $report = null;
+$payReceiveReport = null;
+$reportAccounts = [];
 $series = [];
 $centerRows = [];
 $billing = null;
@@ -35,6 +51,10 @@ $accountPositionOpeningDate = min($period['start']->modify('-1 day')->format('Y-
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $report = $finance->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+    $payReceiveReport = $finance->report(
+        $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), $ledgerFilters
+    );
+    $reportAccounts = $finance->accounts();
     $openingAccounts=$finance->cashAccountsPositionOn($accountPositionOpeningDate);
     $closingAccounts=$finance->cashAccountsPositionOn($accountPositionAsOf);
     foreach($openingAccounts as$row)$accountPosition[$row['id']]=$row+['opening_cents'=>$row['balance_cents'],'closing_cents'=>0];
@@ -104,6 +124,7 @@ $billingQuery = $monthly ? ['mes' => $period['start']->format('Y-m')]
     : ($period['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $period['start']->format('Y')]
         : ['inicio' => $period['start']->format('Y-m-d'), 'fim' => $period['end']->format('Y-m-d')]);
 $billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery + $billingFilterQuery);
+$ledgerExport = '/minha-conta/financeiro/exportar?' . http_build_query($billingQuery + $ledgerFilterQuery);
 $positionExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'posicao-contas']+$billingQuery);
 $serviceOrderExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'ordens-servico']+$billingQuery);
 $obligationExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'obrigacoes']+$billingQuery);
@@ -125,7 +146,7 @@ $billingComparison = static function (int $current, int $previous): string {
   <div class="finance-toolbar no-print">
     <div><h2 id="reports-title">Relatórios</h2><p class="muted">Resultado de <?= $e($period['long']) ?>, dia a dia.</p></div>
     <div class="finance-toolbar-actions">
-      <a class="finance-button" href="/minha-conta/financeiro/exportar?<?= $e(http_build_query($monthly ? ['mes' => $period['start']->format('Y-m')] : ['visao' => 'anual', 'ano' => $period['start']->format('Y')])) ?>" download>Exportar CSV</a>
+      <a class="finance-button" href="<?= $e($ledgerExport) ?>" download>Exportar CSV</a>
       <button type="button" class="primary" data-finance-print>Gerar PDF</button>
     </div>
   </div>
@@ -170,10 +191,11 @@ $billingComparison = static function (int $current, int $previous): string {
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
+      <?php foreach ($ledgerFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
       <label>Origem<select name="faturamento_origem"><option value="">Todas</option><option value="manual"<?= $billing['filters']['origin'] === 'manual' ? ' selected' : '' ?>>Lançamento manual</option><option value="service_order"<?= $billing['filters']['origin'] === 'service_order' ? ' selected' : '' ?>>Ordem de serviço</option></select></label>
       <label>Cliente<select name="faturamento_cliente"><option value="">Todos</option><option value="unassigned"<?= $billing['filters']['customer'] === 'unassigned' ? ' selected' : '' ?>>Sem cliente cadastrado</option><?php foreach ($billing['customers'] as $customer): ?><option value="<?= $e($customer['key']) ?>"<?= $billing['filters']['customer'] === $customer['key'] ? ' selected' : '' ?>><?= $e($customer['label']) ?></option><?php endforeach; ?></select></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $ledgerFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de faturamento">
       <div class="finance-goal-stat finance-indicator is-forecast"><span>Faturado</span><strong><?= $e(Finance::money($bill['billed_cents'])) ?></strong><small><?= $e($billingComparison($bill['billed_cents'], (int) ($billPrevious['billed_cents'] ?? 0))) ?></small></div>
@@ -277,15 +299,27 @@ $billingComparison = static function (int $current, int $previous): string {
     </section>
     <?php endif; ?>
   </div>
+  <?php $ledger = $payReceiveReport ?? $report; $ledgerTotals = $ledger['totals']; $ledgerResult = $ledgerTotals['income'] - $ledgerTotals['expense']; ?>
   <section class="report-daily-list" aria-labelledby="report-days-title">
-    <h3 id="report-days-title">Pagar e receber <small><?= (int) $report['count'] ?> <?= $report['count'] === 1 ? 'lançamento' : 'lançamentos' ?> por vencimento · posição em <?= $e($asOfLabel) ?></small></h3>
-    <?php if ($report['days'] === []): ?>
-    <div class="finance-empty"><h3>Nenhum lançamento neste período</h3><p>Os lançamentos de <?= $e($period['long']) ?> aparecem aqui, um a um.</p></div>
+    <div class="finance-toolbar"><h3 id="report-days-title">Pagar e receber <small><?= (int) $ledger['count'] ?> <?= $ledger['count'] === 1 ? 'lançamento' : 'lançamentos' ?> por vencimento · posição em <?= $e($asOfLabel) ?></small></h3><a class="finance-button no-print" href="<?= $e($ledgerExport) ?>" download>Exportar seleção</a></div>
+    <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
+      <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
+      <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
+      <?php foreach ($billingFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
+      <label>Situação<select name="pr_situacao"><option value="">Todas</option><option value="open"<?= $ledger['filters']['status'] === 'open' ? ' selected' : '' ?>>Em aberto</option><option value="paid"<?= $ledger['filters']['status'] === 'paid' ? ' selected' : '' ?>>Realizados</option><option value="partial"<?= $ledger['filters']['status'] === 'partial' ? ' selected' : '' ?>>Parciais</option><option value="overdue"<?= $ledger['filters']['status'] === 'overdue' ? ' selected' : '' ?>>Vencidos</option><option value="cancelled"<?= $ledger['filters']['status'] === 'cancelled' ? ' selected' : '' ?>>Cancelados</option></select></label>
+      <label>Conta<select name="pr_conta"><option value="">Todas</option><?php foreach ($reportAccounts as $account): ?><option value="<?= (int) $account['id'] ?>"<?= (int) $ledger['filters']['account_id'] === (int) $account['id'] ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
+      <label>Contraparte<input type="search" name="pr_contraparte" maxlength="80" value="<?= $e($ledger['filters']['counterparty']) ?>" placeholder="Cliente ou fornecedor"></label>
+      <button class="finance-button" type="submit">Aplicar filtros</button>
+      <?php if ($ledger['filters']['status'] !== '' || $ledger['filters']['account_id'] > 0 || $ledger['filters']['counterparty'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $billingFilterQuery)) ?>">Limpar</a><?php endif; ?>
+    </form>
+    <?php if ($ledger['days'] === []): ?>
+    <div class="finance-empty"><h3>Nenhum lançamento neste período</h3><p><?= $ledgerFilterQuery !== [] ? 'Nenhum lançamento corresponde aos filtros aplicados.' : 'Os lançamentos de ' . $e($period['long']) . ' aparecem aqui, um a um.' ?></p></div>
     <?php else: ?>
     <div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="report-days-title">
       <table class="report-table">
         <thead><tr><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Situação</th><th class="is-money">Entrada</th><th class="is-money">Saída</th></tr></thead>
-        <?php foreach ($report['days'] as $day): $date = new DateTimeImmutable($day['date']); ?>
+        <?php foreach ($ledger['days'] as $day): $date = new DateTimeImmutable($day['date']); ?>
         <tbody>
           <tr class="report-day">
             <th scope="rowgroup" colspan="4"><?= $e($date->format('d/m/Y')) ?> <em><?= $e($weekdays[(int) $date->format('w')]) ?></em><span>Resultado do dia <?= $e(Finance::money($day['result'])) ?> · acumulado <?= $e(Finance::money($day['accumulated'])) ?></span></th>
@@ -305,7 +339,7 @@ $billingComparison = static function (int $current, int $previous): string {
           <?php endforeach; ?>
         </tbody>
         <?php endforeach; ?>
-        <tfoot><tr><th scope="row" colspan="4">Total do período <span>Resultado previsto <?= $e(Finance::money($resultExpected)) ?></span></th><td class="is-money green"><?= $e(Finance::money($totals['income'])) ?></td><td class="is-money red"><?= $e(Finance::money($totals['expense'])) ?></td></tr></tfoot>
+        <tfoot><tr><th scope="row" colspan="4">Total da seleção <span>Resultado previsto <?= $e(Finance::money($ledgerResult)) ?></span></th><td class="is-money green"><?= $e(Finance::money($ledgerTotals['income'])) ?></td><td class="is-money red"><?= $e(Finance::money($ledgerTotals['expense'])) ?></td></tr></tfoot>
       </table>
     </div>
     <p class="report-note">Transferências entre contas e lançamentos cancelados aparecem na lista, mas não entram nos totais. Dias sem lançamentos não aparecem.</p>

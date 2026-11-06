@@ -312,9 +312,16 @@ final class FinanceActions
             fclose($out);
             return;
         }
-        $rows = (new Finance((int) FinanceContext::currentId()))->exportRows($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+        $rows = (new Finance((int) FinanceContext::currentId()))->exportRows(
+            $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), [
+                'status' => is_string($_GET['pr_situacao'] ?? null) ? $_GET['pr_situacao'] : '',
+                'account_id' => is_string($_GET['pr_conta'] ?? null) ? $_GET['pr_conta'] : '',
+                'counterparty' => is_string($_GET['pr_contraparte'] ?? null) ? $_GET['pr_contraparte'] : '',
+            ]
+        );
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="realizze-' . $period['start']->format('Y-m') . '.csv"');
+        header('Content-Disposition: attachment; filename="realizze-pagar-receber-'
+            . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
         header('Cache-Control: no-store');
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF");

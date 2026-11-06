@@ -1115,26 +1115,30 @@ final class Finance
     }
 
     /** Lançamentos do período para exportação, com posição na data-base. */
-    public function exportRows(string $start, string $end): array
+    public function exportRows(string $start, string $end, array $filters = []): array
     {
         $start = self::date($start);
         $end = self::date($end);
         if ($end < $start) throw new InvalidArgumentException('Período inválido.');
         $asOf = min($end, date('Y-m-d'));
         $statement = $this->pdo->prepare(
-            "SELECT e.due_date, e.paid_at, e.kind, e.description, e.status, c.name AS category, a.name AS account,
-                    t.name AS target_account, e.amount_cents, COALESCE(s.settled_cents,0) AS settled_cents
+            "SELECT e.due_date, e.paid_at, e.kind, e.description, e.status, e.account_id,
+                    COALESCE(NULLIF(ct.trade_name,''),NULLIF(ct.social_name,''),ct.legal_name,e.counterparty_name) AS counterparty_name,
+                    c.name AS category, a.name AS account, t.name AS target_account,
+                    e.amount_cents, COALESCE(s.settled_cents,0) AS settled_cents
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             LEFT JOIN finance_contacts AS ct ON ct.id=e.contact_id AND ct.financial_context_id=e.financial_context_id
              LEFT JOIN (SELECT entry_id,SUM(amount_cents) AS settled_cents FROM finance_entry_settlements
                         WHERE financial_context_id=? AND received_at<=? GROUP BY entry_id) s ON s.entry_id=e.id
              WHERE e.financial_context_id = ? AND e.due_date BETWEEN ? AND ?
              ORDER BY e.due_date, e.id"
         );
         $statement->execute([$this->contextId,$asOf,$this->contextId,$start,$end]);
-        return array_map(static function(array $row)use($asOf):array{
+        $filters = self::reportFilters($filters);
+        $rows = array_map(static function(array $row)use($asOf):array{
             $amount=(int)$row['amount_cents'];
             $settled=min($amount,(int)$row['settled_cents']);
             $paid=$settled>0?$settled:($row['paid_at']!==null&&$row['paid_at']<=$asOf?$amount:0);
@@ -1145,29 +1149,74 @@ final class Finance
             $row['display_status']=$cancelled?'cancelled':($row['kind']==='transfer'?'transfer':($row['open_cents']===0?'paid':($paid>0?($row['due_date']<$asOf?'partial_overdue':'partial'):($row['due_date']<$asOf?'overdue':'open'))));
             return $row;
         },$statement->fetchAll(PDO::FETCH_ASSOC));
+        return array_values(array_filter($rows, static fn (array $row): bool => self::reportRowMatches($row, $filters)));
     }
 
     /** Relatório do período, por data de vencimento. */
-    public function report(string $start, string $end): array
+    public function report(string $start, string $end, array $filters = []): array
     {
         $start = self::date($start);
         $end = self::date($end);
         if ($end < $start) throw new InvalidArgumentException('Período inválido.');
         $asOf = min($end,date('Y-m-d'));
         $statement = $this->pdo->prepare(
-            "SELECT e.id, e.kind, e.description, e.counterparty_name, e.amount_cents, e.due_date, e.paid_at, e.status,
+            "SELECT e.id, e.kind, e.description, e.account_id,
+                    COALESCE(NULLIF(ct.trade_name,''),NULLIF(ct.social_name,''),ct.legal_name,e.counterparty_name) AS counterparty_name,
+                    e.amount_cents, e.due_date, e.paid_at, e.status,
                     c.name AS category, c.color AS category_color, a.name AS account, t.name AS target_account,
                     COALESCE(s.settled_cents, 0) AS settled_cents
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             LEFT JOIN finance_contacts AS ct ON ct.id=e.contact_id AND ct.financial_context_id=e.financial_context_id
              LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS settled_cents FROM finance_entry_settlements WHERE financial_context_id = ? AND received_at <= ? GROUP BY entry_id) AS s ON s.entry_id = e.id
              WHERE e.financial_context_id = ? AND e.due_date BETWEEN ? AND ?
              ORDER BY e.due_date, FIELD(e.kind, 'income', 'expense', 'transfer'), e.id"
         );
         $statement->execute([$this->contextId,$asOf,$this->contextId,$start,$end]);
-        return self::buildReport($statement->fetchAll(PDO::FETCH_ASSOC),$asOf)+['as_of'=>$asOf];
+        $filters = self::reportFilters($filters);
+        $rows = array_filter($statement->fetchAll(PDO::FETCH_ASSOC), static function (array $row) use ($asOf, $filters): bool {
+            $amount = (int) $row['amount_cents'];
+            $settled = min($amount, (int) $row['settled_cents']);
+            $paid = $settled > 0 ? $settled : ($row['paid_at'] !== null && $row['paid_at'] <= $asOf ? $amount : 0);
+            $cancelled = $row['status'] === 'cancelled';
+            $row['paid_cents'] = $cancelled ? 0 : $paid;
+            $row['open_cents'] = $cancelled || $row['kind'] === 'transfer' ? 0 : max(0, $amount - $paid);
+            $row['display_status'] = $cancelled ? 'cancelled' : ($row['kind'] === 'transfer' ? 'transfer'
+                : ($row['open_cents'] === 0 ? 'paid' : ($paid > 0
+                    ? ($row['due_date'] < $asOf ? 'partial_overdue' : 'partial')
+                    : ($row['due_date'] < $asOf ? 'overdue' : 'open'))));
+            return self::reportRowMatches($row, $filters);
+        });
+        return self::buildReport(array_values($rows),$asOf)+['as_of'=>$asOf,'filters'=>$filters];
+    }
+
+    /** @return array{status:string,account_id:int,counterparty:string} */
+    private static function reportFilters(array $filters): array
+    {
+        $status = in_array($filters['status'] ?? '', ['open','paid','partial','overdue','cancelled'], true)
+            ? (string) $filters['status'] : '';
+        $accountId = filter_var($filters['account_id'] ?? null, FILTER_VALIDATE_INT, ['options'=>['min_range'=>1]]);
+        $counterparty = trim(is_string($filters['counterparty'] ?? null) ? $filters['counterparty'] : '');
+        if (mb_strlen($counterparty) > 80) $counterparty = mb_substr($counterparty, 0, 80);
+        return ['status'=>$status,'account_id'=>$accountId === false ? 0 : (int)$accountId,'counterparty'=>$counterparty];
+    }
+
+    /** @param array{status:string,account_id:int,counterparty:string} $filters */
+    private static function reportRowMatches(array $row, array $filters): bool
+    {
+        if ($filters['account_id'] > 0 && (int) ($row['account_id'] ?? 0) !== $filters['account_id']) return false;
+        if ($filters['counterparty'] !== ''
+            && mb_stripos((string) ($row['counterparty_name'] ?? ''), $filters['counterparty']) === false) return false;
+        return match ($filters['status']) {
+            'open' => !in_array($row['display_status'], ['paid','cancelled','transfer'], true),
+            'paid' => $row['display_status'] === 'paid',
+            'partial' => in_array($row['display_status'], ['partial','partial_overdue'], true),
+            'overdue' => in_array($row['display_status'], ['overdue','partial_overdue'], true),
+            'cancelled' => $row['display_status'] === 'cancelled',
+            default => true,
+        };
     }
 
     /** Agrupa os lançamentos por dia. Cancelados e transferências aparecem, mas não somam. */

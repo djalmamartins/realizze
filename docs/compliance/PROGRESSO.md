@@ -14,6 +14,7 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - valores em centavos, sem `FLOAT` para dinheiro;
 - baixas parciais reconhecidas na data e pelo valor efetivamente liquidado;
 - relatórios encerrados preservam a posição histórica: liquidações posteriores não reescrevem realizado, aberto ou vencido da data-base;
+- filtros de Pagar/Receber usam a situação calculada na mesma data-base e atualizam linhas, totais e CSV em conjunto;
 - isolamento por contexto financeiro e por empresa no backend;
 - compras no cartão separadas do pagamento bancário da fatura;
 - fluxo de caixa expõe lançamento, origem, conta e categoria, preserva baixas parciais e não duplica compras do cartão com o pagamento da fatura;
