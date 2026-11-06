@@ -212,10 +212,15 @@ final class FinanceActions
             if ($organization === null) { \Moves\Services\AppError::render(403); return; }
             if (!ServiceOrderReport::ready()) { \Moves\Services\AppError::render(404); return; }
             $report=(new ServiceOrderReport((int)$organization['id']))->report(
-                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),min($period['end']->format('Y-m-d'),date('Y-m-d'))
+                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),
+                min($period['end']->format('Y-m-d'),date('Y-m-d')), [
+                    'status'=>is_string($_GET['os_situacao']??null)?$_GET['os_situacao']:'',
+                    'customer'=>is_string($_GET['os_cliente']??null)?$_GET['os_cliente']:'',
+                ]
             );
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="realizze-ordens-servico-' . $period['start']->format('Y-m') . '.csv"');
+            header('Content-Disposition: attachment; filename="realizze-ordens-servico-'
+                . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
             header('Cache-Control: no-store');
             $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
             fputcsv($out,['Ordem','Cliente','Descrição','Responsável','Início','Prazo','Situação','Subtotal','Desconto','Total','Cobrança vinculada','Recebido até a data-base','Em aberto'],';','"','');

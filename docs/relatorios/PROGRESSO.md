@@ -21,7 +21,7 @@
 | Pagar/Receber | Concluído — posição histórica, previsto/realizado, parciais, filtros e CSV | acompanhar regressões dos serviços financeiros compartilhados |
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
-| Operação de Serviços | Concluído — ordens, status, valores, cobranças, recebimentos e CSV | acrescentar filtros por cliente/status sem perder o corte histórico |
+| Operação de Serviços | Concluído — ordens, filtros, status, valores, cobranças, recebimentos e CSV | acompanhar regressões e evolução das fontes operacionais reais |
 | Agenda de Obrigações | Concluída — vencimentos, recorrências, responsáveis, comprovantes, situação histórica e CSV | acrescentar filtros por tipo/responsável na Central |
 
 ## Incremento 2026-11-06 — Fluxo de Caixa
@@ -153,6 +153,7 @@ Entregue:
 - descontos, valores concluídos e distribuição pelos estados operacionais existentes;
 - separação entre ordem sem cobrança e ordem com Conta a Receber vinculada;
 - recebido e saldo aberto calculados pelas baixas efetivas até a data-base;
+- filtros combináveis por cliente e situação aplicados igualmente aos indicadores, linhas e CSV;
 - detalhamento com número, cliente, responsável, prazo, situação e vínculo financeiro;
 - exportação CSV protegida pela permissão existente de relatórios;
 - isolamento por `organization_id` e `financial_context_id` validado;
@@ -160,7 +161,8 @@ Entregue:
 
 O relatório não calcula horas, custo, margem, produtividade ou faturamento fiscal porque essas fontes não existem nas ordens atuais. A situação exibida é a situação atual da ordem; o corte histórico aplica-se aos recebimentos.
 
-Teste isolado ampliado: `enterprise-007-service-orders` no banco `realizze_pjtest`.
+Teste isolado ampliado: `enterprise-007-service-orders` no banco `realizze_pjtest`,
+incluindo filtros combinados, neutralização de parâmetros inválidos e isolamento empresarial.
 
 ## Incremento 2026-11-06 — Agenda de Obrigações
 

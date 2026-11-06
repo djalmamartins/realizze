@@ -29,16 +29,18 @@ final class ServiceOrderReport
      * O período usa a data de início da OS; quando ausente, usa a data de criação.
      * A cobrança e seus recebimentos respeitam a data-base, sem alterar saldos.
      *
-     * @return array{start:string,end:string,as_of:string,totals:array<string,int>,status:array<string,int>,rows:list<array<string,mixed>>}
+     * @param array{status?:string,customer?:string|int} $filters
+     * @return array{start:string,end:string,as_of:string,filters:array{status:string,customer:int},customers:list<array{id:int,name:string}>,totals:array<string,int>,status:array<string,int>,rows:list<array<string,mixed>>}
      */
-    public function report(string $start, string $end, ?string $asOf = null): array
+    public function report(string $start, string $end, ?string $asOf = null, array $filters = []): array
     {
         $start = $this->date($start); $end = $this->date($end);
         if ($end < $start) throw new InvalidArgumentException('Período inválido.');
         $asOf = $this->date($asOf ?? $end);
         $asOf = min($asOf, $end);
+        $filters = $this->filters($filters);
         $q = $this->pdo->prepare(
-            "SELECT o.id,o.order_number,o.description,o.start_date,o.due_date,o.status,o.subtotal_cents,
+            "SELECT o.id,o.order_number,o.description,o.start_date,o.due_date,o.status,o.customer_contact_id,o.subtotal_cents,
                     o.discount_cents,o.total_cents,o.receivable_entry_id,o.created_at,
                     COALESCE(NULLIF(c.trade_name,''),c.legal_name) customer_name,
                     TRIM(CONCAT_WS(' ',u.first_name,u.last_name)) responsible_name,
@@ -57,10 +59,15 @@ final class ServiceOrderReport
         $q->execute([$this->contextId,$asOf,$this->organizationId,$this->contextId,$start,$end]);
         $totals=['orders'=>0,'order_cents'=>0,'discount_cents'=>0,'completed_cents'=>0,'billed_cents'=>0,'received_cents'=>0,'open_cents'=>0,'unbilled_cents'=>0];
         $status=['draft'=>0,'open'=>0,'in_progress'=>0,'completed'=>0,'cancelled'=>0];
-        $rows=[];
+        $rows=[]; $customers=[];
         foreach($q->fetchAll(PDO::FETCH_ASSOC) as$row){
             $row['id']=(int)$row['id']; $row['subtotal_cents']=(int)$row['subtotal_cents'];
             $row['discount_cents']=(int)$row['discount_cents']; $row['total_cents']=(int)$row['total_cents'];
+            $row['customer_contact_id']=(int)$row['customer_contact_id'];
+            $customers[$row['customer_contact_id']] = [
+                'id'=>$row['customer_contact_id'], 'name'=>(string)$row['customer_name'],
+            ];
+            if(!$this->matches($row,$filters)) continue;
             $status[$row['status']]++; $totals['orders']++;
             $billed=$row['receivable_entry_id']!==null && $row['receivable_created_at']!==null && substr((string)$row['receivable_created_at'],0,10)<=$asOf
                 && $row['receivable_status']!=='cancelled';
@@ -77,7 +84,25 @@ final class ServiceOrderReport
             }
             $rows[]=$row;
         }
-        return ['start'=>$start,'end'=>$end,'as_of'=>$asOf,'totals'=>$totals,'status'=>$status,'rows'=>$rows];
+        uasort($customers,static fn(array $a,array $b):int=>strnatcasecmp($a['name'],$b['name']));
+        return ['start'=>$start,'end'=>$end,'as_of'=>$asOf,'filters'=>$filters,'customers'=>array_values($customers),'totals'=>$totals,'status'=>$status,'rows'=>$rows];
+    }
+
+    /** @return array{status:string,customer:int} */
+    private function filters(array $filters): array
+    {
+        $status=in_array($filters['status']??'', ['draft','open','in_progress','completed','cancelled'],true)
+            ? (string)$filters['status'] : '';
+        $customer=filter_var($filters['customer']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        return ['status'=>$status,'customer'=>$customer===false?0:(int)$customer];
+    }
+
+    /** @param array{status:string,customer:int} $filters */
+    private function matches(array $row, array $filters): bool
+    {
+        if($filters['status']!=='' && $row['status']!==$filters['status']) return false;
+        if($filters['customer']>0 && (int)$row['customer_contact_id']!==$filters['customer']) return false;
+        return true;
     }
 
     private function date(string $value): string
