@@ -16,6 +16,7 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - relatórios encerrados preservam a posição histórica: liquidações posteriores não reescrevem realizado, aberto ou vencido da data-base;
 - isolamento por contexto financeiro e por empresa no backend;
 - compras no cartão separadas do pagamento bancário da fatura;
+- posição de contas exclui cartões e limites do patrimônio disponível e reconhece somente a saída bancária no pagamento da fatura;
 - na DRE por caixa, pagamentos de fatura são rastreados até as compras e categorias pelas alocações, sem dupla contagem;
 - transferências internas excluídas de receitas e despesas;
 - CSV da DRE aplica neutralização de fórmulas em textos fornecidos pelo usuário;

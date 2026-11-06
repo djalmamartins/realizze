@@ -19,7 +19,7 @@
 | DRE Gerencial | Em evolução — caixa e competência reconciliados, comparação mensal e CSV específico | período personalizado e classificação configurável |
 | Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
 | Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
-| Posição de Contas | Pendente | saldos por conta e data-base |
+| Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Pendente | comparar orçamento existente com realizado por categoria |
 
 ## Incremento 2026-11-06 — Fluxo de Caixa
@@ -91,4 +91,20 @@ Entregue:
 - validação de período no backend e manutenção do isolamento por contexto financeiro.
 
 Testes aprovados: `finance-006-report` e `finance-024-report-as-of`; regressões de Receber, Faturamento e Dashboard executadas no banco `realizze_pjtest`.
+
+## Incremento 2026-11-06 — Posição de Contas
+
+Entregue:
+
+- posição histórica individual de conta corrente, poupança e carteira;
+- saldo inicial, movimentação líquida e saldo final na data-base;
+- baixas integrais/parciais atribuídas à conta efetivamente usada;
+- transferências internas movimentam as contas, mas permanecem neutras no total em caixa;
+- pagamento da conta para o cartão reduz o caixa na data efetiva;
+- cartões de crédito e limites não são apresentados como patrimônio disponível;
+- contas criadas depois da data-base ficam fora e contas arquivadas preservam o histórico anterior;
+- visualização reutilizada na Central de Relatórios para PF e PJ;
+- exportação CSV com proteção contra fórmulas e isolamento por contexto financeiro.
+
+Teste isolado: `finance-025-account-position`; regressões `finance-009`, `017`, `018`, `020`, `024` e `UI-002` aprovadas em `realizze_pjtest`.
 

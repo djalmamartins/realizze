@@ -152,6 +152,25 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'posicao-contas') {
+            $finance=new Finance((int)FinanceContext::currentId());
+            $asOf=min($period['end']->format('Y-m-d'),date('Y-m-d'));
+            $openingDate=min($period['start']->modify('-1 day')->format('Y-m-d'),$asOf);
+            $opening=$finance->cashAccountsPositionOn($openingDate);
+            $closing=$finance->cashAccountsPositionOn($asOf);
+            $rows=[];
+            foreach($opening as$row)$rows[$row['id']]=$row+['opening_cents'=>$row['balance_cents'],'closing_cents'=>0];
+            foreach($closing as$row){$rows[$row['id']]??=$row+['opening_cents'=>0];$rows[$row['id']]['closing_cents']=$row['balance_cents'];}
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-posicao-contas-' . $asOf . '.csv"');
+            header('Cache-Control: no-store');
+            $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,['Conta','Tipo','Instituição','Saldo inicial','Movimentação líquida','Saldo na data-base'],';','"','');
+            $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
+            $types=['checking'=>'Conta corrente','savings'=>'Poupança','wallet'=>'Carteira'];
+            foreach($rows as$row)fputcsv($out,[$safe($row['name']),$types[$row['type']]??'Conta',$safe($row['institution']),number_format($row['opening_cents']/100,2,',',''),number_format(($row['closing_cents']-$row['opening_cents'])/100,2,',',''),number_format($row['closing_cents']/100,2,',','')],';','"','');
+            fclose($out);return;
+        }
         if (($_GET['relatorio'] ?? '') === 'faturamento') {
             $billing = (new BillingReport((int) FinanceContext::currentId()))->report(
                 $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d')

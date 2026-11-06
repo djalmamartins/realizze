@@ -14,9 +14,16 @@ $report = null;
 $series = [];
 $centerRows = [];
 $billing = null;
+$accountPosition = [];
+$accountPositionAsOf = min($period['end']->format('Y-m-d'),date('Y-m-d'));
+$accountPositionOpeningDate = min($period['start']->modify('-1 day')->format('Y-m-d'),$accountPositionAsOf);
 try {
     $finance = new Finance((int) FinanceContext::currentId());
     $report = $finance->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+    $openingAccounts=$finance->cashAccountsPositionOn($accountPositionOpeningDate);
+    $closingAccounts=$finance->cashAccountsPositionOn($accountPositionAsOf);
+    foreach($openingAccounts as$row)$accountPosition[$row['id']]=$row+['opening_cents'=>$row['balance_cents'],'closing_cents'=>0];
+    foreach($closingAccounts as$row){$accountPosition[$row['id']]??=$row+['opening_cents'=>0];$accountPosition[$row['id']]['closing_cents']=$row['balance_cents'];}
     $series = $finance->monthlySeries($period['end'], $months);
     // Na empresa, o resultado também sai por centro de custo, quando há centros cadastrados.
     $centerRows = OrganizationContext::current() !== null && $finance->costCenters() !== []
@@ -66,7 +73,11 @@ $billingQuery = $monthly ? ['mes' => $period['start']->format('Y-m')]
     : ($period['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $period['start']->format('Y')]
         : ['inicio' => $period['start']->format('Y-m-d'), 'fim' => $period['end']->format('Y-m-d')]);
 $billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery);
+$positionExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'posicao-contas']+$billingQuery);
 $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial','is-open'], 'partial_overdue' => ['Parcial vencido','is-late'], 'overdue' => ['Vencido','is-late'], 'open' => ['Em aberto','is-open']];
+$accountTypes=['checking'=>'Conta corrente','savings'=>'Poupança','wallet'=>'Carteira'];
+$positionOpening=array_sum(array_column($accountPosition,'opening_cents'));
+$positionClosing=array_sum(array_column($accountPosition,'closing_cents'));
 ?>
 <section class="card finance-workspace finance-report" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
   <header class="report-print-head">
@@ -93,6 +104,24 @@ $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Resultado previsto</span><strong><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado na data-base <?= $e(Finance::money($resultPaid)) ?></small></div>
     <?php $overdueTotal = $totals['expense_overdue'] + $totals['income_overdue']; ?><div class="finance-goal-stat finance-indicator <?= $overdueTotal > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($overdueTotal)) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
+  <section class="report-daily-list" aria-labelledby="account-position-title">
+    <div class="finance-toolbar">
+      <div><h3 id="account-position-title">Posição de contas</h3><p class="muted">Saldos de contas bancárias e carteiras; cartões e seus limites não compõem o caixa.</p></div>
+      <a class="finance-button" href="<?= $e($positionExport) ?>" download>Exportar posição</a>
+    </div>
+    <div class="finance-goal-summary is-four" aria-label="Resumo da posição de contas">
+      <div class="finance-goal-stat finance-indicator is-neutral"><span>Saldo inicial</span><strong><?= $e(Finance::money($positionOpening)) ?></strong><small><?= $e($brDate($accountPositionOpeningDate)) ?></small></div>
+      <?php $netMovement=$positionClosing-$positionOpening; ?><div class="finance-goal-stat finance-indicator <?= $netMovement<0?'is-negative':($netMovement>0?'is-positive':'is-neutral') ?>"><span>Movimentação líquida</span><strong><?= $e(Finance::money($netMovement)) ?></strong><small>Entradas − saídas; transferências internas são neutras</small></div>
+      <div class="finance-goal-stat finance-indicator <?= $positionClosing<0?'is-negative':($positionClosing>0?'is-positive':'is-neutral') ?>"><span>Saldo na data-base</span><strong><?= $e(Finance::money($positionClosing)) ?></strong><small><?= $e($brDate($accountPositionAsOf)) ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-neutral"><span>Contas de caixa</span><strong><?= count($accountPosition) ?></strong><small>Conta corrente, poupança e carteira</small></div>
+    </div>
+    <?php if($accountPosition===[]): ?><div class="finance-empty"><h3>Nenhuma conta na data-base</h3><p>Cadastre uma conta ou carteira para acompanhar a posição.</p></div>
+    <?php else: ?><div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="account-position-title"><table class="report-table">
+      <thead><tr><th scope="col">Conta</th><th scope="col">Tipo</th><th scope="col" class="is-money">Saldo inicial</th><th scope="col" class="is-money">Movimentação líquida</th><th scope="col" class="is-money">Saldo na data-base</th></tr></thead><tbody>
+      <?php foreach($accountPosition as$row):$movement=$row['closing_cents']-$row['opening_cents']; ?><tr><td><?= $e($row['name']) ?><?php if($row['institution']):?><small><?= $e($row['institution']) ?></small><?php endif;?></td><td><?= $e($accountTypes[$row['type']]??'Conta') ?></td><td class="is-money"><?= $e(Finance::money($row['opening_cents'])) ?></td><td class="is-money <?= $movement<0?'red':($movement>0?'green':'') ?>"><?= $e(Finance::money($movement)) ?></td><td class="is-money <?= $row['closing_cents']<0?'red':'green' ?>"><strong><?= $e(Finance::money($row['closing_cents'])) ?></strong></td></tr><?php endforeach; ?>
+      </tbody><tfoot><tr><th scope="row" colspan="2">Total em caixa</th><td class="is-money"><?= $e(Finance::money($positionOpening)) ?></td><td class="is-money"><?= $e(Finance::money($netMovement)) ?></td><td class="is-money"><?= $e(Finance::money($positionClosing)) ?></td></tr></tfoot>
+    </table></div><?php endif; ?>
+  </section>
   <?php if ($billing !== null): $bill = $billing['totals']; ?>
   <section class="report-daily-list" aria-labelledby="billing-title">
     <div class="finance-toolbar">
