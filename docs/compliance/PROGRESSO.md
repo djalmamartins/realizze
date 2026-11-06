@@ -36,11 +36,12 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - agenda de obrigações usa somente dados informados pela empresa, preserva a situação na data-base e não calcula tributos, multas, guias ou prazos legais;
 - filtros da agenda mantêm o mesmo escopo empresarial nos indicadores, linhas e CSV, inclusive para obrigações sem responsável;
 - exportação de obrigações neutraliza fórmulas nos textos e não converte valores opcionais em lançamentos financeiros;
+- metodologia de oito relatórios expõe na própria Central a fonte, o corte temporal, a fórmula e os limites de uso;
+- catálogo metodológico reforça que indicadores gerenciais não são documentos contábeis ou fiscais oficiais;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 
 ## Pendências
 
-- documentar fontes, fórmulas e limitações de cada relatório da Central;
 - incluir trilha de detalhamento/exportação sem expor dados de outra empresa;
 - validar retenção, classificação e terminologia com profissional contábil antes de qualquer alegação fiscal ou oficial;
 - não implementar impostos, balanço oficial, estoque, margem ou indicadores sem fonte confiável e regras aprovadas.

@@ -4,6 +4,7 @@ use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\OrganizationContext;
 use Moves\Services\ObligationReport;
+use Moves\Services\ReportMethodology;
 use Moves\Services\ServiceOrderReport;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -65,6 +66,7 @@ $billing = null;
 $billingPrevious = null;
 $serviceOrders = null;
 $obligations = null;
+$methodology = ReportMethodology::all();
 $accountPosition = [];
 $accountPositionAsOf = min($period['end']->format('Y-m-d'),date('Y-m-d'));
 $accountPositionOpeningDate = min($period['start']->modify('-1 day')->format('Y-m-d'),$accountPositionAsOf);
@@ -391,6 +393,28 @@ $billingComparison = static function (int $current, int $previous): string {
     </div>
     <p class="report-note">Transferências entre contas e lançamentos cancelados aparecem na lista, mas não entram nos totais. Dias sem lançamentos não aparecem.</p>
     <?php endif; ?>
+  </section>
+  <section class="report-daily-list" aria-labelledby="report-methodology-title">
+    <div class="finance-toolbar">
+      <div><h3 id="report-methodology-title">Metodologia e limites</h3><p class="muted">Fontes, critérios temporais e fórmulas dos indicadores gerenciais. Nenhum deles substitui documento contábil ou fiscal oficial.</p></div>
+    </div>
+    <div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="report-methodology-title">
+      <table class="report-table">
+        <thead><tr><th scope="col">Relatório</th><th scope="col">Fonte</th><th scope="col">Período e data-base</th><th scope="col">Cálculo</th><th scope="col">Limitações</th></tr></thead>
+        <tbody>
+          <?php foreach ($methodology as $criterion): ?>
+          <tr id="metodologia-<?= $e($criterion['id']) ?>">
+            <th scope="row"><?= $e($criterion['title']) ?></th>
+            <td><?= $e($criterion['source']) ?></td>
+            <td><?= $e($criterion['period']) ?></td>
+            <td><?= $e($criterion['formula']) ?></td>
+            <td><?= $e($criterion['limitations']) ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <p class="report-note">Valores financeiros são armazenados em centavos. Filtros, detalhamento e exportações permanecem limitados ao contexto financeiro e à empresa ativos.</p>
   </section>
   <?php endif; ?>
 </section>

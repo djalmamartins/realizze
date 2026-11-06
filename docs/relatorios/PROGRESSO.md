@@ -24,6 +24,21 @@
 | Operação de Serviços | Concluído — ordens, filtros, status, valores, cobranças, recebimentos e CSV | acompanhar regressões e evolução das fontes operacionais reais |
 | Agenda de Obrigações | Concluída — vencimentos, filtros, recorrências, responsáveis, comprovantes, situação histórica e CSV | acompanhar regressões sem inferir regras fiscais |
 
+## Incremento 2026-11-06 — Metodologia e limites
+
+Entregue:
+
+- catálogo único no backend para oito relatórios gerenciais;
+- fonte de dados, critério temporal, fórmula e limitações exibidos na própria Central;
+- separação explícita entre informação gerencial e documento contábil ou fiscal oficial;
+- indicação de que valores usam centavos e de que filtros, detalhes e exportações respeitam o contexto ativo;
+- teste automatizado contra omissões, duplicidade e divergência dos limites essenciais de conformidade.
+
+O catálogo é descritivo e não consulta nem transforma dados financeiros. Alterações futuras nas fórmulas devem atualizar o serviço e seu teste no mesmo incremento.
+
+Teste automatizado: `enterprise-010-report-methodology`; regressões `enterprise-004`,
+`enterprise-006`, `enterprise-007`, `enterprise-009`, `finance-024` e `ui-002` aprovadas no banco isolado `realizze_pjtest`.
+
 ## Incremento 2026-11-06 — Fluxo de Caixa
 
 Entregue:
