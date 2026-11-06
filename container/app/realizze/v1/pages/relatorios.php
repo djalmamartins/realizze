@@ -398,6 +398,7 @@ $billingComparison = static function (int $current, int $previous): string {
   <section class="report-daily-list" aria-labelledby="report-methodology-title">
     <div class="finance-toolbar">
       <div><h3 id="report-methodology-title">Metodologia e limites</h3><p class="muted">Fontes, critérios temporais e fórmulas dos indicadores gerenciais. Nenhum deles substitui documento contábil ou fiscal oficial.</p></div>
+      <a class="finance-button no-print" href="/minha-conta/financeiro/exportar?relatorio=metodologia" download>Exportar metodologia</a>
     </div>
     <div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="report-methodology-title">
       <table class="report-table">

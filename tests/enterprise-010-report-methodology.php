@@ -33,6 +33,8 @@ if (!str_contains($byId['cash-flow']['formula'], 'saldo inicial')
 }
 
 $template = file_get_contents(dirname(__DIR__) . '/container/app/realizze/v1/pages/relatorios.php');
+$exportAction = file_get_contents(dirname(__DIR__) . '/source/App/FinanceActions.php');
+$reviewGuide = file_get_contents(dirname(__DIR__) . '/docs/compliance/VALIDACAO-CONTABIL.md');
 if (!is_string($template)
     || !str_contains($template, 'id="report-methodology-title"')
     || !str_contains($template, 'foreach ($methodology as $criterion)')
@@ -41,5 +43,13 @@ if (!is_string($template)
     || !str_contains($template, '$e($criterion[\'limitations\'])')) {
     throw new RuntimeException('ENT-010: metodologia não está integrada com escape à Central de Relatórios.');
 }
+if (!is_string($exportAction)
+    || !str_contains($exportAction, "relatorio'] ?? '') === 'metodologia'")
+    || !str_contains($exportAction, 'ReportMethodology::all()')
+    || !is_string($reviewGuide)
+    || !str_contains($reviewGuide, 'parecer externo pendente')
+    || !str_contains($reviewGuide, 'Profissional e CRC')) {
+    throw new RuntimeException('ENT-010: pacote de revisão contábil incompleto.');
+}
 
-echo 'OK - ENT-010: fontes, períodos, fórmulas e limitações documentados e exibidos para oito relatórios.' . PHP_EOL;
+echo 'OK - ENT-010: metodologia documentada, exibida e exportável para revisão externa.' . PHP_EOL;

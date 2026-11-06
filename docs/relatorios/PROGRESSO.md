@@ -39,6 +39,10 @@ O catálogo é descritivo e não consulta nem transforma dados financeiros. Alte
 Teste automatizado: `enterprise-010-report-methodology`; regressões `enterprise-004`,
 `enterprise-006`, `enterprise-007`, `enterprise-009`, `finance-024` e `ui-002` aprovadas no banco isolado `realizze_pjtest`.
 
+O catálogo também pode ser exportado em CSV pela permissão `reports.export`. O roteiro
+`docs/compliance/VALIDACAO-CONTABIL.md` organiza o parecer profissional ainda pendente,
+sem transformar a preparação da revisão em alegação de conformidade oficial.
+
 ## Incremento 2026-11-06 — Rastreabilidade até a origem
 
 Entregue:

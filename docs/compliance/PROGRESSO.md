@@ -40,6 +40,8 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - catálogo metodológico reforça que indicadores gerenciais não são documentos contábeis ou fiscais oficiais;
 - linhas e CSVs carregam referência rastreável, enquanto as telas de origem revalidam contexto e permissão no backend;
 - navegação por fragmento não usa ID de URL como autorização e não consulta outra empresa;
+- metodologia pode ser exportada, sob `reports.export`, como evidência para revisão externa;
+- roteiro de validação contábil registra decisões, ressalvas, retenção e identificação profissional sem antecipar aprovação;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 
 ## Pendências

@@ -18,6 +18,7 @@ use Moves\Services\PersonalAccessContext;
 use Moves\Services\Receivables;
 use Moves\Services\RecurringFinance;
 use Moves\Services\ReportTrace;
+use Moves\Services\ReportMethodology;
 use Moves\Services\SessionAuth;
 use Moves\Services\ServiceOrderReport;
 use Throwable;
@@ -178,6 +179,22 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'metodologia') {
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-metodologia-relatorios-' . date('Y-m-d') . '.csv"');
+            header('Cache-Control: no-store');
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Relatório','Fonte','Período e data-base','Fórmula','Limitações'], ';', '"', '');
+            foreach (ReportMethodology::all() as $criterion) {
+                fputcsv($out, [
+                    $criterion['title'], $criterion['source'], $criterion['period'],
+                    $criterion['formula'], $criterion['limitations'],
+                ], ';', '"', '');
+            }
+            fclose($out);
+            return;
+        }
         if (($_GET['relatorio'] ?? '') === 'fluxo-caixa') {
             $start=$period['start']->format('Y-m-d');$end=$period['end']->format('Y-m-d');
             $finance=new Finance((int)FinanceContext::currentId());
