@@ -154,6 +154,21 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'fluxo-caixa') {
+            $start=$period['start']->format('Y-m-d');$end=$period['end']->format('Y-m-d');
+            $finance=new Finance((int)FinanceContext::currentId());
+            $realized=$finance->cashMovements($start,$end);$position=$finance->report($start,$end);
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-fluxo-caixa-' . $start . '-a-' . $end . '.csv"');
+            header('Cache-Control: no-store');
+            $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,['Situação','Data','Natureza','Lançamento','Categoria','Conta','Origem','Valor'],';','"','');
+            $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
+            $sources=['direct'=>'Pagamento direto','settlement'=>'Baixa','card_payment'=>'Pagamento de fatura','card_refund'=>'Estorno de fatura'];
+            foreach($realized as$row)fputcsv($out,['Realizado',$row['date'],$row['kind']==='income'?'Entrada':'Saída',$safe($row['description']),$safe($row['category']),$safe($row['account']),$sources[$row['source']]??$row['source'],number_format($row['amount_cents']/100,2,',','')],';','"','');
+            foreach($position['days']as$day)foreach($day['entries']as$row)if(!$row['cancelled']&&$row['kind']!=='transfer'&&$row['open_cents']>0)fputcsv($out,['Previsto',$row['due_date'],$row['kind']==='income'?'Entrada':'Saída',$safe($row['description']),$safe($row['category']),$safe($row['account']),'Saldo em aberto',number_format($row['open_cents']/100,2,',','')],';','"','');
+            fclose($out);return;
+        }
         if (($_GET['relatorio'] ?? '') === 'obrigacoes') {
             if ($organization === null) { \Moves\Services\AppError::render(403); return; }
             if (!ObligationReport::ready()) { \Moves\Services\AppError::render(404); return; }

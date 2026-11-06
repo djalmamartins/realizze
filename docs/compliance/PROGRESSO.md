@@ -16,12 +16,14 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - relatórios encerrados preservam a posição histórica: liquidações posteriores não reescrevem realizado, aberto ou vencido da data-base;
 - isolamento por contexto financeiro e por empresa no backend;
 - compras no cartão separadas do pagamento bancário da fatura;
+- fluxo de caixa expõe lançamento, origem, conta e categoria, preserva baixas parciais e não duplica compras do cartão com o pagamento da fatura;
 - posição de contas exclui cartões e limites do patrimônio disponível e reconhece somente a saída bancária no pagamento da fatura;
 - orçamento empresarial separa limite gerencial, compromisso por vencimento e caixa pago até a data-base; baixas posteriores não reescrevem o período encerrado;
 - pagamentos de fatura só entram no realizado do orçamento quando alocados às compras e são removidos do caixa gerencial após estorno;
 - na DRE por caixa, pagamentos de fatura são rastreados até as compras e categorias pelas alocações, sem dupla contagem;
 - transferências internas excluídas de receitas e despesas;
 - CSV da DRE aplica neutralização de fórmulas em textos fornecidos pelo usuário;
+- CSV do fluxo de caixa aplica neutralização de fórmulas e mantém a separação entre realizado e saldo previsto;
 - CSV de faturamento neutraliza fórmulas e preserva a distinção entre competência, caixa e saldo em aberto;
 - relatório operacional usa somente ordens de serviço registradas, separa valor comercial, cobrança e recebimento e não infere margem, produtividade ou documento fiscal;
 - exportação de ordens neutraliza fórmulas nos textos fornecidos pelo usuário e mantém o isolamento da empresa ativa;

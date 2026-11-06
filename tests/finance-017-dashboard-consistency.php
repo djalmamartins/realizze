@@ -9,6 +9,7 @@ use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\Organizations;
 use Moves\Services\Receivables;
+use Moves\Services\AppUrl;
 use MovesCode\Model\Connection;
 
 $pdo = Connection::get();
@@ -53,8 +54,14 @@ try {
     $check($overview['forecast'] === $overview['balance'] + 60000 - 12000, 'Fechamento previsto usa o saldo em aberto');
     $series = $finance->monthlySeries(new DateTimeImmutable($end));
     $check($series[$month->format('Y-m')]['income'] === 65000 && $series[$month->format('Y-m')]['expense'] === 30000, 'Gráfico mensal conta a baixa parcial no mês em que entrou');
+    $cashRows=$finance->cashMovements($start,$end);
     $sumKind = static fn (string $kind) => array_sum(array_column(array_filter($finance->cashMovements($start, $end), static fn (array $r): bool => $r['kind'] === $kind), 'amount_cents'));
     $check($sumKind('income') === 65000 && $sumKind('expense') === 30000, 'Fluxo de caixa realizado conta a baixa parcial na data em que entrou');
+    $sources=array_count_values(array_column($cashRows,'source'));
+    $check(($sources['settlement']??0)===2&&($sources['direct']??0)===1,'Fluxo distingue baixa e pagamento direto');
+    $check(count(array_filter($cashRows,static fn(array$row):bool=>$row['entry_id']>0&&$row['description']!==''&&$row['account']==='Banco'))===3,'Fluxo expõe lançamento e conta rastreáveis em cada linha');
+    $custom=AppUrl::periodFromSegments('fluxo-de-caixa','2026-11-10','2026-12-15');
+    $check($custom===['inicio'=>'2026-11-10','fim'=>'2026-12-15'],'Fluxo aceita período personalizado em URL canônica');
     $receivables->settle($service, ['amount' => '600,00', 'received_at' => $today, 'account_id' => $account, 'payment_method' => 'pix', 'idempotency_key' => $key()], $userId);
     $check($sumKind('income') === 125000, 'Quitar o restante soma só o que faltava, sem repetir o valor inteiro');
     $expense = $finance->summary('expense', $start, $end);

@@ -15,7 +15,7 @@
 
 | Relatório | Situação | Próxima melhoria |
 |---|---|---|
-| Fluxo de Caixa | Em evolução — saldo inicial histórico, saldo realizado e projeção cumulativa entregues | período personalizado, exportação e rastreabilidade por linha |
+| Fluxo de Caixa | Concluído — período personalizado, saldos, projeção, rastreabilidade e CSV entregues | acompanhar regressões e avaliar cenários salvos sem inventar premissas |
 | DRE Gerencial | Em evolução — caixa e competência reconciliados, comparação mensal e CSV específico | período personalizado e classificação configurável |
 | Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
 | Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
@@ -31,13 +31,18 @@ Entregue:
 - saldo inicial das contas de caixa na véspera do período;
 - saldo realizado ao final do período (`saldo inicial + entradas realizadas - saídas realizadas`);
 - saldo projetado cumulativo por dia ou semana (`saldo anterior + realizado + previsto em aberto`);
+- período mensal ou personalizado, inclusive atravessando meses e anos, com agrupamento diário ou semanal;
 - indicação de períodos com déficit projetado;
+- previsto considera apenas o saldo efetivamente aberto após baixas parciais;
 - exclusão de compras no cartão do realizado de caixa;
 - reconhecimento único do pagamento da fatura como saída bancária;
 - estornos de pagamento deixam de permanecer como saída;
-- transferências internas continuam neutras.
+- transferências internas continuam neutras;
+- detalhamento de cada linha realizada ou prevista com lançamento, origem, conta e categoria;
+- exportação CSV do período completo, protegida pela permissão de exportação e com neutralização de fórmulas em textos do usuário;
+- URLs canônicas preservam o intervalo personalizado e o agrupamento selecionado.
 
-Testes isolados aprovados: `finance-009-transfer-balance`, `finance-017-dashboard-consistency` e `finance-020-card-invoices` no banco `realizze_pjtest`.
+Testes isolados aprovados: `finance-009-transfer-balance`, `finance-017-dashboard-consistency`, `finance-020-card-invoices`, `finance-024-report-as-of` e `ui-002-view-smoke` no banco `realizze_pjtest`.
 
 ## Incremento 2026-11-06 — DRE Gerencial
 

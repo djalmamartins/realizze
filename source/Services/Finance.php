@@ -938,41 +938,55 @@ final class Finance
      * na sua data; sem baixa, a data de pagamento. Transferências internas não mudam o caixa total.
      * Pagamentos e estornos de fatura entram uma única vez, na movimentação entre caixa e cartão.
      *
-     * @return list<array{kind:string,date:string,amount_cents:int}>
+     * @return list<array{entry_id:int,kind:string,date:string,amount_cents:int,description:string,account:string,category:?string,source:string}>
      */
     public function cashMovements(string $start, string $end): array
     {
+        $start=self::date($start); $end=self::date($end);
+        if($end<$start)throw new InvalidArgumentException('Período inválido.');
         $statement = $this->pdo->prepare(
-            "SELECT e.kind, e.paid_at AS date, e.amount_cents FROM finance_entries AS e
+            "SELECT q.* FROM (
+             SELECT e.id entry_id,e.kind,e.paid_at AS date,e.amount_cents,e.description,a.name account,c.name category,'direct' source
+             FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id AND a.financial_context_id = e.financial_context_id
+             LEFT JOIN finance_categories c ON c.id=e.category_id AND c.financial_context_id=e.financial_context_id
              WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND e.paid_at BETWEEN ? AND ?
                AND a.type <> 'credit_card'
                AND (e.status IS NULL OR e.status <> 'cancelled')
                AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS x WHERE x.entry_id = e.id)
              UNION ALL
-             SELECT e.kind, s.received_at, s.amount_cents FROM finance_entry_settlements AS s
+             SELECT e.id,e.kind,s.received_at,s.amount_cents,e.description,a.name,c.name,'settlement'
+             FROM finance_entry_settlements AS s
              INNER JOIN finance_entries AS e ON e.id = s.entry_id AND e.financial_context_id = s.financial_context_id
              INNER JOIN finance_accounts AS a ON a.id = s.account_id AND a.financial_context_id = s.financial_context_id
+             LEFT JOIN finance_categories c ON c.id=e.category_id AND c.financial_context_id=e.financial_context_id
              WHERE s.financial_context_id = ? AND s.received_at BETWEEN ? AND ?
                AND a.type <> 'credit_card'
                AND (e.status IS NULL OR e.status <> 'cancelled')
              UNION ALL
-             SELECT CASE WHEN source.type <> 'credit_card' THEN 'expense' ELSE 'income' END,
-                    e.paid_at, e.amount_cents
+             SELECT e.id,CASE WHEN source.type <> 'credit_card' THEN 'expense' ELSE 'income' END,
+                    e.paid_at,e.amount_cents,e.description,
+                    CASE WHEN source.type <> 'credit_card' THEN source.name ELSE target.name END,NULL,
+                    CASE WHEN source.type <> 'credit_card' THEN 'card_payment' ELSE 'card_refund' END
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS source ON source.id = e.account_id AND source.financial_context_id = e.financial_context_id
              INNER JOIN finance_accounts AS target ON target.id = e.target_account_id AND target.financial_context_id = e.financial_context_id
              WHERE e.financial_context_id = ? AND e.kind = 'transfer' AND e.paid_at BETWEEN ? AND ?
                AND ((source.type <> 'credit_card' AND target.type = 'credit_card')
                  OR (source.type = 'credit_card' AND target.type <> 'credit_card'))
-               AND (e.status IS NULL OR e.status <> 'cancelled')"
+               AND (e.status IS NULL OR e.status <> 'cancelled')) q
+             ORDER BY q.date,q.entry_id"
         );
         $statement->execute([
             $this->contextId, $start, $end,
             $this->contextId, $start, $end,
             $this->contextId, $start, $end,
         ]);
-        return array_map(static fn (array $row): array => ['kind' => (string) $row['kind'], 'date' => (string) $row['date'], 'amount_cents' => (int) $row['amount_cents']], $statement->fetchAll(PDO::FETCH_ASSOC));
+        return array_map(static fn (array $row): array => [
+            'entry_id'=>(int)$row['entry_id'],'kind'=>(string)$row['kind'],'date'=>(string)$row['date'],
+            'amount_cents'=>(int)$row['amount_cents'],'description'=>(string)$row['description'],
+            'account'=>(string)$row['account'],'category'=>$row['category']===null?null:(string)$row['category'],'source'=>(string)$row['source'],
+        ],$statement->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /** Período da query string: mês (?mes=AAAA-MM) ou ano (?visao=anual&ano=AAAA). */
