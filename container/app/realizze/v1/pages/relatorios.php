@@ -3,6 +3,7 @@ use Moves\Services\BillingReport;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\OrganizationContext;
+use Moves\Services\ObligationReport;
 use Moves\Services\ServiceOrderReport;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -16,6 +17,7 @@ $series = [];
 $centerRows = [];
 $billing = null;
 $serviceOrders = null;
+$obligations = null;
 $accountPosition = [];
 $accountPositionAsOf = min($period['end']->format('Y-m-d'),date('Y-m-d'));
 $accountPositionOpeningDate = min($period['start']->modify('-1 day')->format('Y-m-d'),$accountPositionAsOf);
@@ -36,6 +38,11 @@ try {
         if (ServiceOrderReport::ready()) {
             $serviceOrders = (new ServiceOrderReport((int) OrganizationContext::current()['id']))->report(
                 $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), min($period['end']->format('Y-m-d'),date('Y-m-d'))
+            );
+        }
+        if (ObligationReport::ready()) {
+            $obligations=(new ObligationReport((int)OrganizationContext::current()['id']))->report(
+                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),min($period['end']->format('Y-m-d'),date('Y-m-d'))
             );
         }
     }
@@ -82,6 +89,7 @@ $billingQuery = $monthly ? ['mes' => $period['start']->format('Y-m')]
 $billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery);
 $positionExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'posicao-contas']+$billingQuery);
 $serviceOrderExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'ordens-servico']+$billingQuery);
+$obligationExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'obrigacoes']+$billingQuery);
 $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial','is-open'], 'partial_overdue' => ['Parcial vencido','is-late'], 'overdue' => ['Vencido','is-late'], 'open' => ['Em aberto','is-open']];
 $accountTypes=['checking'=>'Conta corrente','savings'=>'Poupança','wallet'=>'Carteira'];
 $positionOpening=array_sum(array_column($accountPosition,'opening_cents'));
@@ -186,6 +194,20 @@ $positionClosing=array_sum(array_column($accountPosition,'closing_cents'));
       <tr class="<?= $row['status']==='cancelled'?'is-cancelled':'' ?>"><td><?= $e($row['order_number']) ?> · <?= $e($row['customer_name']) ?><small><?= $e($row['description']?:'Sem descrição') ?><?= $row['responsible_name']?' · '.$e($row['responsible_name']):'' ?></small></td><td><?= $e($row['start_date']?$brDate($row['start_date']):substr($brDate(substr($row['created_at'],0,10)),0,10)) ?><small><?= $row['due_date']?'Prazo '.$e($brDate($row['due_date'])):'Sem prazo' ?></small></td><td><span class="report-situation <?= $row['status']==='completed'?'is-paid':($row['status']==='cancelled'?'is-muted':'is-open') ?>"><?= $e($osLabels[$row['status']]) ?></span></td><td class="is-money"><?= $e(Finance::money($row['total_cents'])) ?></td><td class="is-money"><?= $row['billed_cents']>0?$e(Finance::money($row['billed_cents'])):'—' ?></td><td class="is-money green"><?= $row['received_cents']>0?$e(Finance::money($row['received_cents'])):'—' ?></td></tr>
       <?php endforeach; ?></tbody>
     </table></div><?php if(count($serviceOrders['rows'])>100): ?><p class="report-note">Exibindo as primeiras 100 ordens. O CSV contém todo o período.</p><?php endif; endif; ?>
+  </section>
+  <?php endif; ?>
+  <?php if($obligations!==null):$obTotals=$obligations['totals'];$obStatus=$obligations['status']; ?>
+  <section class="report-daily-list" aria-labelledby="obligations-report-title">
+    <div class="finance-toolbar"><div><h3 id="obligations-report-title">Agenda de obrigações</h3><p class="muted">Controle manual por vencimento. Não calcula impostos nem gera despesas.</p></div><a class="finance-button" href="<?= $e($obligationExport) ?>" download>Exportar obrigações</a></div>
+    <div class="finance-goal-summary is-four" aria-label="Indicadores de obrigações">
+      <div class="finance-goal-stat finance-indicator is-neutral"><span>Obrigações</span><strong><?= $obTotals['obligations'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['declared_cents'])) ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-realized"><span>Concluídas</span><strong><?= $obStatus['completed'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['completed_cents'])) ?></small></div>
+      <div class="finance-goal-stat finance-indicator <?= $obStatus['overdue']>0?'is-overdue':'is-neutral' ?>"><span>Vencidas</span><strong><?= $obStatus['overdue'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['overdue_cents'])) ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-forecast"><span>Com comprovante</span><strong><?= $obTotals['with_proof'] ?></strong><small><?= $obStatus['upcoming'] ?> vencem em até 7 dias da data-base</small></div>
+    </div>
+    <?php if($obligations['rows']===[]):?><div class="finance-empty"><h3>Nenhuma obrigação no período</h3><p>Obrigações com vencimento no período aparecerão aqui.</p></div>
+    <?php else:?><div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="obligations-report-title"><table class="report-table"><thead><tr><th scope="col">Obrigação</th><th scope="col">Competência</th><th scope="col">Vencimento</th><th scope="col">Responsável</th><th scope="col">Situação</th><th scope="col">Comprovantes</th><th scope="col" class="is-money">Valor informado</th></tr></thead><tbody>
+      <?php $obLabels=['pending'=>'Pendente','upcoming'=>'Próxima','overdue'=>'Vencida','completed'=>'Concluída','cancelled'=>'Cancelada'];foreach(array_slice($obligations['rows'],0,100)as$row):?><tr class="<?= $row['display_status']==='cancelled'?'is-cancelled':'' ?>"><td><?= $e($row['title']) ?><small><?= $e($row['obligation_type']) ?> · <?= $e($row['frequency']) ?></small></td><td><?= $e((new DateTimeImmutable($row['competence_date']))->format('m/Y')) ?></td><td><?= $e($brDate($row['due_date'])) ?></td><td><?= $e($row['responsible_name']?:'Não definido') ?></td><td><span class="report-situation <?= $row['display_status']==='completed'?'is-paid':($row['display_status']==='overdue'?'is-late':($row['display_status']==='cancelled'?'is-muted':'is-open')) ?>"><?= $e($obLabels[$row['display_status']]) ?></span></td><td><?= $row['attachment_count'] ?></td><td class="is-money"><?= $row['amount_cents']===null?'—':$e(Finance::money($row['amount_cents'])) ?></td></tr><?php endforeach;?></tbody></table></div><?php if(count($obligations['rows'])>100):?><p class="report-note">Exibindo as primeiras 100 obrigações. O CSV contém todo o período.</p><?php endif;endif;?>
   </section>
   <?php endif; ?>
   <div class="finance-report-panels<?= $monthly ? ' has-daily' : '' ?>">

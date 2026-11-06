@@ -11,6 +11,7 @@ use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\GoalWallets;
 use Moves\Services\ManagementDre;
+use Moves\Services\ObligationReport;
 use Moves\Services\OrganizationContext;
 use Moves\Services\Organizations;
 use Moves\Services\PersonalAccessContext;
@@ -153,6 +154,22 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'obrigacoes') {
+            if ($organization === null) { \Moves\Services\AppError::render(403); return; }
+            if (!ObligationReport::ready()) { \Moves\Services\AppError::render(404); return; }
+            $report=(new ObligationReport((int)$organization['id']))->report(
+                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),min($period['end']->format('Y-m-d'),date('Y-m-d'))
+            );
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-obrigacoes-' . $period['start']->format('Y-m') . '.csv"');
+            header('Cache-Control: no-store');
+            $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,['Obrigação','Tipo','Competência','Vencimento','Responsável','Periodicidade','Situação na data-base','Comprovantes','Valor informado'],';','"','');
+            $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
+            $labels=['pending'=>'Pendente','upcoming'=>'Próxima','overdue'=>'Vencida','completed'=>'Concluída','cancelled'=>'Cancelada'];
+            foreach($report['rows']as$row)fputcsv($out,[$safe($row['title']),$safe($row['obligation_type']),$row['competence_date'],$row['due_date'],$safe($row['responsible_name']),$row['frequency'],$labels[$row['display_status']]??$row['display_status'],$row['attachment_count'],$row['amount_cents']===null?'':number_format($row['amount_cents']/100,2,',','')],';','"','');
+            fclose($out);return;
+        }
         if (($_GET['relatorio'] ?? '') === 'ordens-servico') {
             if ($organization === null) { \Moves\Services\AppError::render(403); return; }
             if (!ServiceOrderReport::ready()) { \Moves\Services\AppError::render(404); return; }

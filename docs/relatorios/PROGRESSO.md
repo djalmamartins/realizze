@@ -22,6 +22,7 @@
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
 | Operação de Serviços | Concluído — ordens, status, valores, cobranças, recebimentos e CSV | acrescentar filtros por cliente/status sem perder o corte histórico |
+| Agenda de Obrigações | Concluída — vencimentos, recorrências, responsáveis, comprovantes, situação histórica e CSV | acrescentar filtros por tipo/responsável na Central |
 
 ## Incremento 2026-11-06 — Fluxo de Caixa
 
@@ -144,4 +145,23 @@ Entregue:
 O relatório não calcula horas, custo, margem, produtividade ou faturamento fiscal porque essas fontes não existem nas ordens atuais. A situação exibida é a situação atual da ordem; o corte histórico aplica-se aos recebimentos.
 
 Teste isolado ampliado: `enterprise-007-service-orders` no banco `realizze_pjtest`.
+
+## Incremento 2026-11-06 — Agenda de Obrigações
+
+Fonte única: obrigações cadastradas manualmente pela empresa. O período usa a data de vencimento.
+
+Entregue:
+
+- quantidade e valor opcional informado, sem transformar a obrigação em despesa;
+- pendentes, próximas em até sete dias, vencidas, concluídas e canceladas na data-base;
+- conclusões e cancelamentos posteriores não reescrevem a posição histórica;
+- competência, vencimento, responsável, periodicidade e quantidade de comprovantes por linha;
+- recorrências permanecem ocorrências independentes, sem agregação ou duplicação artificial;
+- exportação CSV protegida pela permissão existente de relatórios;
+- ativação condicional: a Central continua funcionando quando a migration 018 ainda não existe;
+- isolamento por empresa e ausência de escrita financeira validados.
+
+Este é um calendário gerencial. O Realizze não calcula imposto, multa, juros, enquadramento, guia ou prazo legal e não transmite obrigações.
+
+Teste isolado ampliado: `enterprise-006-obligations` no banco `realizze_pjtest`.
 

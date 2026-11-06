@@ -25,6 +25,8 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - CSV de faturamento neutraliza fórmulas e preserva a distinção entre competência, caixa e saldo em aberto;
 - relatório operacional usa somente ordens de serviço registradas, separa valor comercial, cobrança e recebimento e não infere margem, produtividade ou documento fiscal;
 - exportação de ordens neutraliza fórmulas nos textos fornecidos pelo usuário e mantém o isolamento da empresa ativa;
+- agenda de obrigações usa somente dados informados pela empresa, preserva a situação na data-base e não calcula tributos, multas, guias ou prazos legais;
+- exportação de obrigações neutraliza fórmulas nos textos e não converte valores opcionais em lançamentos financeiros;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 
 ## Pendências

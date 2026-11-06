@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__) . '/source/Boot/app.php';
 require_once dirname(__DIR__) . '/source/Boot/database.php';
-use Moves\Services\{OrganizationObligations, Organizations};
+use Moves\Services\{ObligationReport, OrganizationObligations, Organizations};
 use MovesCode\Model\Connection;
 
 $pdo = Connection::get();
@@ -30,6 +30,17 @@ try {
     $service->setStatus((int) $list['rows'][1]['id'], 'cancelled', $owner);
     $after = $pdo->query('SELECT COUNT(*) FROM finance_entries')->fetchColumn();
     $check($before === $after, 'Obrigação não gera despesa financeira');
+    $pdo->prepare('UPDATE organization_obligations SET completed_at=? WHERE id=?')->execute(['2032-02-10 10:00:00',$id]);
+    $pdo->prepare('UPDATE organization_obligations SET cancelled_at=? WHERE id=?')->execute(['2032-03-10 10:00:00',(int)$list['rows'][1]['id']]);
+    $beforeCompletion=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-02-05');
+    $afterCompletion=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-02-15');
+    $year=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-12-31');
+    $check($beforeCompletion['status']['completed']===0&&$beforeCompletion['status']['overdue']===1,'Data-base não antecipa conclusão posterior');
+    $check($afterCompletion['status']['completed']===1&&$afterCompletion['status']['cancelled']===0,'Conclusão entra na data efetiva e cancelamento futuro não é antecipado');
+    $check($year['totals']['obligations']===12&&$year['status']['completed']===1&&$year['status']['cancelled']===1,'Relatório preserva recorrências e situações');
+    $check($year['totals']['declared_cents']===110000&&$year['totals']['completed_cents']===10000&&$year['totals']['pending_cents']===100000,'Valores informados separam concluído, pendente e cancelado');
+    $check($year['status']['overdue']===9&&$year['status']['upcoming']===1,'Vencidas e próximas usam a data-base do relatório');
+    $check((new ObligationReport($alien))->report('2032-01-01','2032-12-31')['totals']['obligations']===0,'Relatório não mistura empresas');
 } finally {
     foreach ([$org, $alien] as $id) {
         foreach (['organization_obligation_history','organization_obligation_attachments','organization_obligations'] as $table) $pdo->prepare("DELETE FROM {$table} WHERE organization_id=?")->execute([$id]);
