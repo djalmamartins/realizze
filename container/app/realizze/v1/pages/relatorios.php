@@ -3,6 +3,7 @@ use Moves\Services\BillingReport;
 use Moves\Services\Finance;
 use Moves\Services\FinanceContext;
 use Moves\Services\OrganizationContext;
+use Moves\Services\ServiceOrderReport;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $period = Finance::period($_GET);
@@ -14,6 +15,7 @@ $report = null;
 $series = [];
 $centerRows = [];
 $billing = null;
+$serviceOrders = null;
 $accountPosition = [];
 $accountPositionAsOf = min($period['end']->format('Y-m-d'),date('Y-m-d'));
 $accountPositionOpeningDate = min($period['start']->modify('-1 day')->format('Y-m-d'),$accountPositionAsOf);
@@ -31,6 +33,11 @@ try {
         : [];
     if (OrganizationContext::current() !== null) {
         $billing = (new BillingReport((int) FinanceContext::currentId()))->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+        if (ServiceOrderReport::ready()) {
+            $serviceOrders = (new ServiceOrderReport((int) OrganizationContext::current()['id']))->report(
+                $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), min($period['end']->format('Y-m-d'),date('Y-m-d'))
+            );
+        }
     }
 } catch (Throwable $exception) {
     error_log('Realizze finance: ' . $exception->getMessage());
@@ -74,6 +81,7 @@ $billingQuery = $monthly ? ['mes' => $period['start']->format('Y-m')]
         : ['inicio' => $period['start']->format('Y-m-d'), 'fim' => $period['end']->format('Y-m-d')]);
 $billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery);
 $positionExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'posicao-contas']+$billingQuery);
+$serviceOrderExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'ordens-servico']+$billingQuery);
 $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial','is-open'], 'partial_overdue' => ['Parcial vencido','is-late'], 'overdue' => ['Vencido','is-late'], 'open' => ['Em aberto','is-open']];
 $accountTypes=['checking'=>'Conta corrente','savings'=>'Poupança','wallet'=>'Carteira'];
 $positionOpening=array_sum(array_column($accountPosition,'opening_cents'));
@@ -157,6 +165,27 @@ $positionClosing=array_sum(array_column($accountPosition,'closing_cents'));
     </div>
     <?php if (count($billing['rows']) > 100): ?><p class="report-note">Exibindo os primeiros 100 lançamentos. O CSV contém todo o período.</p><?php endif; ?>
     <?php endif; ?>
+  </section>
+  <?php endif; ?>
+  <?php if ($serviceOrders !== null): $osTotals=$serviceOrders['totals']; $osStatus=$serviceOrders['status']; ?>
+  <section class="report-daily-list" aria-labelledby="service-orders-report-title">
+    <div class="finance-toolbar">
+      <div><h3 id="service-orders-report-title">Operação de serviços</h3><p class="muted">Ordens iniciadas no período. Valores comerciais, sem cálculo de margem ou efeito automático no caixa.</p></div>
+      <a class="finance-button" href="<?= $e($serviceOrderExport) ?>" download>Exportar ordens</a>
+    </div>
+    <div class="finance-goal-summary is-four" aria-label="Indicadores de ordens de serviço">
+      <div class="finance-goal-stat finance-indicator is-forecast"><span>Valor das ordens</span><strong><?= $e(Finance::money($osTotals['order_cents'])) ?></strong><small><?= $osTotals['orders'] ?> ordens · descontos <?= $e(Finance::money($osTotals['discount_cents'])) ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-realized"><span>Concluídas</span><strong><?= $e(Finance::money($osTotals['completed_cents'])) ?></strong><small><?= $osStatus['completed'] ?> concluídas · <?= $osStatus['in_progress'] ?> em andamento</small></div>
+      <div class="finance-goal-stat finance-indicator <?= $osTotals['billed_cents']>0?'is-realized':'is-neutral' ?>"><span>Com cobrança vinculada</span><strong><?= $e(Finance::money($osTotals['billed_cents'])) ?></strong><small>Recebido <?= $e(Finance::money($osTotals['received_cents'])) ?> · aberto <?= $e(Finance::money($osTotals['open_cents'])) ?></small></div>
+      <div class="finance-goal-stat finance-indicator <?= $osTotals['unbilled_cents']>0?'is-forecast':'is-neutral' ?>"><span>Sem cobrança</span><strong><?= $e(Finance::money($osTotals['unbilled_cents'])) ?></strong><small>Gerar cobrança é opcional e não altera o saldo bancário</small></div>
+    </div>
+    <?php if($serviceOrders['rows']===[]): ?><div class="finance-empty"><h3>Nenhuma ordem no período</h3><p>Ordens de serviço iniciadas no período aparecerão aqui.</p></div>
+    <?php else: ?><div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="service-orders-report-title"><table class="report-table">
+      <thead><tr><th scope="col">Ordem e cliente</th><th scope="col">Período</th><th scope="col">Situação</th><th scope="col" class="is-money">Valor</th><th scope="col" class="is-money">Cobrança</th><th scope="col" class="is-money">Recebido</th></tr></thead><tbody>
+      <?php $osLabels=['draft'=>'Rascunho','open'=>'Aberta','in_progress'=>'Em andamento','completed'=>'Concluída','cancelled'=>'Cancelada']; foreach(array_slice($serviceOrders['rows'],0,100) as$row): ?>
+      <tr class="<?= $row['status']==='cancelled'?'is-cancelled':'' ?>"><td><?= $e($row['order_number']) ?> · <?= $e($row['customer_name']) ?><small><?= $e($row['description']?:'Sem descrição') ?><?= $row['responsible_name']?' · '.$e($row['responsible_name']):'' ?></small></td><td><?= $e($row['start_date']?$brDate($row['start_date']):substr($brDate(substr($row['created_at'],0,10)),0,10)) ?><small><?= $row['due_date']?'Prazo '.$e($brDate($row['due_date'])):'Sem prazo' ?></small></td><td><span class="report-situation <?= $row['status']==='completed'?'is-paid':($row['status']==='cancelled'?'is-muted':'is-open') ?>"><?= $e($osLabels[$row['status']]) ?></span></td><td class="is-money"><?= $e(Finance::money($row['total_cents'])) ?></td><td class="is-money"><?= $row['billed_cents']>0?$e(Finance::money($row['billed_cents'])):'—' ?></td><td class="is-money green"><?= $row['received_cents']>0?$e(Finance::money($row['received_cents'])):'—' ?></td></tr>
+      <?php endforeach; ?></tbody>
+    </table></div><?php if(count($serviceOrders['rows'])>100): ?><p class="report-note">Exibindo as primeiras 100 ordens. O CSV contém todo o período.</p><?php endif; endif; ?>
   </section>
   <?php endif; ?>
   <div class="finance-report-panels<?= $monthly ? ' has-daily' : '' ?>">

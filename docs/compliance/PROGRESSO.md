@@ -23,6 +23,8 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - transferências internas excluídas de receitas e despesas;
 - CSV da DRE aplica neutralização de fórmulas em textos fornecidos pelo usuário;
 - CSV de faturamento neutraliza fórmulas e preserva a distinção entre competência, caixa e saldo em aberto;
+- relatório operacional usa somente ordens de serviço registradas, separa valor comercial, cobrança e recebimento e não infere margem, produtividade ou documento fiscal;
+- exportação de ordens neutraliza fórmulas nos textos fornecidos pelo usuário e mantém o isolamento da empresa ativa;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 
 ## Pendências

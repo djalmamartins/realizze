@@ -17,6 +17,7 @@ use Moves\Services\PersonalAccessContext;
 use Moves\Services\Receivables;
 use Moves\Services\RecurringFinance;
 use Moves\Services\SessionAuth;
+use Moves\Services\ServiceOrderReport;
 use Throwable;
 
 /** Mutações financeiras do app: exigem POST, sessão e CSRF; sempre no contexto atual. */
@@ -152,6 +153,22 @@ final class FinanceActions
             return;
         }
         $period = Finance::period($_GET);
+        if (($_GET['relatorio'] ?? '') === 'ordens-servico') {
+            if ($organization === null) { \Moves\Services\AppError::render(403); return; }
+            if (!ServiceOrderReport::ready()) { \Moves\Services\AppError::render(404); return; }
+            $report=(new ServiceOrderReport((int)$organization['id']))->report(
+                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),min($period['end']->format('Y-m-d'),date('Y-m-d'))
+            );
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="realizze-ordens-servico-' . $period['start']->format('Y-m') . '.csv"');
+            header('Cache-Control: no-store');
+            $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
+            fputcsv($out,['Ordem','Cliente','Descrição','Responsável','Início','Prazo','Situação','Subtotal','Desconto','Total','Cobrança vinculada','Recebido até a data-base','Em aberto'],';','"','');
+            $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
+            $labels=['draft'=>'Rascunho','open'=>'Aberta','in_progress'=>'Em andamento','completed'=>'Concluída','cancelled'=>'Cancelada'];
+            foreach($report['rows']as$row)fputcsv($out,[$safe($row['order_number']),$safe($row['customer_name']),$safe($row['description']),$safe($row['responsible_name']),$row['start_date'],$row['due_date'],$labels[$row['status']]??$row['status'],number_format($row['subtotal_cents']/100,2,',',''),number_format($row['discount_cents']/100,2,',',''),number_format($row['total_cents']/100,2,',',''),number_format($row['billed_cents']/100,2,',',''),number_format($row['received_cents']/100,2,',',''),number_format($row['open_cents']/100,2,',','')],';','"','');
+            fclose($out);return;
+        }
         if (($_GET['relatorio'] ?? '') === 'orcamento') {
             $month=$period['start']->format('Y-m');
             $asOf=min($period['end']->format('Y-m-d'),date('Y-m-d'));

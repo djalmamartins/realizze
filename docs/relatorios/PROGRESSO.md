@@ -21,6 +21,7 @@
 | Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
+| Operação de Serviços | Concluído — ordens, status, valores, cobranças, recebimentos e CSV | acrescentar filtros por cliente/status sem perder o corte histórico |
 
 ## Incremento 2026-11-06 — Fluxo de Caixa
 
@@ -124,4 +125,23 @@ Entregue:
 - exportação CSV com proteção contra fórmulas e isolamento por contexto financeiro.
 
 Teste isolado: `finance-025-account-position`; regressões `finance-009`, `017`, `018`, `020`, `024` e `UI-002` aprovadas em `realizze_pjtest`.
+
+## Incremento 2026-11-06 — Operação de Serviços
+
+Fonte única: ordens de serviço da empresa. O período usa a data de início da ordem e, quando ausente, a data de criação.
+
+Entregue:
+
+- quantidade e valor comercial das ordens, excluindo canceladas dos totalizadores financeiros;
+- descontos, valores concluídos e distribuição pelos estados operacionais existentes;
+- separação entre ordem sem cobrança e ordem com Conta a Receber vinculada;
+- recebido e saldo aberto calculados pelas baixas efetivas até a data-base;
+- detalhamento com número, cliente, responsável, prazo, situação e vínculo financeiro;
+- exportação CSV protegida pela permissão existente de relatórios;
+- isolamento por `organization_id` e `financial_context_id` validado;
+- nenhuma criação de cobrança ou alteração de saldo durante a consulta.
+
+O relatório não calcula horas, custo, margem, produtividade ou faturamento fiscal porque essas fontes não existem nas ordens atuais. A situação exibida é a situação atual da ordem; o corte histórico aplica-se aos recebimentos.
+
+Teste isolado ampliado: `enterprise-007-service-orders` no banco `realizze_pjtest`.
 
