@@ -40,8 +40,18 @@ $serviceOrderFilterQuery = array_filter([
     'os_situacao' => $serviceOrderFilters['status'],
     'os_cliente' => $serviceOrderFilters['customer'],
 ], static fn (string $value): bool => $value !== '');
+$obligationFilters = [
+    'type' => mb_substr(trim(is_string($_GET['ob_tipo'] ?? null) ? $_GET['ob_tipo'] : ''), 0, 60),
+    'responsible' => is_string($_GET['ob_responsavel'] ?? null)
+        && ($_GET['ob_responsavel'] === 'unassigned' || (ctype_digit($_GET['ob_responsavel']) && (int)$_GET['ob_responsavel'] > 0))
+        ? (string)$_GET['ob_responsavel'] : '',
+];
+$obligationFilterQuery = array_filter([
+    'ob_tipo' => $obligationFilters['type'],
+    'ob_responsavel' => $obligationFilters['responsible'],
+], static fn (string $value): bool => $value !== '');
 $link = static fn (array $query): string => \Moves\Services\AppUrl::section(
-    'relatorios', null, $query + $billingFilterQuery + $ledgerFilterQuery + $serviceOrderFilterQuery
+    'relatorios', null, $query + $billingFilterQuery + $ledgerFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery
 );
 $monthly = $period['view'] === 'mensal';
 $months = $monthly ? 6 : 12;
@@ -90,7 +100,8 @@ try {
         }
         if (ObligationReport::ready()) {
             $obligations=(new ObligationReport((int)OrganizationContext::current()['id']))->report(
-                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),min($period['end']->format('Y-m-d'),date('Y-m-d'))
+                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),
+                min($period['end']->format('Y-m-d'),date('Y-m-d')),$obligationFilters
             );
         }
     }
@@ -138,7 +149,7 @@ $billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relato
 $ledgerExport = '/minha-conta/financeiro/exportar?' . http_build_query($billingQuery + $ledgerFilterQuery);
 $positionExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'posicao-contas']+$billingQuery);
 $serviceOrderExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'ordens-servico']+$billingQuery+$serviceOrderFilterQuery);
-$obligationExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'obrigacoes']+$billingQuery);
+$obligationExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'obrigacoes']+$billingQuery+$obligationFilterQuery);
 $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial','is-open'], 'partial_overdue' => ['Parcial vencido','is-late'], 'overdue' => ['Vencido','is-late'], 'open' => ['Em aberto','is-open']];
 $accountTypes=['checking'=>'Conta corrente','savings'=>'Poupança','wallet'=>'Carteira'];
 $positionOpening=array_sum(array_column($accountPosition,'opening_cents'));
@@ -204,10 +215,11 @@ $billingComparison = static function (int $current, int $previous): string {
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
       <?php foreach ($ledgerFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
       <?php foreach ($serviceOrderFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
+      <?php foreach ($obligationFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
       <label>Origem<select name="faturamento_origem"><option value="">Todas</option><option value="manual"<?= $billing['filters']['origin'] === 'manual' ? ' selected' : '' ?>>Lançamento manual</option><option value="service_order"<?= $billing['filters']['origin'] === 'service_order' ? ' selected' : '' ?>>Ordem de serviço</option></select></label>
       <label>Cliente<select name="faturamento_cliente"><option value="">Todos</option><option value="unassigned"<?= $billing['filters']['customer'] === 'unassigned' ? ' selected' : '' ?>>Sem cliente cadastrado</option><?php foreach ($billing['customers'] as $customer): ?><option value="<?= $e($customer['key']) ?>"<?= $billing['filters']['customer'] === $customer['key'] ? ' selected' : '' ?>><?= $e($customer['label']) ?></option><?php endforeach; ?></select></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $ledgerFilterQuery + $serviceOrderFilterQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $ledgerFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de faturamento">
       <div class="finance-goal-stat finance-indicator is-forecast"><span>Faturado</span><strong><?= $e(Finance::money($bill['billed_cents'])) ?></strong><small><?= $e($billingComparison($bill['billed_cents'], (int) ($billPrevious['billed_cents'] ?? 0))) ?></small></div>
@@ -250,11 +262,11 @@ $billingComparison = static function (int $current, int $previous): string {
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
-      <?php foreach ($billingFilterQuery + $ledgerFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
+      <?php foreach ($billingFilterQuery + $ledgerFilterQuery + $obligationFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
       <label>Situação<select name="os_situacao"><option value="">Todas</option><?php foreach (['draft'=>'Rascunho','open'=>'Aberta','in_progress'=>'Em andamento','completed'=>'Concluída','cancelled'=>'Cancelada'] as $key=>$label): ?><option value="<?= $key ?>"<?= $serviceOrders['filters']['status']===$key?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></label>
       <label>Cliente<select name="os_cliente"><option value="">Todos</option><?php foreach($serviceOrders['customers'] as $customer): ?><option value="<?= (int)$customer['id'] ?>"<?= $serviceOrders['filters']['customer']===(int)$customer['id']?' selected':'' ?>><?= $e($customer['name']) ?></option><?php endforeach; ?></select></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if($serviceOrders['filters']['status']!==''||$serviceOrders['filters']['customer']>0): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,$billingQuery+$billingFilterQuery+$ledgerFilterQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if($serviceOrders['filters']['status']!==''||$serviceOrders['filters']['customer']>0): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,$billingQuery+$billingFilterQuery+$ledgerFilterQuery+$obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de ordens de serviço">
       <div class="finance-goal-stat finance-indicator is-forecast"><span>Valor das ordens</span><strong><?= $e(Finance::money($osTotals['order_cents'])) ?></strong><small><?= $osTotals['orders'] ?> ordens · descontos <?= $e(Finance::money($osTotals['discount_cents'])) ?></small></div>
@@ -274,13 +286,24 @@ $billingComparison = static function (int $current, int $previous): string {
   <?php if($obligations!==null):$obTotals=$obligations['totals'];$obStatus=$obligations['status']; ?>
   <section class="report-daily-list" aria-labelledby="obligations-report-title">
     <div class="finance-toolbar"><div><h3 id="obligations-report-title">Agenda de obrigações</h3><p class="muted">Controle manual por vencimento. Não calcula impostos nem gera despesas.</p></div><a class="finance-button" href="<?= $e($obligationExport) ?>" download>Exportar obrigações</a></div>
+    <?php $obTypeLabels=['tax'=>'Fiscal','labor'=>'Trabalhista','license'=>'Licença','contract'=>'Contrato','other'=>'Outra']; ?>
+    <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
+      <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
+      <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
+      <?php foreach($billingFilterQuery+$ledgerFilterQuery+$serviceOrderFilterQuery as$name=>$value):?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach;?>
+      <label>Tipo<select name="ob_tipo"><option value="">Todos</option><?php foreach($obligations['types']as$type):?><option value="<?= $e($type) ?>"<?= $obligations['filters']['type']===$type?' selected':'' ?>><?= $e($obTypeLabels[$type]??$type) ?></option><?php endforeach;?></select></label>
+      <label>Responsável<select name="ob_responsavel"><option value="">Todos</option><option value="unassigned"<?= $obligations['filters']['responsible']==='unassigned'?' selected':'' ?>>Não definido</option><?php foreach($obligations['responsibles']as$responsible):?><option value="<?= (int)$responsible['id'] ?>"<?= $obligations['filters']['responsible']===(string)$responsible['id']?' selected':'' ?>><?= $e($responsible['name']) ?></option><?php endforeach;?></select></label>
+      <button class="finance-button" type="submit">Aplicar filtros</button>
+      <?php if($obligations['filters']['type']!==''||$obligations['filters']['responsible']!==''):?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,$billingQuery+$billingFilterQuery+$ledgerFilterQuery+$serviceOrderFilterQuery)) ?>">Limpar</a><?php endif;?>
+    </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de obrigações">
       <div class="finance-goal-stat finance-indicator is-neutral"><span>Obrigações</span><strong><?= $obTotals['obligations'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['declared_cents'])) ?></small></div>
       <div class="finance-goal-stat finance-indicator is-realized"><span>Concluídas</span><strong><?= $obStatus['completed'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['completed_cents'])) ?></small></div>
       <div class="finance-goal-stat finance-indicator <?= $obStatus['overdue']>0?'is-overdue':'is-neutral' ?>"><span>Vencidas</span><strong><?= $obStatus['overdue'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['overdue_cents'])) ?></small></div>
       <div class="finance-goal-stat finance-indicator is-forecast"><span>Com comprovante</span><strong><?= $obTotals['with_proof'] ?></strong><small><?= $obStatus['upcoming'] ?> vencem em até 7 dias da data-base</small></div>
     </div>
-    <?php if($obligations['rows']===[]):?><div class="finance-empty"><h3>Nenhuma obrigação no período</h3><p>Obrigações com vencimento no período aparecerão aqui.</p></div>
+    <?php if($obligations['rows']===[]):?><div class="finance-empty"><h3>Nenhuma obrigação no período</h3><p><?= $obligationFilterQuery!==[]?'Nenhuma obrigação corresponde aos filtros aplicados.':'Obrigações com vencimento no período aparecerão aqui.' ?></p></div>
     <?php else:?><div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="obligations-report-title"><table class="report-table"><thead><tr><th scope="col">Obrigação</th><th scope="col">Competência</th><th scope="col">Vencimento</th><th scope="col">Responsável</th><th scope="col">Situação</th><th scope="col">Comprovantes</th><th scope="col" class="is-money">Valor informado</th></tr></thead><tbody>
       <?php $obLabels=['pending'=>'Pendente','upcoming'=>'Próxima','overdue'=>'Vencida','completed'=>'Concluída','cancelled'=>'Cancelada'];foreach(array_slice($obligations['rows'],0,100)as$row):?><tr class="<?= $row['display_status']==='cancelled'?'is-cancelled':'' ?>"><td><?= $e($row['title']) ?><small><?= $e($row['obligation_type']) ?> · <?= $e($row['frequency']) ?></small></td><td><?= $e((new DateTimeImmutable($row['competence_date']))->format('m/Y')) ?></td><td><?= $e($brDate($row['due_date'])) ?></td><td><?= $e($row['responsible_name']?:'Não definido') ?></td><td><span class="report-situation <?= $row['display_status']==='completed'?'is-paid':($row['display_status']==='overdue'?'is-late':($row['display_status']==='cancelled'?'is-muted':'is-open')) ?>"><?= $e($obLabels[$row['display_status']]) ?></span></td><td><?= $row['attachment_count'] ?></td><td class="is-money"><?= $row['amount_cents']===null?'—':$e(Finance::money($row['amount_cents'])) ?></td></tr><?php endforeach;?></tbody></table></div><?php if(count($obligations['rows'])>100):?><p class="report-note">Exibindo as primeiras 100 obrigações. O CSV contém todo o período.</p><?php endif;endif;?>
   </section>
@@ -330,11 +353,12 @@ $billingComparison = static function (int $current, int $previous): string {
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
       <?php foreach ($billingFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
       <?php foreach ($serviceOrderFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
+      <?php foreach ($obligationFilterQuery as $name => $value): ?><input type="hidden" name="<?= $e($name) ?>" value="<?= $e($value) ?>"><?php endforeach; ?>
       <label>Situação<select name="pr_situacao"><option value="">Todas</option><option value="open"<?= $ledger['filters']['status'] === 'open' ? ' selected' : '' ?>>Em aberto</option><option value="paid"<?= $ledger['filters']['status'] === 'paid' ? ' selected' : '' ?>>Realizados</option><option value="partial"<?= $ledger['filters']['status'] === 'partial' ? ' selected' : '' ?>>Parciais</option><option value="overdue"<?= $ledger['filters']['status'] === 'overdue' ? ' selected' : '' ?>>Vencidos</option><option value="cancelled"<?= $ledger['filters']['status'] === 'cancelled' ? ' selected' : '' ?>>Cancelados</option></select></label>
       <label>Conta<select name="pr_conta"><option value="">Todas</option><?php foreach ($reportAccounts as $account): ?><option value="<?= (int) $account['id'] ?>"<?= (int) $ledger['filters']['account_id'] === (int) $account['id'] ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
       <label>Contraparte<input type="search" name="pr_contraparte" maxlength="80" value="<?= $e($ledger['filters']['counterparty']) ?>" placeholder="Cliente ou fornecedor"></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if ($ledger['filters']['status'] !== '' || $ledger['filters']['account_id'] > 0 || $ledger['filters']['counterparty'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $billingFilterQuery + $serviceOrderFilterQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if ($ledger['filters']['status'] !== '' || $ledger['filters']['account_id'] > 0 || $ledger['filters']['counterparty'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $billingFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <?php if ($ledger['days'] === []): ?>
     <div class="finance-empty"><h3>Nenhum lançamento neste período</h3><p><?= $ledgerFilterQuery !== [] ? 'Nenhum lançamento corresponde aos filtros aplicados.' : 'Os lançamentos de ' . $e($period['long']) . ' aparecem aqui, um a um.' ?></p></div>

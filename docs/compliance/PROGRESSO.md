@@ -34,6 +34,7 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - filtros da operação de serviços mantêm o mesmo escopo empresarial nos indicadores, linhas e CSV;
 - exportação de ordens neutraliza fórmulas nos textos fornecidos pelo usuário e mantém o isolamento da empresa ativa;
 - agenda de obrigações usa somente dados informados pela empresa, preserva a situação na data-base e não calcula tributos, multas, guias ou prazos legais;
+- filtros da agenda mantêm o mesmo escopo empresarial nos indicadores, linhas e CSV, inclusive para obrigações sem responsável;
 - exportação de obrigações neutraliza fórmulas nos textos e não converte valores opcionais em lançamentos financeiros;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 

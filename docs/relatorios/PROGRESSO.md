@@ -22,7 +22,7 @@
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
 | Operação de Serviços | Concluído — ordens, filtros, status, valores, cobranças, recebimentos e CSV | acompanhar regressões e evolução das fontes operacionais reais |
-| Agenda de Obrigações | Concluída — vencimentos, recorrências, responsáveis, comprovantes, situação histórica e CSV | acrescentar filtros por tipo/responsável na Central |
+| Agenda de Obrigações | Concluída — vencimentos, filtros, recorrências, responsáveis, comprovantes, situação histórica e CSV | acompanhar regressões sem inferir regras fiscais |
 
 ## Incremento 2026-11-06 — Fluxo de Caixa
 
@@ -174,6 +174,7 @@ Entregue:
 - pendentes, próximas em até sete dias, vencidas, concluídas e canceladas na data-base;
 - conclusões e cancelamentos posteriores não reescrevem a posição histórica;
 - competência, vencimento, responsável, periodicidade e quantidade de comprovantes por linha;
+- filtros combináveis por tipo e responsável, incluindo itens sem responsável, aplicados a indicadores, linhas e CSV;
 - recorrências permanecem ocorrências independentes, sem agregação ou duplicação artificial;
 - exportação CSV protegida pela permissão existente de relatórios;
 - ativação condicional: a Central continua funcionando quando a migration 018 ainda não existe;
@@ -181,5 +182,6 @@ Entregue:
 
 Este é um calendário gerencial. O Realizze não calcula imposto, multa, juros, enquadramento, guia ou prazo legal e não transmite obrigações.
 
-Teste isolado ampliado: `enterprise-006-obligations` no banco `realizze_pjtest`.
+Teste isolado ampliado: `enterprise-006-obligations` no banco `realizze_pjtest`,
+incluindo filtros combinados, situação histórica, parâmetros inválidos e isolamento empresarial.
 

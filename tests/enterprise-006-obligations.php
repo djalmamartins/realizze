@@ -40,6 +40,16 @@ try {
     $check($year['totals']['obligations']===12&&$year['status']['completed']===1&&$year['status']['cancelled']===1,'Relatório preserva recorrências e situações');
     $check($year['totals']['declared_cents']===110000&&$year['totals']['completed_cents']===10000&&$year['totals']['pending_cents']===100000,'Valores informados separam concluído, pendente e cancelado');
     $check($year['status']['overdue']===9&&$year['status']['upcoming']===1,'Vencidas e próximas usam a data-base do relatório');
+    $service->create(['title'=>'Contrato anual','type'=>'contract','competence_date'=>'2032-06-01','due_date'=>'2032-06-15','frequency'=>'once','amount'=>'200,00','idempotency_key'=>bin2hex(random_bytes(16))],$owner);
+    $licenseByOwner=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-12-31',['type'=>'license','responsible'=>(string)$owner]);
+    $check($licenseByOwner['totals']['obligations']===12&&$licenseByOwner['totals']['declared_cents']===110000,'Filtros combinados por tipo e responsável atualizam indicadores');
+    $unassigned=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-12-31',['responsible'=>'unassigned']);
+    $check($unassigned['totals']['obligations']===1&&$unassigned['totals']['declared_cents']===20000,'Filtro sem responsável preserva obrigações não atribuídas');
+    $contract=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-12-31',['type'=>'contract']);
+    $check($contract['totals']['obligations']===1&&$contract['status']['overdue']===1,'Filtro por tipo mantém a situação histórica');
+    $invalid=(new ObligationReport($org))->report('2032-01-01','2032-12-31','2032-12-31',['type'=>str_repeat('x',61),'responsible'=>'1 OR 1=1']);
+    $check($invalid['filters']===['type'=>'','responsible'=>'']&&$invalid['totals']['obligations']===13,'Filtros inválidos são neutralizados');
+    $check(in_array('license',$invalid['types'],true)&&in_array('contract',$invalid['types'],true)&&($invalid['responsibles'][0]['id']??0)===$owner,'Opções de filtro permanecem isoladas à empresa e ao período');
     $check((new ObligationReport($alien))->report('2032-01-01','2032-12-31')['totals']['obligations']===0,'Relatório não mistura empresas');
 } finally {
     foreach ([$org, $alien] as $id) {

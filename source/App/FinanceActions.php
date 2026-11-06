@@ -196,10 +196,15 @@ final class FinanceActions
             if ($organization === null) { \Moves\Services\AppError::render(403); return; }
             if (!ObligationReport::ready()) { \Moves\Services\AppError::render(404); return; }
             $report=(new ObligationReport((int)$organization['id']))->report(
-                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),min($period['end']->format('Y-m-d'),date('Y-m-d'))
+                $period['start']->format('Y-m-d'),$period['end']->format('Y-m-d'),
+                min($period['end']->format('Y-m-d'),date('Y-m-d')), [
+                    'type'=>is_string($_GET['ob_tipo']??null)?$_GET['ob_tipo']:'',
+                    'responsible'=>is_string($_GET['ob_responsavel']??null)?$_GET['ob_responsavel']:'',
+                ]
             );
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="realizze-obrigacoes-' . $period['start']->format('Y-m') . '.csv"');
+            header('Content-Disposition: attachment; filename="realizze-obrigacoes-'
+                . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
             header('Cache-Control: no-store');
             $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
             fputcsv($out,['Obrigação','Tipo','Competência','Vencimento','Responsável','Periodicidade','Situação na data-base','Comprovantes','Valor informado'],';','"','');
