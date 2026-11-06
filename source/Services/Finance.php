@@ -882,8 +882,73 @@ final class Finance
     }
 
     /**
+     * Saldo das contas de caixa ao fim de uma data.
+     *
+     * Compras no cartão não movimentam caixa. Já a transferência de uma conta
+     * bancária para o cartão (pagamento de fatura) reduz o caixa nessa data.
+     */
+    public function cashBalanceOn(string $date): int
+    {
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            throw new InvalidArgumentException('Informe uma data válida.');
+        }
+
+        $opening = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(opening_balance_cents), 0)
+             FROM finance_accounts
+             WHERE financial_context_id = ? AND type <> 'credit_card'
+               AND DATE(created_at) <= ? AND (archived_at IS NULL OR DATE(archived_at) > ?)"
+        );
+        $opening->execute([$this->contextId, $date, $date]);
+
+        $direct = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(CASE WHEN e.kind = 'income' THEN e.amount_cents ELSE -CAST(e.amount_cents AS SIGNED) END), 0)
+             FROM finance_entries AS e
+             INNER JOIN finance_accounts AS a ON a.id = e.account_id AND a.financial_context_id = e.financial_context_id
+             WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND e.paid_at <= ?
+               AND a.type <> 'credit_card' AND (a.archived_at IS NULL OR DATE(a.archived_at) > ?)
+               AND (e.status IS NULL OR e.status <> 'cancelled')
+               AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS x WHERE x.entry_id = e.id)"
+        );
+        $direct->execute([$this->contextId, $date, $date]);
+
+        $settlements = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(CASE WHEN e.kind = 'income' THEN s.amount_cents ELSE -CAST(s.amount_cents AS SIGNED) END), 0)
+             FROM finance_entry_settlements AS s
+             INNER JOIN finance_entries AS e ON e.id = s.entry_id AND e.financial_context_id = s.financial_context_id
+             INNER JOIN finance_accounts AS a ON a.id = s.account_id AND a.financial_context_id = s.financial_context_id
+             WHERE s.financial_context_id = ? AND s.received_at <= ?
+               AND a.type <> 'credit_card' AND (a.archived_at IS NULL OR DATE(a.archived_at) > ?)
+               AND (e.status IS NULL OR e.status <> 'cancelled')"
+        );
+        $settlements->execute([$this->contextId, $date, $date]);
+
+        $transfers = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(
+                CASE WHEN source.type <> 'credit_card' AND (source.archived_at IS NULL OR DATE(source.archived_at) > ?)
+                     THEN -CAST(e.amount_cents AS SIGNED) ELSE 0 END
+                + CASE WHEN target.type <> 'credit_card' AND (target.archived_at IS NULL OR DATE(target.archived_at) > ?)
+                       THEN e.amount_cents ELSE 0 END
+             ), 0)
+             FROM finance_entries AS e
+             INNER JOIN finance_accounts AS source ON source.id = e.account_id AND source.financial_context_id = e.financial_context_id
+             INNER JOIN finance_accounts AS target ON target.id = e.target_account_id AND target.financial_context_id = e.financial_context_id
+             WHERE e.financial_context_id = ? AND e.kind = 'transfer' AND e.paid_at <= ?
+               AND (e.status IS NULL OR e.status <> 'cancelled')"
+        );
+        $transfers->execute([$date, $date, $this->contextId, $date]);
+
+        return (int) $opening->fetchColumn()
+            + (int) $direct->fetchColumn()
+            + (int) $settlements->fetchColumn()
+            + (int) $transfers->fetchColumn();
+    }
+
+    /**
      * Entradas e saídas realizadas, na data em que o dinheiro se moveu: cada baixa (inclusive parcial)
-     * na sua data; sem baixa, a data de pagamento. Sem transferências, que não mudam o caixa total.
+     * na sua data; sem baixa, a data de pagamento. Transferências internas não mudam o caixa total.
+     * Pagamentos e estornos de fatura entram uma única vez, na movimentação entre caixa e cartão.
      *
      * @return list<array{kind:string,date:string,amount_cents:int}>
      */
@@ -891,14 +956,34 @@ final class Finance
     {
         $statement = $this->pdo->prepare(
             "SELECT e.kind, e.paid_at AS date, e.amount_cents FROM finance_entries AS e
+             INNER JOIN finance_accounts AS a ON a.id = e.account_id AND a.financial_context_id = e.financial_context_id
              WHERE e.financial_context_id = ? AND e.kind IN ('income','expense') AND e.paid_at BETWEEN ? AND ?
+               AND a.type <> 'credit_card'
+               AND (e.status IS NULL OR e.status <> 'cancelled')
                AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS x WHERE x.entry_id = e.id)
              UNION ALL
              SELECT e.kind, s.received_at, s.amount_cents FROM finance_entry_settlements AS s
              INNER JOIN finance_entries AS e ON e.id = s.entry_id AND e.financial_context_id = s.financial_context_id
-             WHERE s.financial_context_id = ? AND s.received_at BETWEEN ? AND ? AND (e.status IS NULL OR e.status <> 'cancelled')"
+             INNER JOIN finance_accounts AS a ON a.id = s.account_id AND a.financial_context_id = s.financial_context_id
+             WHERE s.financial_context_id = ? AND s.received_at BETWEEN ? AND ?
+               AND a.type <> 'credit_card'
+               AND (e.status IS NULL OR e.status <> 'cancelled')
+             UNION ALL
+             SELECT CASE WHEN source.type <> 'credit_card' THEN 'expense' ELSE 'income' END,
+                    e.paid_at, e.amount_cents
+             FROM finance_entries AS e
+             INNER JOIN finance_accounts AS source ON source.id = e.account_id AND source.financial_context_id = e.financial_context_id
+             INNER JOIN finance_accounts AS target ON target.id = e.target_account_id AND target.financial_context_id = e.financial_context_id
+             WHERE e.financial_context_id = ? AND e.kind = 'transfer' AND e.paid_at BETWEEN ? AND ?
+               AND ((source.type <> 'credit_card' AND target.type = 'credit_card')
+                 OR (source.type = 'credit_card' AND target.type <> 'credit_card'))
+               AND (e.status IS NULL OR e.status <> 'cancelled')"
         );
-        $statement->execute([$this->contextId, $start, $end, $this->contextId, $start, $end]);
+        $statement->execute([
+            $this->contextId, $start, $end,
+            $this->contextId, $start, $end,
+            $this->contextId, $start, $end,
+        ]);
         return array_map(static fn (array $row): array => ['kind' => (string) $row['kind'], 'date' => (string) $row['date'], 'amount_cents' => (int) $row['amount_cents']], $statement->fetchAll(PDO::FETCH_ASSOC));
     }
 

@@ -20,6 +20,7 @@ try{
     $ok($entry===$same,'Repetir a submissão retorna a mesma transferência');
     $ok($balances[$from]===50000&&$balances[$to]===70000,'R$ 500,00 saem da origem e entram no destino');
     $ok($finance->availableBalance()===120000,'Transferência preserva o patrimônio total');
+    $ok($finance->cashBalanceOn(date('Y-m-d'))===120000&&$finance->cashMovements(date('Y-m-01'),date('Y-m-t'))===[],'Transferência interna não vira entrada ou saída de caixa');
     $movement=array_values(array_filter($finance->movements(date('Y-m-01'),date('Y-m-t'),'transfer'),static fn(array $row):bool=>(int)$row['id']===$entry))[0]??null;
     $ok($movement!==null&&$movement['account']==='Conta A'&&$movement['target_account']==='Conta B','Histórico identifica origem e destino');
     $ok($finance->delete($entry),'Transferência pode ser excluída de forma consistente');

@@ -17,12 +17,14 @@ $link = static fn (string $target, string $view): string => AppUrl::section('flu
 $buckets = [];
 $totals = ['in_done' => 0, 'out_done' => 0, 'in_open' => 0, 'out_open' => 0];
 $overdue = 0;
-$balance = 0;
+$openingBalance = 0;
+$closingBalance = 0;
+$projected = 0;
+$deficitPeriods = 0;
 $failed = false;
 try {
     $finance = new Finance((int) FinanceContext::currentId());
-    $balances = $finance->balanceSummary();
-    $balance = $balances['total_cents'];
+    $openingBalance = $finance->cashBalanceOn($start->modify('-1 day')->format('Y-m-d'));
     $bucketOf = static function (DateTimeImmutable $date) use ($grouping): string {
         if ($grouping === 'dia') return $date->format('d/m');
         $week = (int) ceil((int) $date->format('j') / 7);
@@ -59,22 +61,34 @@ try {
         if ($due < $today) $overdue += (int) $row['amount_cents'];
     }
     if ($grouping === 'dia') uksort($buckets, static fn (string $a, string $b): int => strcmp(substr($a, 3) . $a, substr($b, 3) . $b));
+
+    $runningActual = $openingBalance;
+    $runningProjected = $openingBalance;
+    foreach ($buckets as &$row) {
+        $runningActual += $row['in_done'] - $row['out_done'];
+        $runningProjected += $row['in_done'] + $row['in_open'] - $row['out_done'] - $row['out_open'];
+        $row['actual_balance'] = $runningActual;
+        $row['projected_balance'] = $runningProjected;
+        if ($runningProjected < 0) $deficitPeriods++;
+    }
+    unset($row);
+    $closingBalance = $openingBalance + $totals['in_done'] - $totals['out_done'];
+    $projected = $closingBalance + $totals['in_open'] - $totals['out_open'];
 } catch (Throwable $exception) {
     error_log('Realizze cash flow: ' . $exception->getMessage());
     $failed = true;
 }
 $hasData = array_sum($totals) > 0;
-$projected = $balance + $totals['in_open'] - $totals['out_open'];
 ?>
 <section class="card finance-workspace" aria-labelledby="cash-title">
   <div class="finance-toolbar">
     <div><h2 id="cash-title">Fluxo de caixa</h2><p class="muted">Realizado é o que já foi pago ou recebido. Previsto é o que continua em aberto no mês.</p></div>
   </div>
   <div class="finance-goal-summary cash-summary" aria-label="Resumo do mês">
-    <div class="finance-goal-stat finance-indicator <?= $balance > 0 ? 'is-positive' : ($balance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo atual</span><strong><?= $e(Finance::money($balance)) ?></strong><small><?= ($balances['reserved_cents'] ?? 0) > 0 ? 'Disponível ' . $e(Finance::money($balances['available_cents'])) . ' · reservado em metas ' . $e(Finance::money($balances['reserved_cents'])) : 'Contas e carteiras, sem cartões' ?></small></div>
-    <?php $realized = $totals['in_done'] - $totals['out_done']; ?><div class="finance-goal-stat finance-indicator <?= $realized > 0 ? 'is-positive' : ($realized < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Realizado no mês</span><strong><?= $e(Finance::money($realized)) ?></strong><small>Entradas menos saídas</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $openingBalance > 0 ? 'is-positive' : ($openingBalance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo inicial</span><strong><?= $e(Finance::money($openingBalance)) ?></strong><small>Contas e carteiras no início do período</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $closingBalance > 0 ? 'is-positive' : ($closingBalance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo realizado</span><strong><?= $e(Finance::money($closingBalance)) ?></strong><small>Saldo inicial + entradas − saídas realizadas</small></div>
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Previsto em aberto</span><strong><?= $e(Finance::money($totals['in_open'] - $totals['out_open'])) ?></strong><small><?= $overdue > 0 ? $e(Finance::money($overdue)) . ' já vencidos' : 'A receber menos a pagar' ?></small></div>
-    <div class="finance-goal-stat finance-indicator is-forecast"><span>Saldo projetado</span><strong><?= $e(Finance::money($projected)) ?></strong><small>Se tudo em aberto se confirmar</small></div>
+    <div class="finance-goal-stat finance-indicator <?= $projected < 0 ? 'is-negative' : 'is-forecast' ?>"><span>Saldo projetado</span><strong><?= $e(Finance::money($projected)) ?></strong><small><?= $deficitPeriods > 0 ? $deficitPeriods . ' período(s) com déficit projetado' : 'Se tudo em aberto se confirmar' ?></small></div>
   </div>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Mês">
@@ -95,13 +109,13 @@ $projected = $balance + $totals['in_open'] - $totals['out_open'];
   <?php else: ?>
   <div class="finance-table-wrap" role="region" tabindex="0" aria-label="Fluxo de caixa">
     <table class="finance-table finance-entries cash-table">
-      <thead><tr><th scope="col">Período</th><th scope="col" class="num">Entradas realizadas</th><th scope="col" class="num">Saídas realizadas</th><th scope="col" class="num">Entradas previstas</th><th scope="col" class="num">Saídas previstas</th></tr></thead>
+      <thead><tr><th scope="col">Período</th><th scope="col" class="num">Entradas realizadas</th><th scope="col" class="num">Saídas realizadas</th><th scope="col" class="num">Entradas previstas</th><th scope="col" class="num">Saídas previstas</th><th scope="col" class="num">Saldo projetado</th></tr></thead>
       <tbody>
       <?php foreach ($buckets as $label => $row): ?>
-      <tr><td><strong><?= $e($label) ?></strong></td><td class="num green"><?= $e(Finance::money($row['in_done'])) ?></td><td class="num red"><?= $e(Finance::money($row['out_done'])) ?></td><td class="num"><?= $e(Finance::money($row['in_open'])) ?></td><td class="num"><?= $e(Finance::money($row['out_open'])) ?></td></tr>
+      <tr><td><strong><?= $e($label) ?></strong></td><td class="num green"><?= $e(Finance::money($row['in_done'])) ?></td><td class="num red"><?= $e(Finance::money($row['out_done'])) ?></td><td class="num"><?= $e(Finance::money($row['in_open'])) ?></td><td class="num"><?= $e(Finance::money($row['out_open'])) ?></td><td class="num <?= $row['projected_balance'] < 0 ? 'red' : 'green' ?>"><strong><?= $e(Finance::money($row['projected_balance'])) ?></strong></td></tr>
       <?php endforeach; ?>
       </tbody>
-      <tfoot><tr><td>Total</td><td class="num green"><?= $e(Finance::money($totals['in_done'])) ?></td><td class="num red"><?= $e(Finance::money($totals['out_done'])) ?></td><td class="num"><?= $e(Finance::money($totals['in_open'])) ?></td><td class="num"><?= $e(Finance::money($totals['out_open'])) ?></td></tr></tfoot>
+      <tfoot><tr><td>Total</td><td class="num green"><?= $e(Finance::money($totals['in_done'])) ?></td><td class="num red"><?= $e(Finance::money($totals['out_done'])) ?></td><td class="num"><?= $e(Finance::money($totals['in_open'])) ?></td><td class="num"><?= $e(Finance::money($totals['out_open'])) ?></td><td class="num"><?= $e(Finance::money($projected)) ?></td></tr></tfoot>
     </table>
   </div>
   <?php endif; ?>

@@ -57,6 +57,8 @@ try {
 
     $before = array_column($finance->accountsWithBalance(), 'balance_cents', 'id');
     $check($before[$bank] === 500000 && $before[$card] === 0, 'Compras em aberto não mexem no saldo');
+    $marchCash = $finance->cashMovements('2031-03-01', '2031-03-31');
+    $check($marchCash === [] && $finance->cashBalanceOn('2031-03-31') === 500000, 'Compras no cartão não antecipam saída no fluxo de caixa');
     $check($refused(static fn () => $cards->pay(['card_account_id' => $card, 'source_account_id' => $bank, 'month' => '2031-03', 'amount' => '300,00', 'paid_on' => '2031-04-05', 'idempotency_key' => $key()], $userId)), 'Pagamento maior que a fatura é recusado');
     $payKey = $key();
     $payment = $cards->pay(['card_account_id' => $card, 'source_account_id' => $bank, 'month' => '2031-03', 'paid_on' => '2031-04-05', 'idempotency_key' => $payKey], $userId);
@@ -68,12 +70,16 @@ try {
     $check($expenses['paid'] === 25000, 'Despesa paga conta uma vez só, pelas compras');
     $check($cards->invoice($card, '2031-03')['total_cents'] === 0, 'Fatura paga fica sem saldo aberto');
     $check($finance->balanceSummary()['total_cents'] === 475000, 'Saldo consolidado ignora o cartão e desconta o pagamento');
+    $aprilCash = $finance->cashMovements('2031-04-01', '2031-04-30');
+    $check(count($aprilCash) === 1 && $aprilCash[0]['kind'] === 'expense' && $aprilCash[0]['amount_cents'] === 25000, 'Pagamento da fatura aparece uma única vez no fluxo de caixa');
+    $check($finance->cashBalanceOn('2031-04-30') === 475000, 'Saldo histórico de caixa reflete o pagamento da fatura');
 
     $partial = $cards->pay(['card_account_id' => $card, 'source_account_id' => $bank, 'month' => '2031-04', 'amount' => '70,00', 'paid_on' => '2031-05-05', 'idempotency_key' => $key()], $userId);
     $check($cards->invoice($card, '2031-04')['total_cents'] === 10000, 'Pagamento parcial abate do saldo da fatura');
     $check(array_column($finance->accountsWithBalance(), 'balance_cents', 'id')[$bank] === 475000 - 7000, 'Pagamento parcial sai do banco');
     $check($cards->reversePayment($partial, $userId) && $cards->invoice($card, '2031-04')['total_cents'] === 17000, 'Estorno devolve o saldo da fatura');
     $check(array_column($finance->accountsWithBalance(), 'balance_cents', 'id')[$bank] === 475000, 'Estorno devolve o dinheiro ao banco');
+    $check($finance->cashMovements('2031-05-01', '2031-05-31') === [] && $finance->cashBalanceOn('2031-05-31') === 475000, 'Estorno remove a saída projetada sem duplicar a devolução');
     $check(!$cards->reversePayment($partial, $userId), 'Estorno não vale duas vezes');
     $check($cards->payments($card)[0]['reversed_at'] !== null && count($cards->payments($card)) === 2, 'Histórico guarda pagamentos e estornos');
 
