@@ -1112,25 +1112,46 @@ final class Finance
         return $series;
     }
 
-    /** Lançamentos do período para exportação. */
+    /** Lançamentos do período para exportação, com posição na data-base. */
     public function exportRows(string $start, string $end): array
     {
+        $start = self::date($start);
+        $end = self::date($end);
+        if ($end < $start) throw new InvalidArgumentException('Período inválido.');
+        $asOf = min($end, date('Y-m-d'));
         $statement = $this->pdo->prepare(
-            "SELECT e.due_date, e.paid_at, e.kind, e.description, c.name AS category, a.name AS account, t.name AS target_account, e.amount_cents
+            "SELECT e.due_date, e.paid_at, e.kind, e.description, e.status, c.name AS category, a.name AS account,
+                    t.name AS target_account, e.amount_cents, COALESCE(s.settled_cents,0) AS settled_cents
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             LEFT JOIN (SELECT entry_id,SUM(amount_cents) AS settled_cents FROM finance_entry_settlements
+                        WHERE financial_context_id=? AND received_at<=? GROUP BY entry_id) s ON s.entry_id=e.id
              WHERE e.financial_context_id = ? AND e.due_date BETWEEN ? AND ?
              ORDER BY e.due_date, e.id"
         );
-        $statement->execute([$this->contextId, $start, $end]);
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
+        $statement->execute([$this->contextId,$asOf,$this->contextId,$start,$end]);
+        return array_map(static function(array $row)use($asOf):array{
+            $amount=(int)$row['amount_cents'];
+            $settled=min($amount,(int)$row['settled_cents']);
+            $paid=$settled>0?$settled:($row['paid_at']!==null&&$row['paid_at']<=$asOf?$amount:0);
+            $cancelled=$row['status']==='cancelled';
+            $row['amount_cents']=$amount;
+            $row['paid_cents']=$cancelled?0:$paid;
+            $row['open_cents']=$cancelled||$row['kind']==='transfer'?0:max(0,$amount-$paid);
+            $row['display_status']=$cancelled?'cancelled':($row['kind']==='transfer'?'transfer':($row['open_cents']===0?'paid':($paid>0?($row['due_date']<$asOf?'partial_overdue':'partial'):($row['due_date']<$asOf?'overdue':'open'))));
+            return $row;
+        },$statement->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /** Relatório do período, por data de vencimento. */
     public function report(string $start, string $end): array
     {
+        $start = self::date($start);
+        $end = self::date($end);
+        if ($end < $start) throw new InvalidArgumentException('Período inválido.');
+        $asOf = min($end,date('Y-m-d'));
         $statement = $this->pdo->prepare(
             "SELECT e.id, e.kind, e.description, e.counterparty_name, e.amount_cents, e.due_date, e.paid_at, e.status,
                     c.name AS category, c.color AS category_color, a.name AS account, t.name AS target_account,
@@ -1139,12 +1160,12 @@ final class Finance
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
-             LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS settled_cents FROM finance_entry_settlements WHERE financial_context_id = ? GROUP BY entry_id) AS s ON s.entry_id = e.id
+             LEFT JOIN (SELECT entry_id, SUM(amount_cents) AS settled_cents FROM finance_entry_settlements WHERE financial_context_id = ? AND received_at <= ? GROUP BY entry_id) AS s ON s.entry_id = e.id
              WHERE e.financial_context_id = ? AND e.due_date BETWEEN ? AND ?
              ORDER BY e.due_date, FIELD(e.kind, 'income', 'expense', 'transfer'), e.id"
         );
-        $statement->execute([$this->contextId, $this->contextId, $start, $end]);
-        return self::buildReport($statement->fetchAll(PDO::FETCH_ASSOC), date('Y-m-d'));
+        $statement->execute([$this->contextId,$asOf,$this->contextId,$start,$end]);
+        return self::buildReport($statement->fetchAll(PDO::FETCH_ASSOC),$asOf)+['as_of'=>$asOf];
     }
 
     /** Agrupa os lançamentos por dia. Cancelados e transferências aparecem, mas não somam. */
@@ -1156,13 +1177,16 @@ final class Finance
         $accumulated = 0;
         foreach ($rows as $row) {
             $amount = (int) $row['amount_cents'];
-            $paid = $row['paid_at'] !== null ? $amount : min($amount, (int) $row['settled_cents']);
+            $settled = min($amount,(int)$row['settled_cents']);
+            $paid = $settled > 0 ? $settled : ($row['paid_at'] !== null && $row['paid_at'] <= $today ? $amount : 0);
             $cancelled = $row['status'] === 'cancelled';
+            if ($cancelled) $paid = 0;
             $counts = !$cancelled && $row['kind'] !== 'transfer';
             $date = (string) $row['due_date'];
             $days[$date] ??= ['date' => $date, 'income' => 0, 'expense' => 0, 'result' => 0, 'accumulated' => 0, 'entries' => []];
             $days[$date]['entries'][] = $row + [
                 'paid_cents' => $paid,
+                'open_cents' => $cancelled || $row['kind'] === 'transfer' ? 0 : $amount - $paid,
                 'cancelled' => $cancelled,
                 'overdue' => !$cancelled && $paid < $amount && $date < $today,
             ];

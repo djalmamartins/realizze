@@ -205,14 +205,16 @@ final class FinanceActions
         header('Cache-Control: no-store');
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF");
-        fputcsv($out, ['Vencimento', 'Pagamento', 'Tipo', 'Descrição', 'Categoria', 'Conta', 'Conta de destino', 'Valor'], ';', '"', '');
+        fputcsv($out, ['Vencimento', 'Pagamento', 'Tipo', 'Descrição', 'Categoria', 'Conta', 'Conta de destino', 'Valor', 'Realizado até a data-base', 'Em aberto', 'Situação'], ';', '"', '');
         $types = ['income' => 'Receita', 'expense' => 'Despesa', 'transfer' => 'Transferência'];
+        $statuses = ['cancelled'=>'Cancelado','transfer'=>'Transferido','paid'=>'Realizado','partial'=>'Parcial','partial_overdue'=>'Parcial vencido','overdue'=>'Vencido','open'=>'Em aberto'];
         foreach ($rows as $row) {
             // Evita que planilhas interpretem textos do usuário como fórmulas.
             $safe = static fn (?string $text): string => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $text) ?? '';
             fputcsv($out, [
                 $row['due_date'], $row['paid_at'], $types[$row['kind']], $safe($row['description']), $safe($row['category']),
                 $safe($row['account']), $safe($row['target_account']), number_format((int) $row['amount_cents'] / 100, 2, ',', ''),
+                number_format((int)$row['paid_cents']/100,2,',',''),number_format((int)$row['open_cents']/100,2,',',''),$statuses[$row['display_status']]??'Em aberto',
             ], ';', '"', '');
         }
         fclose($out);

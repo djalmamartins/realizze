@@ -18,7 +18,7 @@
 | Fluxo de Caixa | Em evolução — saldo inicial histórico, saldo realizado e projeção cumulativa entregues | período personalizado, exportação e rastreabilidade por linha |
 | DRE Gerencial | Em evolução — caixa e competência reconciliados, comparação mensal e CSV específico | período personalizado e classificação configurável |
 | Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
-| Pagar/Receber | Pendente de consolidação | previsto x realizado e detalhamento de baixas parciais |
+| Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
 | Posição de Contas | Pendente | saldos por conta e data-base |
 | Orçamento Empresarial | Pendente | comparar orçamento existente com realizado por categoria |
 
@@ -75,4 +75,20 @@ Entregue:
 Este relatório não representa emissão de Nota Fiscal, documento fiscal, receita tributável ou apuração de imposto.
 
 Teste isolado: `enterprise-009-billing-report` no banco `realizze_pjtest`.
+
+## Incremento 2026-11-06 — Pagar e Receber
+
+Entregue:
+
+- data-base explícita: períodos encerrados usam o último dia; período corrente ou futuro usa a data atual;
+- baixas posteriores ao fim do período não alteram retroativamente seus indicadores;
+- previsto, realizado e saldo aberto separados para receitas e despesas;
+- baixas parciais exibem valor realizado e valor restante em cada linha;
+- vencido calculado somente sobre o saldo aberto na data-base;
+- pagamentos diretos sem registro de baixa continuam reconhecidos corretamente;
+- cancelamentos e transferências não compõem os totais;
+- CSV geral ganhou realizado, saldo em aberto e situação, usando o mesmo corte histórico da tela;
+- validação de período no backend e manutenção do isolamento por contexto financeiro.
+
+Testes aprovados: `finance-006-report` e `finance-024-report-as-of`; regressões de Receber, Faturamento e Dashboard executadas no banco `realizze_pjtest`.
 

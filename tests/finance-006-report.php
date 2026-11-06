@@ -34,5 +34,8 @@ $check($totals['expense'] === 45000 && $totals['expense_paid'] === 30000, 'cance
 $check($totals['income_overdue'] === 30000 && $totals['expense_overdue'] === 10000, 'atraso considera só o saldo em aberto vencido');
 $check($report['days'][0]['result'] === 70000 && $report['days'][1]['accumulated'] === 110000 && $report['days'][2]['accumulated'] === 105000, 'resultado do dia e acumulado');
 $check($report['days'][2]['entries'][0]['cancelled'] && !$report['days'][2]['entries'][0]['overdue'], 'cancelado continua na lista e não fica vencido');
+$check($report['days'][1]['entries'][1]['open_cents'] === 30000, 'baixa parcial expõe também o saldo que falta');
 $check($report['categories'][0]['name'] === 'Casa' && $report['categories'][0]['total'] === 40000 && $report['categories'][1]['name'] === 'Sem categoria', 'categorias ordenadas por valor');
+$historical = Finance::buildReport([$row('income', 80000, '2026-11-05', '2026-11-15')], '2026-11-10');
+$check($historical['totals']['income_paid'] === 0 && $historical['days'][0]['entries'][0]['open_cents'] === 80000, 'pagamento posterior não altera retroativamente a posição da data-base');
 $check(Finance::buildReport([], '2026-11-10')['days'] === [], 'período vazio');

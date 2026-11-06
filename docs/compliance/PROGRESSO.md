@@ -13,6 +13,7 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - separação explícita entre regime de caixa e competência;
 - valores em centavos, sem `FLOAT` para dinheiro;
 - baixas parciais reconhecidas na data e pelo valor efetivamente liquidado;
+- relatórios encerrados preservam a posição histórica: liquidações posteriores não reescrevem realizado, aberto ou vencido da data-base;
 - isolamento por contexto financeiro e por empresa no backend;
 - compras no cartão separadas do pagamento bancário da fatura;
 - na DRE por caixa, pagamentos de fatura são rastreados até as compras e categorias pelas alocações, sem dupla contagem;

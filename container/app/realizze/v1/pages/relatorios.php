@@ -37,6 +37,7 @@ $holder = OrganizationContext::current()['name'] ?? 'Meu financeiro';
 $totals = $report['totals'] ?? [];
 $resultPaid = ($totals['income_paid'] ?? 0) - ($totals['expense_paid'] ?? 0);
 $resultExpected = ($totals['income'] ?? 0) - ($totals['expense'] ?? 0);
+$asOfLabel = isset($report['as_of']) ? $brDate((string)$report['as_of']) : $period['end']->format('d/m/Y');
 $seriesMax = max([1, ...array_column($series, 'income'), ...array_column($series, 'expense')]);
 $daily = [];
 if ($monthly && $report !== null) {
@@ -53,11 +54,11 @@ if ($otherCategories > 0) {
 $categoryTotal = array_sum(array_column($report['categories'] ?? [], 'total'));
 $situation = static function (array $entry) use ($brDate): array {
     if ($entry['cancelled']) return ['Cancelado', 'is-muted'];
-    if ($entry['paid_at'] !== null) {
+    if ($entry['paid_cents'] >= $entry['amount_cents']) {
         $word = ['income' => 'Recebido', 'expense' => 'Pago', 'transfer' => 'Transferido'][$entry['kind']];
-        return [$word . ' em ' . substr($brDate((string) $entry['paid_at']), 0, 5), 'is-paid'];
+        return [$word . ($entry['paid_at'] !== null ? ' em ' . substr($brDate((string) $entry['paid_at']), 0, 5) : ''), 'is-paid'];
     }
-    if ($entry['paid_cents'] > 0) return ['Parcial: ' . Finance::money($entry['paid_cents']), $entry['overdue'] ? 'is-late' : 'is-open'];
+    if ($entry['paid_cents'] > 0) return ['Parcial ' . Finance::money($entry['paid_cents']) . ' · falta ' . Finance::money($entry['open_cents']), $entry['overdue'] ? 'is-late' : 'is-open'];
     if ($entry['overdue']) return ['Vencido', 'is-late'];
     return [$entry['kind'] === 'income' ? 'A receber' : ($entry['kind'] === 'expense' ? 'A pagar' : 'Pendente'), 'is-open'];
 };
@@ -87,9 +88,9 @@ $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial
   <div class="finance-empty"><h3>Não foi possível carregar os relatórios</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php else: ?>
   <div class="finance-goal-summary is-four" aria-label="Indicadores do período">
-    <div class="finance-goal-stat finance-indicator <?= $totals['income_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Receitas realizadas</span><strong><?= $e(Finance::money($totals['income_paid'])) ?></strong><small>A receber <?= $e(Finance::money($totals['income'] - $totals['income_paid'])) ?></small></div>
-    <div class="finance-goal-stat finance-indicator <?= $totals['expense_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Despesas realizadas</span><strong><?= $e(Finance::money($totals['expense_paid'])) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense'] - $totals['expense_paid'])) ?></small></div>
-    <div class="finance-goal-stat finance-indicator is-forecast"><span>Resultado previsto</span><strong><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado até agora <?= $e(Finance::money($resultPaid)) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $totals['income_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Receitas do período</span><strong><?= $e(Finance::money($totals['income'])) ?></strong><small>Realizado até <?= $e($asOfLabel) ?>: <?= $e(Finance::money($totals['income_paid'])) ?> · aberto <?= $e(Finance::money($totals['income'] - $totals['income_paid'])) ?></small></div>
+    <div class="finance-goal-stat finance-indicator <?= $totals['expense_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Despesas do período</span><strong><?= $e(Finance::money($totals['expense'])) ?></strong><small>Realizado até <?= $e($asOfLabel) ?>: <?= $e(Finance::money($totals['expense_paid'])) ?> · aberto <?= $e(Finance::money($totals['expense'] - $totals['expense_paid'])) ?></small></div>
+    <div class="finance-goal-stat finance-indicator is-forecast"><span>Resultado previsto</span><strong><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado na data-base <?= $e(Finance::money($resultPaid)) ?></small></div>
     <?php $overdueTotal = $totals['expense_overdue'] + $totals['income_overdue']; ?><div class="finance-goal-stat finance-indicator <?= $overdueTotal > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($overdueTotal)) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
   <?php if ($billing !== null): $bill = $billing['totals']; ?>
@@ -166,7 +167,7 @@ $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial
     <?php endif; ?>
   </div>
   <section class="report-daily-list" aria-labelledby="report-days-title">
-    <h3 id="report-days-title">Dia a dia <small><?= (int) $report['count'] ?> <?= $report['count'] === 1 ? 'lançamento' : 'lançamentos' ?>, pela data de vencimento</small></h3>
+    <h3 id="report-days-title">Pagar e receber <small><?= (int) $report['count'] ?> <?= $report['count'] === 1 ? 'lançamento' : 'lançamentos' ?> por vencimento · posição em <?= $e($asOfLabel) ?></small></h3>
     <?php if ($report['days'] === []): ?>
     <div class="finance-empty"><h3>Nenhum lançamento neste período</h3><p>Os lançamentos de <?= $e($period['long']) ?> aparecem aqui, um a um.</p></div>
     <?php else: ?>
