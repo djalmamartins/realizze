@@ -1566,3 +1566,20 @@ body[data-context=pj] .app-loader-bar{background:linear-gradient(90deg,#0d2e27,#
 .readonly-note{margin:0 0 18px;padding:12px 16px;border:1px solid #cfe3d8;border-radius:12px;background:#f3faf6;color:#145c3a;font-size:14px}
 body[data-readonly~="finance"] [data-entry-open],body[data-readonly~="finance"] [data-entry-edit],body[data-readonly~="finance"] form[action^="/minha-conta/financeiro/"]:not([action$="/empresa"]),body[data-readonly~="finance"] button[data-finance-open]:not([data-finance-open^="goal-history"]):not([data-finance-open^="receivable-history"]):not([data-finance-open="company-dialog"]):not([data-finance-open^="contact"]){display:none!important}
 body[data-readonly~="contacts"] button[data-finance-open^="contact"],body[data-readonly~="contacts"] form[action^="/minha-conta/contatos/"]{display:none!important}
+
+/* DS-001: tokens e composição compartilhada dos relatórios. */
+:root{
+  --ds-color-brand:#079550;--ds-color-brand-strong:#06703d;--ds-color-text:#121a31;--ds-color-muted:#68786f;
+  --ds-color-surface:#fff;--ds-color-canvas:#f8faf9;--ds-color-border:#dfe8e3;--ds-color-focus:#087d49;
+  --ds-space-1:4px;--ds-space-2:8px;--ds-space-3:12px;--ds-space-4:16px;--ds-space-5:20px;--ds-space-6:24px;--ds-space-7:28px;
+  --ds-radius-sm:8px;--ds-radius-md:10px;--ds-radius-lg:14px;--ds-shadow-card:0 5px 20px #233a3010;
+}
+.report-heading{padding-bottom:18px}
+.report-heading .finance-toolbar-actions{align-items:center}
+.report-period-form{justify-content:flex-start;padding:14px 16px;border:1px solid var(--ds-color-border);border-radius:var(--ds-radius-lg);background:#f9fbfa}
+.report-period-form label{display:grid;gap:6px;color:var(--ds-color-muted);font-size:12px;font-weight:650}
+.report-period-form input{min-height:40px;padding:0 11px;border:1px solid var(--ds-color-border);border-radius:var(--ds-radius-md);background:var(--ds-color-surface);color:var(--ds-color-text);font:inherit}
+.report-period-form button{align-self:end;min-height:calc(40px - var(--app-button-trim));padding:0 16px;border:1px solid var(--ds-color-brand);border-radius:var(--ds-radius-md);background:var(--ds-color-brand);color:#fff;font:inherit;font-weight:650}
+.report-period-form input:focus-visible,.report-period-form button:focus-visible{outline:3px solid var(--ds-color-focus);outline-offset:2px}
+@media(max-width:650px){.report-heading .finance-toolbar-actions{width:100%}.report-heading .finance-toolbar-actions>*{flex:1;justify-content:center}.report-period-form{display:grid;grid-template-columns:1fr;margin-inline:20px}.report-period-form button{width:100%}}
+@media(forced-colors:active){.report-period-form{border-color:CanvasText}.report-period-form button{border:1px solid ButtonText}}

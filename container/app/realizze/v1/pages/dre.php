@@ -59,10 +59,10 @@ $sourceLabels = ['direct' => 'pagamento direto', 'settlement' => 'baixa', 'card_
 ?>
 <?php if(is_array($flash)):?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif;?>
 <section class="card finance-workspace finance-report" aria-labelledby="dre-title">
-  <div class="finance-toolbar">
-    <div><h2 id="dre-title">DRE gerencial</h2><p class="muted">Visão de gestão com critério explícito; não substitui demonstração contábil oficial.</p></div>
-    <a class="finance-button" href="<?= $e($exportUrl) ?>" download>Exportar DRE</a>
-  </div>
+  <?= $appView->render('components::report-heading', [
+      'reportHeading' => ['id' => 'dre-title', 'title' => 'DRE gerencial', 'description' => 'Visão de gestão com critério explícito; não substitui demonstração contábil oficial.'],
+      'reportActions' => [['label' => 'Exportar DRE', 'href' => $exportUrl, 'download' => true]],
+  ]) ?>
   <div class="finance-filter-bar">
     <nav class="finance-month" aria-label="Período">
       <a href="<?= $e($url($period['previous'], $criterion)) ?>" aria-label="Período anterior">‹</a>
@@ -74,11 +74,10 @@ $sourceLabels = ['direct' => 'pagamento direto', 'settlement' => 'baixa', 'card_
       <a href="<?= $e($url($periodQuery, 'cash')) ?>"<?= $criterion === 'cash' ? ' aria-current="true"' : '' ?>>Caixa</a>
     </nav>
   </div>
-  <form class="finance-filter-bar" method="get" action="<?= $e(AppUrl::section('dre')) ?>" data-swap-get>
-    <label>De<input type="date" name="inicio" value="<?= $e($startDate->format('Y-m-d')) ?>" required></label>
-    <label>Até<input type="date" name="fim" value="<?= $e($endDate->format('Y-m-d')) ?>" required></label>
-    <input type="hidden" name="criterio" value="<?= $criterion==='cash'?'caixa':'competencia' ?>"><button type="submit">Aplicar período</button>
-  </form>
+  <?= $appView->render('components::report-period-form', ['reportPeriodForm' => [
+      'action' => AppUrl::section('dre'), 'start' => $startDate->format('Y-m-d'), 'end' => $endDate->format('Y-m-d'),
+      'hidden' => ['criterio' => $criterion === 'cash' ? 'caixa' : 'competencia'],
+  ]]) ?>
   <?php if ($dre === null || $previousDre === null): ?>
   <div class="finance-empty"><h3>Não foi possível carregar a DRE</h3><p>Atualize a página e tente novamente.</p></div>
   <?php else: $groups = $dre['groups']; $current = $values($dre); $previous = $values($previousDre); ?>

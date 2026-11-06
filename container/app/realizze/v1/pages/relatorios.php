@@ -168,13 +168,13 @@ $billingComparison = static function (int $current, int $previous): string {
     <img src="/assets/realizze/v1/images/<?= $activeOrganization !== null ? 'new-logo-realizze-empresa.svg' : 'new-logo-realizze.svg' ?>" alt="Realizze">
     <div><strong>Relatório financeiro: <?= $e($period['long']) ?></strong><span><?= $e($holder) ?> · Período de <?= $e($period['start']->format('d/m/Y')) ?> a <?= $e($period['end']->format('d/m/Y')) ?> · Emitido em <?= $e(date('d/m/Y H:i')) ?></span></div>
   </header>
-  <div class="finance-toolbar no-print">
-    <div><h2 id="reports-title">Relatórios</h2><p class="muted">Resultado de <?= $e($period['long']) ?>, dia a dia.</p></div>
-    <div class="finance-toolbar-actions">
-      <a class="finance-button" href="<?= $e($ledgerExport) ?>" download>Exportar CSV</a>
-      <button type="button" class="primary" data-finance-print>Gerar PDF</button>
-    </div>
-  </div>
+  <div class="no-print"><?= $appView->render('components::report-heading', [
+      'reportHeading' => ['id' => 'reports-title', 'title' => 'Relatórios', 'description' => 'Resultado de ' . $period['long'] . ', dia a dia.'],
+      'reportActions' => [
+          ['label' => 'Exportar CSV', 'href' => $ledgerExport, 'download' => true],
+          ['type' => 'button', 'label' => 'Gerar PDF', 'class' => 'primary', 'print' => true],
+      ],
+  ]) ?></div>
   <div class="finance-filter-bar no-print">
     <nav class="finance-month" aria-label="Período"><a href="<?= $e($link($period['previous'])) ?>" aria-label="Período anterior">‹</a><strong><?= $e($period['long']) ?></strong><a href="<?= $e($link($period['next'])) ?>" aria-label="Próximo período">›</a></nav>
     <nav class="finance-status" aria-label="Visão"><a href="<?= $e($link($monthly ? ['mes' => $period['start']->format('Y-m')] : $period['other'])) ?>"<?= $monthly ? ' aria-current="true"' : '' ?>>Mensal</a><a href="<?= $e($link($monthly ? $period['other'] : ['visao' => 'anual', 'ano' => $period['start']->format('Y')])) ?>"<?= $monthly ? '' : ' aria-current="true"' ?>>Anual</a></nav>

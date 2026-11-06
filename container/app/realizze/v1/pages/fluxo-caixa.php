@@ -85,10 +85,10 @@ try {
 $hasData = array_sum($totals) > 0;
 ?>
 <section class="card finance-workspace" aria-labelledby="cash-title">
-  <div class="finance-toolbar">
-    <div><h2 id="cash-title">Fluxo de caixa</h2><p class="muted">Realizado é o que já foi pago ou recebido. Previsto é o saldo que continua em aberto no período.</p></div>
-    <a class="finance-button" href="<?= $e($exportUrl) ?>" download>Exportar fluxo</a>
-  </div>
+  <?= $appView->render('components::report-heading', [
+      'reportHeading' => ['id' => 'cash-title', 'title' => 'Fluxo de caixa', 'description' => 'Realizado é o que já foi pago ou recebido. Previsto é o saldo que continua em aberto no período.'],
+      'reportActions' => [['label' => 'Exportar fluxo', 'href' => $exportUrl, 'download' => true]],
+  ]) ?>
   <div class="finance-goal-summary cash-summary" aria-label="Resumo do mês">
     <div class="finance-goal-stat finance-indicator <?= $openingBalance > 0 ? 'is-positive' : ($openingBalance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo inicial</span><strong><?= $e(Finance::money($openingBalance)) ?></strong><small>Contas e carteiras no início do período</small></div>
     <div class="finance-goal-stat finance-indicator <?= $closingBalance > 0 ? 'is-positive' : ($closingBalance < 0 ? 'is-negative' : 'is-neutral') ?>"><span>Saldo realizado</span><strong><?= $e(Finance::money($closingBalance)) ?></strong><small>Saldo inicial + entradas − saídas realizadas</small></div>
@@ -107,11 +107,10 @@ $hasData = array_sum($totals) > 0;
       <?php endforeach; ?>
     </nav>
   </div>
-  <form class="finance-filter-bar" method="get" action="<?= $e(AppUrl::section('fluxo-de-caixa')) ?>" data-swap-get>
-    <label>De<input type="date" name="inicio" value="<?= $e($start->format('Y-m-d')) ?>" required></label>
-    <label>Até<input type="date" name="fim" value="<?= $e($end->format('Y-m-d')) ?>" required></label>
-    <input type="hidden" name="agrupamento" value="<?= $e($grouping) ?>"><button type="submit">Aplicar período</button>
-  </form>
+  <?= $appView->render('components::report-period-form', ['reportPeriodForm' => [
+      'action' => AppUrl::section('fluxo-de-caixa'), 'start' => $start->format('Y-m-d'), 'end' => $end->format('Y-m-d'),
+      'hidden' => ['agrupamento' => $grouping],
+  ]]) ?>
   <?php if ($failed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar o fluxo de caixa</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php elseif (!$hasData): ?>
