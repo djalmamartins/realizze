@@ -272,6 +272,17 @@
   const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const main = () => document.querySelector('#overview');
   const brl = (cents) => (cents < 0 ? '- ' : '') + 'R$ ' + (Math.abs(cents) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const focusFragment = (url) => {
+    const hash = new URL(url, location.href).hash;
+    if (!hash) return false;
+    let id;
+    try { id = decodeURIComponent(hash.slice(1)); } catch (_error) { return false; }
+    const target = document.getElementById(id);
+    if (!target) return false;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'center', behavior: reduced() ? 'auto' : 'smooth' });
+    return true;
+  };
 
 const faviconFor = (context, doc = document) => {
   const linked = doc.querySelector('link[rel="icon"]');
@@ -423,11 +434,13 @@ syncAppFavicon();
 
   let lastNavigation = 0;
   const go = async (url, options = {}, push = true) => {
+    const requestedUrl = new URL(url, location.href);
     const navigation = ++lastNavigation;
     showLoader();
     try {
       const response = await fetch(url, { credentials: 'same-origin', ...options });
       const finalUrl = new URL(response.url);
+      if (!finalUrl.hash && requestedUrl.hash) finalUrl.hash = requestedUrl.hash;
       const html = await response.text();
       // Outro clique veio depois deste: a resposta antiga não pode trocar a tela.
       if (navigation !== lastNavigation) return false;
@@ -447,7 +460,10 @@ syncAppFavicon();
       }
       if (!appPath(finalUrl)) throw new Error('navigation');
       if (!apply(html, finalUrl.href, push)) throw new Error('content');
-      if (push && !options.method) window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+      if (!options.method) {
+        const focused = focusFragment(finalUrl.href);
+        if (push && !focused) window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+      }
       return true;
     } catch (_error) {
       if (options.method) {
@@ -1262,4 +1278,5 @@ syncAppFavicon();
   window.addEventListener('pageshow', hideLoader);
 
   animate();
+  focusFragment(location.href);
 })();

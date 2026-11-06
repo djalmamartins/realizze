@@ -39,6 +39,21 @@ O catálogo é descritivo e não consulta nem transforma dados financeiros. Alte
 Teste automatizado: `enterprise-010-report-methodology`; regressões `enterprise-004`,
 `enterprise-006`, `enterprise-007`, `enterprise-009`, `finance-024` e `ui-002` aprovadas no banco isolado `realizze_pjtest`.
 
+## Incremento 2026-11-06 — Rastreabilidade até a origem
+
+Entregue:
+
+- links por linha para o lançamento, ordem de serviço ou obrigação no mesmo contexto ativo;
+- período canônico preservado ao abrir receitas, despesas e movimentações;
+- âncoras focáveis nas telas de origem e suporte a fragmentos após navegação AJAX, refresh e histórico;
+- referências estáveis `LAN-*`, `OS-*` e `OB-*` incluídas nas exportações aplicáveis;
+- parâmetros inválidos neutralizados antes de formar URLs ou referências;
+- autorização não é transferida pela URL: cada destino continua revalidando sessão, empresa e permissão no backend.
+
+Teste automatizado: `enterprise-011-report-traceability`; regressões `finance-006`,
+`finance-024`, `enterprise-004`, `enterprise-006`, `enterprise-007`, `enterprise-009`
+e `ui-002` aprovadas no banco isolado `realizze_pjtest`.
+
 ## Incremento 2026-11-06 — Fluxo de Caixa
 
 Entregue:

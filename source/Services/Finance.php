@@ -1122,7 +1122,7 @@ final class Finance
         if ($end < $start) throw new InvalidArgumentException('Período inválido.');
         $asOf = min($end, date('Y-m-d'));
         $statement = $this->pdo->prepare(
-            "SELECT e.due_date, e.paid_at, e.kind, e.description, e.status, e.account_id,
+            "SELECT e.id, e.due_date, e.paid_at, e.kind, e.description, e.status, e.account_id,
                     COALESCE(NULLIF(ct.trade_name,''),NULLIF(ct.social_name,''),ct.legal_name,e.counterparty_name) AS counterparty_name,
                     c.name AS category, a.name AS account, t.name AS target_account,
                     e.amount_cents, COALESCE(s.settled_cents,0) AS settled_cents

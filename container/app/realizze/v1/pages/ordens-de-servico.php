@@ -48,7 +48,7 @@ $historyLabels = ['created' => 'Criada', 'updated' => 'Editada', 'status_changed
   <?php else: ?>
     <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>Número</th><th>Cliente</th><th>Responsável</th><th>Situação</th><th>Total</th><th>Cobrança</th><th>Ações</th></tr></thead><tbody>
     <?php foreach ($data['rows'] as $row): $id = (int) $row['id']; ?>
-      <tr>
+      <tr id="ordem-<?= $id ?>" tabindex="-1">
         <td><strong><?= $e($row['order_number']) ?></strong>
           <details><summary>Itens, anexos e histórico</summary>
             <?php foreach ($row['items'] as $item): ?><small><?= $e($item['description']) ?> · <?= $e(number_format((int) $item['quantity_milli'] / 1000, 3, ',', '.')) ?> × <?= $e(Finance::money((int) $item['unit_price_cents'])) ?> = <?= $e(Finance::money((int) $item['total_cents'])) ?></small><br><?php endforeach; ?>

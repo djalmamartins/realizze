@@ -163,7 +163,7 @@ $renderState = static function () use ($state, $e): void {
           $editable = $entry['display_status'] !== 'cancelled';
           $canSettle = in_array($entry['display_status'], ['pending', 'partially_received', 'overdue'], true);
       ?>
-      <tr id="lancamento-<?= (int) $entry['id'] ?>">
+      <tr id="lancamento-<?= (int) $entry['id'] ?>" tabindex="-1">
         <td><strong><?= $e($entry['description']) ?></strong><small class="receivables-origin"><?= $e($entry['counterparty_name'] ?: 'Origem não informada') ?><?= $entry['document_number'] ? ' · Doc. ' . $e($entry['document_number']) : '' ?></small><?php $detail = $entryDetails[(int) $entry['id']] ?? null; $metaHideNotes = true; require __DIR__ . '/entry-meta.php'; ?></td>
         <td class="nowrap<?= $entry['display_status'] === 'overdue' ? ' red' : '' ?>"><?= $e((new DateTimeImmutable($entry['due_date']))->format('d/m/Y')) ?><?php if ($entry['display_status'] === 'overdue'): $late = (int) (new DateTimeImmutable($entry['due_date']))->diff(new DateTimeImmutable('today'))->days; ?><small class="receivables-origin">há <?= $late ?> dia<?= $late === 1 ? '' : 's' ?></small><?php endif; ?></td>
         <td class="num"><?= $e(Finance::money($entry['amount_cents'])) ?></td>

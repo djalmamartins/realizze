@@ -53,7 +53,7 @@ $actions = ['created' => 'Criada', 'updated' => 'Editada', 'completed' => 'Concl
   <?php else: ?>
     <div class="finance-table-wrap"><table class="finance-table"><thead><tr><th>Obrigação</th><th>Competência</th><th>Vencimento</th><th>Responsável</th><th>Situação</th><th>Valor</th><th>Ações</th></tr></thead><tbody>
     <?php foreach ($data['rows'] as $row): $id = (int) $row['id']; ?>
-      <tr>
+      <tr id="obrigacao-<?= $id ?>" tabindex="-1">
         <td><strong><?= $e($row['title']) ?></strong><small><?= $e($types[$row['obligation_type']] ?? $row['obligation_type']) ?><?= (int) $row['sequence_no'] > 1 ? ' · recorrência ' . $e($row['sequence_no']) : '' ?></small>
           <details><summary>Comprovantes e histórico</summary>
             <?php foreach ($row['attachments'] as $file): ?><a class="entry-chip is-file" href="/minha-conta/obrigacoes/comprovante/<?= (int) $file['id'] ?>" download><?= $e($file['original_name']) ?></a><?php endforeach; ?>

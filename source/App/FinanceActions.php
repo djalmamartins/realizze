@@ -17,6 +17,7 @@ use Moves\Services\Organizations;
 use Moves\Services\PersonalAccessContext;
 use Moves\Services\Receivables;
 use Moves\Services\RecurringFinance;
+use Moves\Services\ReportTrace;
 use Moves\Services\SessionAuth;
 use Moves\Services\ServiceOrderReport;
 use Throwable;
@@ -185,11 +186,11 @@ final class FinanceActions
             header('Content-Disposition: attachment; filename="realizze-fluxo-caixa-' . $start . '-a-' . $end . '.csv"');
             header('Cache-Control: no-store');
             $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
-            fputcsv($out,['Situação','Data','Natureza','Lançamento','Categoria','Conta','Origem','Valor'],';','"','');
+            fputcsv($out,['Referência','Situação','Data','Natureza','Lançamento','Categoria','Conta','Origem','Valor'],';','"','');
             $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
             $sources=['direct'=>'Pagamento direto','settlement'=>'Baixa','card_payment'=>'Pagamento de fatura','card_refund'=>'Estorno de fatura'];
-            foreach($realized as$row)fputcsv($out,['Realizado',$row['date'],$row['kind']==='income'?'Entrada':'Saída',$safe($row['description']),$safe($row['category']),$safe($row['account']),$sources[$row['source']]??$row['source'],number_format($row['amount_cents']/100,2,',','')],';','"','');
-            foreach($position['days']as$day)foreach($day['entries']as$row)if(!$row['cancelled']&&$row['kind']!=='transfer'&&$row['open_cents']>0)fputcsv($out,['Previsto',$row['due_date'],$row['kind']==='income'?'Entrada':'Saída',$safe($row['description']),$safe($row['category']),$safe($row['account']),'Saldo em aberto',number_format($row['open_cents']/100,2,',','')],';','"','');
+            foreach($realized as$row)fputcsv($out,[ReportTrace::reference('LAN',(int)$row['entry_id']),'Realizado',$row['date'],$row['kind']==='income'?'Entrada':'Saída',$safe($row['description']),$safe($row['category']),$safe($row['account']),$sources[$row['source']]??$row['source'],number_format($row['amount_cents']/100,2,',','')],';','"','');
+            foreach($position['days']as$day)foreach($day['entries']as$row)if(!$row['cancelled']&&$row['kind']!=='transfer'&&$row['open_cents']>0)fputcsv($out,[ReportTrace::reference('LAN',(int)$row['id']),'Previsto',$row['due_date'],$row['kind']==='income'?'Entrada':'Saída',$safe($row['description']),$safe($row['category']),$safe($row['account']),'Saldo em aberto',number_format($row['open_cents']/100,2,',','')],';','"','');
             fclose($out);return;
         }
         if (($_GET['relatorio'] ?? '') === 'obrigacoes') {
@@ -207,10 +208,10 @@ final class FinanceActions
                 . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
             header('Cache-Control: no-store');
             $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
-            fputcsv($out,['Obrigação','Tipo','Competência','Vencimento','Responsável','Periodicidade','Situação na data-base','Comprovantes','Valor informado'],';','"','');
+            fputcsv($out,['Referência','Obrigação','Tipo','Competência','Vencimento','Responsável','Periodicidade','Situação na data-base','Comprovantes','Valor informado'],';','"','');
             $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
             $labels=['pending'=>'Pendente','upcoming'=>'Próxima','overdue'=>'Vencida','completed'=>'Concluída','cancelled'=>'Cancelada'];
-            foreach($report['rows']as$row)fputcsv($out,[$safe($row['title']),$safe($row['obligation_type']),$row['competence_date'],$row['due_date'],$safe($row['responsible_name']),$row['frequency'],$labels[$row['display_status']]??$row['display_status'],$row['attachment_count'],$row['amount_cents']===null?'':number_format($row['amount_cents']/100,2,',','')],';','"','');
+            foreach($report['rows']as$row)fputcsv($out,[ReportTrace::reference('OB',(int)$row['id']),$safe($row['title']),$safe($row['obligation_type']),$row['competence_date'],$row['due_date'],$safe($row['responsible_name']),$row['frequency'],$labels[$row['display_status']]??$row['display_status'],$row['attachment_count'],$row['amount_cents']===null?'':number_format($row['amount_cents']/100,2,',','')],';','"','');
             fclose($out);return;
         }
         if (($_GET['relatorio'] ?? '') === 'ordens-servico') {
@@ -228,10 +229,10 @@ final class FinanceActions
                 . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
             header('Cache-Control: no-store');
             $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
-            fputcsv($out,['Ordem','Cliente','Descrição','Responsável','Início','Prazo','Situação','Subtotal','Desconto','Total','Cobrança vinculada','Recebido até a data-base','Em aberto'],';','"','');
+            fputcsv($out,['Referência','Ordem','Cliente','Descrição','Responsável','Início','Prazo','Situação','Subtotal','Desconto','Total','Cobrança vinculada','Recebido até a data-base','Em aberto'],';','"','');
             $safe=static fn(?string$text):string=>preg_replace('/^([=+\-@\t\r])/',"'$1",(string)$text)??'';
             $labels=['draft'=>'Rascunho','open'=>'Aberta','in_progress'=>'Em andamento','completed'=>'Concluída','cancelled'=>'Cancelada'];
-            foreach($report['rows']as$row)fputcsv($out,[$safe($row['order_number']),$safe($row['customer_name']),$safe($row['description']),$safe($row['responsible_name']),$row['start_date'],$row['due_date'],$labels[$row['status']]??$row['status'],number_format($row['subtotal_cents']/100,2,',',''),number_format($row['discount_cents']/100,2,',',''),number_format($row['total_cents']/100,2,',',''),number_format($row['billed_cents']/100,2,',',''),number_format($row['received_cents']/100,2,',',''),number_format($row['open_cents']/100,2,',','')],';','"','');
+            foreach($report['rows']as$row)fputcsv($out,[ReportTrace::reference('OS',(int)$row['id']),$safe($row['order_number']),$safe($row['customer_name']),$safe($row['description']),$safe($row['responsible_name']),$row['start_date'],$row['due_date'],$labels[$row['status']]??$row['status'],number_format($row['subtotal_cents']/100,2,',',''),number_format($row['discount_cents']/100,2,',',''),number_format($row['total_cents']/100,2,',',''),number_format($row['billed_cents']/100,2,',',''),number_format($row['received_cents']/100,2,',',''),number_format($row['open_cents']/100,2,',','')],';','"','');
             fclose($out);return;
         }
         if (($_GET['relatorio'] ?? '') === 'orcamento') {
@@ -284,11 +285,11 @@ final class FinanceActions
             header('Cache-Control: no-store');
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Competência', 'Vencimento', 'Cliente', 'Descrição', 'Origem', 'Documento', 'Faturado', 'Recebido até o período', 'Em aberto'], ';', '"', '');
+            fputcsv($out, ['Referência', 'Competência', 'Vencimento', 'Cliente', 'Descrição', 'Origem', 'Documento', 'Faturado', 'Recebido até o período', 'Em aberto'], ';', '"', '');
             $safe = static fn (?string $text): string => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $text) ?? '';
             foreach ($billing['rows'] as $row) {
                 fputcsv($out, [
-                    $row['competency_date'], $row['due_date'], $safe($row['customer_name']), $safe($row['description']),
+                    ReportTrace::reference('LAN',(int)$row['id']), $row['competency_date'], $row['due_date'], $safe($row['customer_name']), $safe($row['description']),
                     $row['origin'] === 'service_order' ? 'Ordem de serviço' : 'Lançamento manual', $safe($row['order_number'] ?? $row['document_number']),
                     number_format($row['amount_cents'] / 100,2,',',''), number_format($row['received_cents'] / 100,2,',',''),
                     number_format($row['open_cents'] / 100,2,',',''),
@@ -307,13 +308,13 @@ final class FinanceActions
             header('Cache-Control: no-store');
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Critério', 'Data', 'Grupo', 'Lançamento', 'Categoria', 'Origem', 'Valor'], ';', '"', '');
+            fputcsv($out, ['Referência', 'Critério', 'Data', 'Grupo', 'Lançamento', 'Categoria', 'Origem', 'Valor'], ';', '"', '');
             $safe = static fn (?string $text): string => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $text) ?? '';
             $sources = ['direct' => 'Pagamento direto', 'settlement' => 'Baixa', 'card_payment' => 'Pagamento de fatura', 'competence' => 'Competência'];
             foreach ($dre['groups'] as $group) {
                 foreach ($group['rows'] as $row) {
                     fputcsv($out, [
-                        $criterion === 'cash' ? 'Caixa' : 'Competência', $row['occurred_at'], $safe($group['label']),
+                        ReportTrace::reference('LAN',(int)$row['entry_id']), $criterion === 'cash' ? 'Caixa' : 'Competência', $row['occurred_at'], $safe($group['label']),
                         $safe($row['description']), $safe($row['category']), $sources[$row['source']] ?? 'Lançamento',
                         number_format((int) $row['amount_cents'] / 100, 2, ',', ''),
                     ], ';', '"', '');
@@ -335,14 +336,14 @@ final class FinanceActions
         header('Cache-Control: no-store');
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF");
-        fputcsv($out, ['Vencimento', 'Pagamento', 'Tipo', 'Descrição', 'Categoria', 'Conta', 'Conta de destino', 'Valor', 'Realizado até a data-base', 'Em aberto', 'Situação'], ';', '"', '');
+        fputcsv($out, ['Referência', 'Vencimento', 'Pagamento', 'Tipo', 'Descrição', 'Categoria', 'Conta', 'Conta de destino', 'Valor', 'Realizado até a data-base', 'Em aberto', 'Situação'], ';', '"', '');
         $types = ['income' => 'Receita', 'expense' => 'Despesa', 'transfer' => 'Transferência'];
         $statuses = ['cancelled'=>'Cancelado','transfer'=>'Transferido','paid'=>'Realizado','partial'=>'Parcial','partial_overdue'=>'Parcial vencido','overdue'=>'Vencido','open'=>'Em aberto'];
         foreach ($rows as $row) {
             // Evita que planilhas interpretem textos do usuário como fórmulas.
             $safe = static fn (?string $text): string => preg_replace('/^([=+\-@\t\r])/', "'$1", (string) $text) ?? '';
             fputcsv($out, [
-                $row['due_date'], $row['paid_at'], $types[$row['kind']], $safe($row['description']), $safe($row['category']),
+                ReportTrace::reference('LAN',(int)$row['id']), $row['due_date'], $row['paid_at'], $types[$row['kind']], $safe($row['description']), $safe($row['category']),
                 $safe($row['account']), $safe($row['target_account']), number_format((int) $row['amount_cents'] / 100, 2, ',', ''),
                 number_format((int)$row['paid_cents']/100,2,',',''),number_format((int)$row['open_cents']/100,2,',',''),$statuses[$row['display_status']]??'Em aberto',
             ], ';', '"', '');

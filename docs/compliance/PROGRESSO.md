@@ -38,11 +38,12 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - exportação de obrigações neutraliza fórmulas nos textos e não converte valores opcionais em lançamentos financeiros;
 - metodologia de oito relatórios expõe na própria Central a fonte, o corte temporal, a fórmula e os limites de uso;
 - catálogo metodológico reforça que indicadores gerenciais não são documentos contábeis ou fiscais oficiais;
+- linhas e CSVs carregam referência rastreável, enquanto as telas de origem revalidam contexto e permissão no backend;
+- navegação por fragmento não usa ID de URL como autorização e não consulta outra empresa;
 - nenhuma migration ou escrita de teste executada em `realizze_dev`.
 
 ## Pendências
 
-- incluir trilha de detalhamento/exportação sem expor dados de outra empresa;
 - validar retenção, classificação e terminologia com profissional contábil antes de qualquer alegação fiscal ou oficial;
 - não implementar impostos, balanço oficial, estoque, margem ou indicadores sem fonte confiável e regras aprovadas.
 

@@ -135,7 +135,7 @@ foreach (array_diff_key($activeFilters, ['inicio' => 1, 'fim' => 1]) as $filterK
       <thead><tr><th scope="col">Descrição</th><th scope="col">Vencimento</th><th scope="col">Categoria</th><th scope="col">Conta</th><th scope="col">Situação</th><th scope="col" class="num">Valor</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
       <tbody>
       <?php foreach ($entries as $entry): $settled = min((int) $entry['amount_cents'], (int) ($entry['settled_cents'] ?? 0)); $balance = (int) $entry['amount_cents'] - $settled; $partial = !$isIncome && $settled > 0 && $balance > 0; $overdue = $balance > 0 && $entry['due_date'] < $today; $detail = $details[(int) $entry['id']] ?? null; ?>
-      <tr id="lancamento-<?= (int) $entry['id'] ?>">
+      <tr id="lancamento-<?= (int) $entry['id'] ?>" tabindex="-1">
         <td><strong><?= $e($entry['description']) ?></strong><?php if ($entry['contact_name'] || $entry['cost_center']): ?><small class="contact-legal"><?= $e(implode(' · ', array_filter([$entry['contact_name'], $entry['cost_center'] ? 'Centro: ' . $entry['cost_center'] : null]))) ?></small><?php endif; ?>
           <?php require __DIR__ . '/entry-meta.php'; ?>
         </td>
