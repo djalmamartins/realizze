@@ -261,11 +261,16 @@ final class FinanceActions
             fclose($out);return;
         }
         if (($_GET['relatorio'] ?? '') === 'faturamento') {
+            $billingFilters = [
+                'origin' => is_string($_GET['faturamento_origem'] ?? null) ? $_GET['faturamento_origem'] : '',
+                'customer' => is_string($_GET['faturamento_cliente'] ?? null) ? $_GET['faturamento_cliente'] : '',
+            ];
             $billing = (new BillingReport((int) FinanceContext::currentId()))->report(
-                $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d')
+                $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), $billingFilters
             );
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="realizze-faturamento-' . $period['start']->format('Y-m') . '.csv"');
+            header('Content-Disposition: attachment; filename="realizze-faturamento-'
+                . $period['start']->format('Y-m-d') . '-a-' . $period['end']->format('Y-m-d') . '.csv"');
             header('Cache-Control: no-store');
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");

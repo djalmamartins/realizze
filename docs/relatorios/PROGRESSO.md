@@ -17,7 +17,7 @@
 |---|---|---|
 | Fluxo de Caixa | Concluído — período personalizado, saldos, projeção, rastreabilidade e CSV entregues | acompanhar regressões e avaliar cenários salvos sem inventar premissas |
 | DRE Gerencial | Concluída — caixa/competência, período personalizado, classificação por categoria, comparação e CSV | acompanhar regressões e validação contábil da terminologia |
-| Faturamento | Em evolução — competência, caixa, posição histórica, origem e CSV entregues | comparação entre períodos e filtros por cliente/origem |
+| Faturamento | Concluído — competência, caixa, posição histórica, comparação, filtros, origem e CSV | validação fiscal/contábil externa antes de qualquer uso oficial |
 | Pagar/Receber | Em evolução — posição histórica, previsto/realizado, parciais e CSV entregues | filtros por situação, contraparte e conta na Central |
 | Posição de Contas | Concluída — saldo inicial/final, movimentação líquida, data-base e CSV | acompanhar regressões com novos tipos de conta |
 | Orçamento Empresarial | Concluído — orçado, comprometido, pago, aberto, disponível, comparação mensal e CSV | acompanhar regressões e avaliar metas anuais por categoria |
@@ -77,14 +77,18 @@ Entregue:
 - posição histórica do faturado (`recebido até a data-base` e `em aberto na data-base`);
 - vencidos integrais e parcialmente recebidos calculados pelo saldo ainda aberto;
 - separação entre cobranças manuais e originadas por Ordem de Serviço;
+- filtros por cliente e origem aplicados de forma idêntica ao faturado, recebido em caixa, saldos e detalhamento;
+- comparação com o período anterior equivalente, preservando os filtros selecionados;
 - rastreabilidade até o lançamento, cliente e número da OS;
-- detalhamento na Central de Relatórios e exportação CSV completa;
+- detalhamento na Central de Relatórios e exportação CSV completa com os mesmos filtros da tela;
 - limite visual de 100 linhas, mantendo todo o período no CSV;
 - isolamento entre empresas validado no backend.
 
 Este relatório não representa emissão de Nota Fiscal, documento fiscal, receita tributável ou apuração de imposto.
 
-Teste isolado: `enterprise-009-billing-report` no banco `realizze_pjtest`.
+Testes isolados aprovados no banco `realizze_pjtest`: `enterprise-009-billing-report`,
+`enterprise-007-service-orders`, `finance-017-dashboard-consistency`,
+`finance-024-report-as-of` e `ui-002-view-smoke`.
 
 ## Incremento 2026-11-06 — Orçamento Empresarial
 

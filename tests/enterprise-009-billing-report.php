@@ -80,6 +80,22 @@ try{
     $check($report['series']['2034-03']===['billed'=>148000,'received'=>53000],'Série mensal separa competência e caixa');
     $origins=array_column($report['rows'],'origin','id');
     $check($origins[(int)$charge['entry_id']]==='service_order'&&$origins[$manual]==='manual','Linhas preservam vínculo rastreável com a OS');
+    $customerOptions=array_column($report['customers'],'label','key');
+    $check(($customerOptions['contact:'.$customer]??'')==='Cliente Faturamento','Filtro expõe somente clientes do contexto com chave opaca');
+
+    $serviceOnly=(new BillingReport($contexts[0]))->report('2034-03-01','2034-03-31',['origin'=>'service_order']);
+    $check($serviceOnly['totals']['billed_cents']===48000&&$serviceOnly['totals']['cash_received_cents']===18000&&count($serviceOnly['rows'])===1,'Filtro por OS mantém competência, caixa e linhas consistentes');
+    $manualOnly=(new BillingReport($contexts[0]))->report('2034-03-01','2034-03-31',['origin'=>'manual']);
+    $check($manualOnly['totals']['billed_cents']===100000&&$manualOnly['totals']['cash_received_cents']===35000&&count($manualOnly['rows'])===1,'Filtro manual inclui caixa de competência anterior da mesma origem');
+    $customerOnly=(new BillingReport($contexts[0]))->report('2034-03-01','2034-03-31',['customer'=>'contact:'.$customer]);
+    $check($customerOnly['totals']['billed_cents']===48000&&$customerOnly['totals']['cash_received_cents']===18000,'Filtro por cliente afeta indicadores e detalhamento');
+    $unassigned=(new BillingReport($contexts[0]))->report('2034-03-01','2034-03-31',['customer'=>'unassigned']);
+    $check($unassigned['totals']['billed_cents']===100000&&$unassigned['totals']['cash_received_cents']===35000,'Filtro sem cliente preserva lançamentos não vinculados');
+    $invalid=(new BillingReport($contexts[0]))->report('2034-03-01','2034-03-31',['origin'=>'qualquer','customer'=>'contact:0 OR 1=1']);
+    $check($invalid['filters']===['origin'=>'','customer'=>'']&&$invalid['totals']['billed_cents']===148000,'Filtros inválidos são descartados sem alterar a consulta');
+
+    $february=(new BillingReport($contexts[0]))->report('2034-02-01','2034-02-28');
+    $check($february['totals']['billed_cents']===5000&&$february['totals']['cash_received_cents']===0,'Período anterior permanece comparável pelos mesmos critérios');
     $april=(new BillingReport($contexts[0]))->report('2034-04-01','2034-04-30');
     $check($april['totals']['billed_cents']===0&&$april['totals']['cash_received_cents']===20000,'Caixa posterior não altera faturamento da competência original');
 

@@ -8,7 +8,17 @@ use Moves\Services\ServiceOrderReport;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $period = Finance::period($_GET);
-$link = static fn (array $query): string => \Moves\Services\AppUrl::section('relatorios', null, $query);
+$billingFilters = [
+    'origin' => in_array($_GET['faturamento_origem'] ?? '', ['manual','service_order'], true)
+        ? (string) $_GET['faturamento_origem'] : '',
+    'customer' => is_string($_GET['faturamento_cliente'] ?? null)
+        ? (string) $_GET['faturamento_cliente'] : '',
+];
+$billingFilterQuery = array_filter([
+    'faturamento_origem' => $billingFilters['origin'],
+    'faturamento_cliente' => $billingFilters['customer'],
+], static fn (string $value): bool => $value !== '');
+$link = static fn (array $query): string => \Moves\Services\AppUrl::section('relatorios', null, $query + $billingFilterQuery);
 $monthly = $period['view'] === 'mensal';
 $months = $monthly ? 6 : 12;
 $loadFailed = false;
@@ -16,6 +26,7 @@ $report = null;
 $series = [];
 $centerRows = [];
 $billing = null;
+$billingPrevious = null;
 $serviceOrders = null;
 $obligations = null;
 $accountPosition = [];
@@ -34,7 +45,13 @@ try {
         ? array_values(array_filter((new \Moves\Services\CostCenters((int) FinanceContext::currentId()))->totals($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d')), static fn (array $r): bool => $r['income_done'] + $r['income_open'] + $r['expense_done'] + $r['expense_open'] > 0))
         : [];
     if (OrganizationContext::current() !== null) {
-        $billing = (new BillingReport((int) FinanceContext::currentId()))->report($period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'));
+        $billingService = new BillingReport((int) FinanceContext::currentId());
+        $billing = $billingService->report(
+            $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), $billingFilters
+        );
+        $billingPrevious = $billingService->report(
+            $period['compareStart']->format('Y-m-d'), $period['compareEnd']->format('Y-m-d'), $billingFilters
+        );
         if (ServiceOrderReport::ready()) {
             $serviceOrders = (new ServiceOrderReport((int) OrganizationContext::current()['id']))->report(
                 $period['start']->format('Y-m-d'), $period['end']->format('Y-m-d'), min($period['end']->format('Y-m-d'),date('Y-m-d'))
@@ -86,7 +103,7 @@ $situation = static function (array $entry) use ($brDate): array {
 $billingQuery = $monthly ? ['mes' => $period['start']->format('Y-m')]
     : ($period['view'] === 'anual' ? ['visao' => 'anual', 'ano' => $period['start']->format('Y')]
         : ['inicio' => $period['start']->format('Y-m-d'), 'fim' => $period['end']->format('Y-m-d')]);
-$billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery);
+$billingExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio' => 'faturamento'] + $billingQuery + $billingFilterQuery);
 $positionExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'posicao-contas']+$billingQuery);
 $serviceOrderExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'ordens-servico']+$billingQuery);
 $obligationExport = '/minha-conta/financeiro/exportar?' . http_build_query(['relatorio'=>'obrigacoes']+$billingQuery);
@@ -94,6 +111,11 @@ $billingStatuses = ['received' => ['Recebido','is-paid'], 'partial' => ['Parcial
 $accountTypes=['checking'=>'Conta corrente','savings'=>'Poupança','wallet'=>'Carteira'];
 $positionOpening=array_sum(array_column($accountPosition,'opening_cents'));
 $positionClosing=array_sum(array_column($accountPosition,'closing_cents'));
+$billingComparison = static function (int $current, int $previous): string {
+    $delta = $current - $previous;
+    return 'Anterior ' . Finance::money($previous) . ' · '
+        . ($delta === 0 ? 'sem variação' : ($delta > 0 ? 'alta ' : 'queda ') . Finance::money(abs($delta)));
+};
 ?>
 <section class="card finance-workspace finance-report" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
   <header class="report-print-head">
@@ -138,20 +160,29 @@ $positionClosing=array_sum(array_column($accountPosition,'closing_cents'));
       </tbody><tfoot><tr><th scope="row" colspan="2">Total em caixa</th><td class="is-money"><?= $e(Finance::money($positionOpening)) ?></td><td class="is-money"><?= $e(Finance::money($netMovement)) ?></td><td class="is-money"><?= $e(Finance::money($positionClosing)) ?></td></tr></tfoot>
     </table></div><?php endif; ?>
   </section>
-  <?php if ($billing !== null): $bill = $billing['totals']; ?>
+  <?php if ($billing !== null): $bill = $billing['totals']; $billPrevious = $billingPrevious['totals'] ?? []; ?>
   <section class="report-daily-list" aria-labelledby="billing-title">
     <div class="finance-toolbar">
-      <div><h3 id="billing-title">Faturamento gerencial</h3><p class="muted">Receitas reconhecidas por competência. Não representa emissão de nota fiscal.</p></div>
+      <div><h3 id="billing-title">Faturamento gerencial</h3><p class="muted">Receitas reconhecidas por competência. Comparação com <?= $e($period['compareStart']->format('d/m/Y')) ?> a <?= $e($period['compareEnd']->format('d/m/Y')) ?>. Não representa emissão de nota fiscal.</p></div>
       <a class="finance-button" href="<?= $e($billingExport) ?>" download>Exportar faturamento</a>
     </div>
+    <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
+      <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
+      <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
+      <label>Origem<select name="faturamento_origem"><option value="">Todas</option><option value="manual"<?= $billing['filters']['origin'] === 'manual' ? ' selected' : '' ?>>Lançamento manual</option><option value="service_order"<?= $billing['filters']['origin'] === 'service_order' ? ' selected' : '' ?>>Ordem de serviço</option></select></label>
+      <label>Cliente<select name="faturamento_cliente"><option value="">Todos</option><option value="unassigned"<?= $billing['filters']['customer'] === 'unassigned' ? ' selected' : '' ?>>Sem cliente cadastrado</option><?php foreach ($billing['customers'] as $customer): ?><option value="<?= $e($customer['key']) ?>"<?= $billing['filters']['customer'] === $customer['key'] ? ' selected' : '' ?>><?= $e($customer['label']) ?></option><?php endforeach; ?></select></label>
+      <button class="finance-button" type="submit">Aplicar filtros</button>
+      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery)) ?>">Limpar</a><?php endif; ?>
+    </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de faturamento">
-      <div class="finance-goal-stat finance-indicator is-forecast"><span>Faturado</span><strong><?= $e(Finance::money($bill['billed_cents'])) ?></strong><small><?= (int) $bill['entries'] ?> <?= $bill['entries'] === 1 ? 'receita reconhecida' : 'receitas reconhecidas' ?></small></div>
-      <div class="finance-goal-stat finance-indicator is-realized"><span>Recebido no período</span><strong><?= $e(Finance::money($bill['cash_received_cents'])) ?></strong><small>Baixas pela data efetiva, de qualquer competência</small></div>
-      <div class="finance-goal-stat finance-indicator <?= $bill['open_cents'] > 0 ? 'is-forecast' : 'is-neutral' ?>"><span>Em aberto do faturado</span><strong><?= $e(Finance::money($bill['open_cents'])) ?></strong><small>Posição no fim do período<?= $bill['overdue_cents'] > 0 ? ' · vencido ' . $e(Finance::money($bill['overdue_cents'])) : '' ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-forecast"><span>Faturado</span><strong><?= $e(Finance::money($bill['billed_cents'])) ?></strong><small><?= $e($billingComparison($bill['billed_cents'], (int) ($billPrevious['billed_cents'] ?? 0))) ?></small></div>
+      <div class="finance-goal-stat finance-indicator is-realized"><span>Recebido no período</span><strong><?= $e(Finance::money($bill['cash_received_cents'])) ?></strong><small><?= $e($billingComparison($bill['cash_received_cents'], (int) ($billPrevious['cash_received_cents'] ?? 0))) ?></small></div>
+      <div class="finance-goal-stat finance-indicator <?= $bill['open_cents'] > 0 ? 'is-forecast' : 'is-neutral' ?>"><span>Em aberto do faturado</span><strong><?= $e(Finance::money($bill['open_cents'])) ?></strong><small><?= $e($billingComparison($bill['open_cents'], (int) ($billPrevious['open_cents'] ?? 0))) ?><?= $bill['overdue_cents'] > 0 ? ' · vencido ' . $e(Finance::money($bill['overdue_cents'])) : '' ?></small></div>
       <div class="finance-goal-stat finance-indicator is-neutral"><span>Origem</span><strong><?= $e(Finance::money($bill['service_order_cents'])) ?></strong><small>Ordens de serviço · manual <?= $e(Finance::money($bill['manual_cents'])) ?></small></div>
     </div>
     <?php if ($billing['rows'] === []): ?>
-    <div class="finance-empty"><h3>Nenhuma receita reconhecida</h3><p>As receitas de competência do período aparecerão aqui.</p></div>
+    <div class="finance-empty"><h3>Nenhuma receita reconhecida</h3><p><?= $billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== '' ? 'Nenhum lançamento corresponde aos filtros aplicados.' : 'As receitas de competência do período aparecerão aqui.' ?></p></div>
     <?php else: ?>
     <div class="report-table-wrap" tabindex="0" role="region" aria-labelledby="billing-title">
       <table class="report-table">

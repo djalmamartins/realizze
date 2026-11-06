@@ -27,6 +27,8 @@ O “Faturamento gerencial” significa receitas registradas em Contas a Receber
 - CSV da DRE aplica neutralização de fórmulas em textos fornecidos pelo usuário;
 - CSV do fluxo de caixa aplica neutralização de fórmulas e mantém a separação entre realizado e saldo previsto;
 - CSV de faturamento neutraliza fórmulas e preserva a distinção entre competência, caixa e saldo em aberto;
+- filtros de cliente e origem usam o mesmo escopo nos indicadores, comparação, detalhamento e CSV de faturamento;
+- comparação de faturamento usa períodos equivalentes e não converte variação gerencial em alegação fiscal;
 - relatório operacional usa somente ordens de serviço registradas, separa valor comercial, cobrança e recebimento e não infere margem, produtividade ou documento fiscal;
 - exportação de ordens neutraliza fórmulas nos textos fornecidos pelo usuário e mantém o isolamento da empresa ativa;
 - agenda de obrigações usa somente dados informados pela empresa, preserva a situação na data-base e não calcula tributos, multas, guias ou prazos legais;
