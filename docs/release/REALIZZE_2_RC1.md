@@ -36,12 +36,12 @@ Referência: Contas a Receber PF (`components/receivables.php`): abas de situaç
 | Receber e Pagar PJ | Já usam os mesmos componentes da PF | | |
 | Obrigações | Padronizado: abas (Pendentes, Próximas, Vencidas, Concluídas, Canceladas), período por vencimento, tipo | `tests/http/obligation-filters-flow.php` (10 OK), capturas 1440/390 | `a937628` |
 | Ordens de serviço | Padronizado: abas, busca (número, cliente, descrição), prazo, cliente, responsável. **Bug corrigido:** a última ordem da lista era substituída pela penúltima (referência de `foreach` sem `unset`); indicadores zeravam ao filtrar uma situação | `tests/http/service-order-filters-flow.php` (8 OK, falhava antes da correção), `enterprise-business-modules-flow` (11 OK) | `10873fe` |
-| Clientes e Fornecedores | Pendente: formulário próprio com busca, tipo e situação | | |
-| Conciliação | Pendente: formulário solto com situação e conta | | |
+| Clientes e Fornecedores | Padronizado: abas Todos/Ativos/Inativos, busca, tipo, papel só na lista geral | `tests/http/contact-filters-flow.php` (7 OK), payables e permissions sem regressão, capturas | `af889dd` |
+| Conciliação | Padronizado: abas por situação, período pela data do extrato, busca na descrição, conta. Lista ainda limitada a 500 linhas, sem paginação (P2) | `tests/http/reconciliation-filters-flow.php` (6 OK, compara com o banco), `finance-021` aprovado | `d3f0212` |
 | Fluxo de caixa, DRE, Relatórios | Usam `report-period-form` (padrão dos relatórios do Codex); revisar só se houver divergência | | |
 
-Observações visuais: o seletor de situação inline das OS ainda usa o `select` nativo sem estilo; a sidebar PJ é verde-escura e a PF é clara (identidade por contexto, a confirmar com Djalma).
+Observações visuais: o seletor de situação inline das OS ainda usa o `select` nativo sem estilo; a sidebar PJ verde-escura é decisão anterior de Djalma (identidade PJ) e fica como está.
 
 ## Próxima atividade
 
-Clientes/Fornecedores e Conciliação no mesmo padrão; depois a revisão página por página (Etapa 4).
+Etapa 4: revisão página por página (formulários, edição, exclusão, permissões, celular), começando pelas telas marcadas "a revalidar" na matriz.
