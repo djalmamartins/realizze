@@ -42,6 +42,31 @@ Referência: Contas a Receber PF (`components/receivables.php`): abas de situaç
 
 Observações visuais: o seletor de situação inline das OS ainda usa o `select` nativo sem estilo; a sidebar PJ verde-escura é decisão anterior de Djalma (identidade PJ) e fica como está.
 
-## Próxima atividade
+## Etapa 4: revisão página por página (concluída)
 
-Etapa 4: revisão página por página (formulários, edição, exclusão, permissões, celular), começando pelas telas marcadas "a revalidar" na matriz.
+Matriz em `MATRIZ_DE_PAGINAS.md`. Varredura no navegador de 41 páginas em 1440, 768 e 390 px, sem erro. Corrigido: título diferente do menu em quatro telas (`a242f35`).
+
+## Etapa 5: relatórios (concluída)
+
+`tests/http/report-exports-flow.php`: 13 links de exportação (PF e PJ) devolvem CSV com BOM e cabeçalho; valor certo; texto iniciado por `=` sai protegido; outra empresa não vê o lançamento; Visualizador recebe 403 em todas as exportações (`b7a7b67`). Números dos relatórios: `finance-006`, `finance-011`, `finance-017`, `finance-024`, `finance-025`, `enterprise-009/010/011` passam. PDF continua sendo a impressão do navegador.
+
+## Etapa 6: segurança e conformidade (concluída)
+
+- Isolamento: `tests/http/cross-company-idor-flow.php` (ids de outra empresa do mesmo dono não alteram nada; controle positivo na empresa certa) (`ffd8d6b`), além de `finance-001-isolation` e `enterprise-permissions-flow`.
+- CNPJ alfanumérico implementado e numérico compatível (`176569e`). Detalhes e fontes em `CONFORMIDADE.md`.
+
+## Etapa 7: homologação (concluída)
+
+- Suíte: 70 testes PHP no `realizze_pjtest` passam, exceto `core-001-email-smtp` (envio real). `finance-023` só roda no banco `realizze_migration014_20261103` e passa lá (no outro banco ele recusava e saía com código 0, o que parecia aprovação).
+- Os 6 testes que chamam o Apache real rodaram num Apache temporário (`realizze-claude-homolog`, sem porta publicada, banco de teste): todos passam. `app-005-routes` atualizado para Faturas, Meu perfil e o redirecionamento de Configurações (`8048a17`).
+- Corrigidos nesta etapa: **estorno de baixa** (não existia: pagamento ou recebimento confirmado por engano não tinha volta), **Categorias somava cancelados** (`d25a5f5`), botão de Ajuda da sidebar que não fazia nada (`4ba9d84`), seletor de situação das OS (`2410852`).
+- Testes novos: `settlement-reversal-flow` (10 OK), `finance-027-category-totals`.
+
+## Etapa 8: produção
+
+Ver `PENDENCIAS_PRODUCAO.md` (checklist, P0/P1/P2 e prazo).
+
+## Como rodar os testes isolados
+
+Servidor: `php -S 0.0.0.0:18299` no `dev-apache` com `DB_*` do `realizze_pjtest` e `TMPDIR=/tmp/pjtest-claude`; fluxos com `REALIZZE_TEST_HTTP=http://127.0.0.1:18299`. Apague `/tmp/pjtest-claude/realizze-auth-limits/*` entre fluxos (limitador de login). Capturas: `storage/tmp-pjtest/sweep.mjs` e `shot2.mjs` no container `realizze-pjtest-browser` (proxy `proxy2.mjs` na 8444).
+
