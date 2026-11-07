@@ -5,6 +5,12 @@ require __DIR__ . '/client.php';
 $ok = 0; $fail = 0;
 $check = function (bool $c, string $m) use (&$ok, &$fail) { echo ($c ? 'OK' : 'FALHOU') . " - $m\n"; $c ? $ok++ : $fail++; };
 $slug = 'missao-alfa-ltda';
+require_once dirname(__DIR__, 2) . '/source/Boot/app.php';
+require_once dirname(__DIR__, 2) . '/source/Boot/database.php';
+$pdo = \MovesCode\Model\Connection::get();
+if (!str_contains((string) $pdo->query('SELECT DATABASE()')->fetchColumn(), 'test')) throw new RuntimeException('Banco de teste obrigatório.');
+// Estado inicial conhecido: sem ele, a segunda execução encontrava os dados já salvos ("Nada foi alterado").
+$pdo->prepare("UPDATE organizations SET trade_name = NULL, email = NULL, phone = NULL WHERE slug = ?")->execute([$slug]);
 $o = new H(); $o->login('pj-dono@example.invalid', 'PjMissao#2026');
 $page = $o->req('GET', "/e/$slug/empresa"); $csrf = $o->csrf($page['body']);
 $check(str_contains($page['body'], 'name="trade_name"'), 'Dono vê o formulário de edição');

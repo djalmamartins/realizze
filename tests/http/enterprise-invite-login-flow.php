@@ -5,6 +5,15 @@ require __DIR__ . '/client.php';
 $ok = 0; $fail = 0;
 $check = function (bool $c, string $m) use (&$ok, &$fail) { echo ($c ? 'OK' : 'FALHOU') . " - $m\n"; $c ? $ok++ : $fail++; };
 $slug = 'missao-alfa-ltda';
+require_once dirname(__DIR__, 2) . '/source/Boot/app.php';
+require_once dirname(__DIR__, 2) . '/source/Boot/database.php';
+$pdo = \MovesCode\Model\Connection::get();
+if (!str_contains((string) $pdo->query('SELECT DATABASE()')->fetchColumn(), 'test')) throw new RuntimeException('Banco de teste obrigatório.');
+// Estado inicial conhecido: o convidado ainda não é membro nem tem convite pendente na Alfa.
+$orgId = (int) $pdo->query("SELECT id FROM organizations WHERE slug = " . $pdo->quote($slug))->fetchColumn();
+$guestId = (int) $pdo->query("SELECT id FROM users WHERE email = 'pj-convidado@example.invalid'")->fetchColumn();
+$pdo->prepare('DELETE FROM organization_members WHERE organization_id = ? AND user_id = ?')->execute([$orgId, $guestId]);
+$pdo->prepare("UPDATE organization_invitations SET status = 'revoked', revoked_at = NOW() WHERE organization_id = ? AND email = ? AND status = 'pending'")->execute([$orgId, 'pj-convidado@example.invalid']);
 $o = new H(); $o->login('pj-dono@example.invalid', 'PjMissao#2026');
 $eq = $o->req('GET', "/e/$slug/equipe");
 $o->req('POST', '/minha-conta/equipe/convidar', ['csrf_token' => $o->csrf($eq['body']), 'email' => 'pj-convidado@example.invalid', 'role' => 'viewer']);
