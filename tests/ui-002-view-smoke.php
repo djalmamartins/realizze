@@ -248,6 +248,17 @@ if (strpos($obligationsSource, 'id="obligation-edit-') < strpos($obligationsSour
 }
 echo 'OK - APP-UI-078: filtros de Obrigações, Ordens de Serviço e Auditoria compartilham o padrão oficial.' . PHP_EOL;
 
+// APP-UI-090: as últimas páginas com filtros próprios também usam o padrão oficial.
+foreach (['conciliacao.php', 'perfil.php', 'contatos.php'] as $page) {
+    $source = (string) file_get_contents($root . '/pages/' . $page);
+    foreach (['filter-button.php', 'filter-bar.php', 'filter-dialog', 'Aplicar', 'data-finance-close'] as $needle) {
+        if (!str_contains($source, $needle)) {
+            throw new RuntimeException('APP-UI-090: filtro compartilhado incompleto em ' . $page . ': ' . $needle);
+        }
+    }
+}
+echo 'OK - APP-UI-090: Contatos, Conciliação e Perfil compartilham o padrão oficial de filtros.' . PHP_EOL;
+
 // APP-UI-044: shared financial tables have captions and escape dynamic metadata.
 foreach ([
 ] as $page => $caption) {

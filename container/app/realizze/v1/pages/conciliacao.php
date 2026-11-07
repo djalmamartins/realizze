@@ -32,11 +32,19 @@ $kinds=['income'=>'Receita','expense'=>'Despesa','transfer'=>'Transferência'];
     <a class="finance-goal-stat finance-indicator <?= $counts['matched']>0?'is-realized':'is-neutral' ?>" href="<?= $e($link(['situacao'=>'matched','conta'=>$accountFilter])) ?>"><span>Conciliadas</span><strong><?= (int)$counts['matched'] ?></strong><small>Ligadas a um lançamento</small></a>
     <a class="finance-goal-stat finance-indicator is-neutral" href="<?= $e($link(['situacao'=>'ignored','conta'=>$accountFilter])) ?>"><span>Ignoradas</span><strong><?= (int)$counts['ignored']+(int)$counts['reversed'] ?></strong><small>Sem lançamento correspondente</small></a>
   </div>
-  <form method="get" class="finance-filter-bar invoice-card-switch" action="<?= $e(AppUrl::section('conciliacao')) ?>">
-    <label><span class="sr-only">Situação</span><select name="situacao"><option value="">Todas as situações</option><?php foreach($statusLabels as $key=>$label): ?><option value="<?= $e($key) ?>"<?= $status===$key?' selected':'' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
-    <label><span class="sr-only">Conta</span><select name="conta"><option value="">Todas as contas</option><?php foreach($accounts as $a): ?><option value="<?= (int)$a['id'] ?>"<?= $accountFilter===(int)$a['id']?' selected':'' ?>><?= $e($a['name']) ?></option><?php endforeach; ?></select></label>
-    <button type="submit" class="finance-button">Filtrar</button><?php if($filters!==[]): ?><a class="filter-clear" href="<?= $e(AppUrl::section('conciliacao')) ?>">Limpar</a><?php endif; ?>
-  </form>
+  <div class="finance-filter-bar"><?php $filterPanelId = 'reconciliation-filters'; require __DIR__ . '/../components/filter-button.php'; ?></div>
+  <?php
+  $filterChips=[];
+  if($status!=='')$filterChips[]=['label'=>'Situação: '.($statusLabels[$status]??$status),'url'=>$link(['conta'=>$accountFilter])];
+  if($accountFilter>0){$accountName='Conta';foreach($accounts as $account)if((int)$account['id']===$accountFilter){$accountName=(string)$account['name'];break;}$filterChips[]=['label'=>'Conta: '.$accountName,'url'=>$link(['situacao'=>$status])];}
+  $filterClearUrl=AppUrl::section('conciliacao');require __DIR__ . '/../components/filter-bar.php';
+  ?>
+  <dialog class="finance-dialog filter-dialog" id="reconciliation-filters" aria-labelledby="reconciliation-filters-title"><form method="get" action="<?= $e(AppUrl::section('conciliacao')) ?>" data-swap-get>
+    <header><h2 id="reconciliation-filters-title">Filtrar conciliação</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <label>Situação<select name="situacao"><option value="">Todas as situações</option><?php foreach($statusLabels as $key=>$label): ?><option value="<?= $e($key) ?>"<?= $status===$key?' selected':'' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
+    <label>Conta<select name="conta"><option value="">Todas as contas</option><?php foreach($accounts as $a): ?><option value="<?= (int)$a['id'] ?>"<?= $accountFilter===(int)$a['id']?' selected':'' ?>><?= $e($a['name']) ?></option><?php endforeach; ?></select></label>
+    <footer><a class="finance-button" href="<?= $e(AppUrl::section('conciliacao')) ?>">Limpar</a><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Aplicar filtros</button></footer>
+  </form></dialog>
   <?php if($counts['pending']>0): ?><p class="muted reconcile-hint">Sugerimos lançamentos da mesma conta, com o mesmo valor e até 7 dias de diferença. Sem sugestão, lance a receita ou despesa em Receber ou Pagar e volte, ou ignore a linha.</p><?php endif; ?>
   <?php if($lines===[]): ?>
   <div class="finance-empty"><h3><?= $filters===[]?'Nenhuma linha para revisar':'Nenhuma linha com estes filtros' ?></h3><p>Importe um CSV com as colunas Data, Descrição e Valor, ou o arquivo OFX do banco.</p></div>
