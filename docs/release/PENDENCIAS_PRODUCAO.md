@@ -7,7 +7,7 @@ Atualizado em 07/11/2026. P0 impede produção ou é risco crítico; P1 é essen
 | Pendência | Quem | Esforço |
 |---|---|---|
 | Aplicar as migrations 014 a 020 no `realizze_dev` com `aplicar-migrations.sh` (faz backup antes; estendido até a 020). Sem elas: Faturas, Conciliação, Centros de custo, pagamentos de fatura, papéis da equipe, logotipo, Obrigações, Ordens de serviço e DRE por grupo não funcionam. Repetir no banco de produção. | Djalma | 1 h |
-| Integrar a `dev-claude` (29 commits locais acima da `main`) na `main` e enviar ao GitHub. `app.realizze.lab` serve a `main`. | Djalma | 1 h + revisão |
+| Integrar a `dev-claude` (19 commits locais acima da `main`, contando este) na `main` e enviar ao GitHub. `app.realizze.lab` serve a `main`. | Djalma | 1 h + revisão |
 | Agendar os crons: `process-mail-queue.php`, `process-notifications.php`, `finance-recurring-due.php`, `process-goal-schedules.php`. Hoje nenhum roda: e-mails de confirmação e recuperação de senha ficam na fila. | Djalma / infra | 0,5 dia |
 | `.env` de produção: `APP_ENV=production`, `REALIZZE_APP_ENABLED=1`, `REALIZZE_CMS_ENABLED=1`, SMTP real, `REALIZZE_CMS_PREVIEW_ALLOWED_IPS`. | Djalma | 0,5 dia |
 | Backup diário do banco com teste de restauração e controle de migrations aplicadas (hoje o script testa caso a caso e está fora do Git). | Djalma + Claude | 1 dia |
