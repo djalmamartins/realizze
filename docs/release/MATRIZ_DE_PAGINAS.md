@@ -1,49 +1,58 @@
 # Matriz de páginas
 
-Legenda: **Validada** (testada por fluxo real nesta missão), **Corrigir**, **Parcial**, **Não implementada**, **Bloqueada**. "Navegação OK" significa que a rota existe, está no menu certo, abre com 200 e respeita permissões (`navigation-menu-flow`). A coluna Funcional traz o último estado registrado e será revalidada na Etapa 4.
+Atualizada em 07/11/2026 (Etapa 4). Toda linha abaixo passou pela varredura no navegador (Chromium, sessão do dono no banco `realizze_pjtest`) em 1440, 768 e 390 px: carregou com o título certo, sem erro de JS, de console, de rede ou de PHP e sem rolagem lateral. A navegação (rota, item no menu, título igual ao menu, permissão) é coberta por `tests/http/navigation-menu-flow.php`.
+
+Status: **Validada** = fluxos de gravação cobertos por teste automatizado que passou nesta rodada. **Validada (leitura)** = só exibe dados; carga e números conferidos. **Sem teste de gravação** = abre e funciona na varredura, mas nenhum teste cobre salvar/editar. **Parcial** = falta função. **Bloqueada** = depende de migration no `realizze_dev`.
+
+Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 020. As páginas marcadas com (014-020) só funcionam no banco de teste até Djalma aplicá-las.
 
 ## PF (`/p`)
 
-| Página | Rota | Navegação | Funcional | Observação |
-|---|---|---|---|---|
-| Visão Geral | `/p` | OK | a revalidar | |
-| Receber | `/p/receber` | OK | a revalidar | Referência de filtros para o PJ |
-| Pagar | `/p/pagar` | OK | a revalidar | |
-| Movimentações | `/p/movimentacoes` | OK | a revalidar | Transferências ficam aqui |
-| Contas e Cartões | `/p/cartoes` | OK | a revalidar | |
-| Faturas | `/p/faturas` | OK (novo no menu) | a revalidar | Depende da 014/015 no `realizze_dev` |
-| Assinaturas e recorrências | `/p/recorrencias` | OK | a revalidar | |
-| Metas | `/p/metas` | OK | a revalidar | |
-| Planejamento | `/p/planejamento` | OK | a revalidar | |
-| Sair das Dívidas | `/p/sair-das-dividas` | OK | a revalidar | |
-| Relatórios | `/p/relatorios` | OK | satisfatória (Djalma) | Não redesenhar |
-| Categorias | `/p/categorias` | OK | satisfatória (Djalma) | Não redesenhar |
-| Notificações | `/p/notificacoes` | OK (novo no menu) | a revalidar | |
-| Integrações | `/p/integracoes` | OK | informativa | Sem integração bancária ainda |
-| Configurações / Meu perfil | `/p/perfil` | OK | a revalidar | `/p/configuracoes` redireciona |
-| Assistente, Empresarial | `/p/assistente`, `/p/empresarial` | fora do menu | Parcial (prévia) | Decisão pendente |
+| Página | Status | Testes |
+|---|---|---|
+| Visão Geral | Validada (leitura) | `finance-017-dashboard-consistency`, `ui-005-finance-indicators` |
+| Receber | Validada | `finance-002-receivables`, `finance-014-partial-settlement`, `finance-012-entry-modal` |
+| Pagar | Validada | `finance-023-payables-partial`, `finance-016-recurring-in-payables` |
+| Movimentações (transferências) | Validada | `finance-009-transfer-balance`, `finance-011-e2e-math` |
+| Contas e Cartões | Validada | `finance-018-accounts`, `finance-004-institutions` |
+| Faturas | Validada, bloqueada no `realizze_dev` (014/015) | `finance-020-card-invoices` |
+| Assinaturas e recorrências | Validada | `finance-008`, `finance-010` |
+| Metas | Validada | `finance-007-goal-progress`, `finance-013-goal-wallets` |
+| Planejamento | Validada | `finance-015-planning` |
+| Sair das Dívidas | Validada | `debt-001`, `debt-002`, `debt-003` |
+| Relatórios | Validada (leitura) | `finance-006-report`, `finance-024`, `finance-025` (não redesenhar) |
+| Categorias | Sem teste de gravação | Satisfatória para Djalma (não redesenhar) |
+| Notificações | Validada | `notifications-001-app` |
+| Integrações | Parcial | Página informativa: integração bancária não existe |
+| Configurações / Meu perfil | Validada | `profile-001-security`, `security-001-csrf-session` |
+| Assistente, Empresarial | Parcial (prévias fora do menu) | Decisão de Djalma |
 
 ## PJ (`/e/{empresa}`)
 
-| Página | Rota | Navegação | Funcional (PROGRESSO.md) |
-|---|---|---|---|
-| Dashboard | `/e/{e}` | OK | Concluída |
-| Receber e cobranças | `/receber` | OK | a revalidar |
-| Pagar | `/pagar` | OK | Concluída |
-| Movimentações | `/movimentacoes` | OK | a revalidar |
-| Recorrências | `/recorrencias` | OK | a revalidar |
-| Fluxo de caixa | `/fluxo-de-caixa` | OK | Concluída |
-| Bancos e contas | `/cartoes` | OK | Concluída |
-| Cartões e faturas | `/faturas` | OK | Concluída |
-| Conciliação | `/conciliacao` | OK | Concluída |
-| Clientes / Fornecedores (+ detalhe) | `/clientes`, `/fornecedores` | OK | Concluída |
-| Categorias | `/categorias` | OK | a revalidar |
-| Centros de custo | `/centros-de-custo` | OK | Concluída |
-| Relatórios | `/relatorios` | OK (exige reports.view) | Concluída |
-| DRE gerencial | `/dre` | OK (exige reports.view; corrigido no menu) | Concluída |
-| Planejamento, Metas | `/planejamento`, `/metas` | OK (exige planning.view) | a revalidar |
-| Obrigações | `/obrigacoes` | OK | Concluída |
-| Ordens de serviço | `/ordens-de-servico` | OK | Concluída |
-| Equipe, Permissões, Segurança, Configurações | `/equipe`, `/permissoes`, `/seguranca`, `/empresa` | OK | Concluída |
-| Auditoria | `/auditoria` | OK (exige team.manage) | Concluída |
-| Integrações, Notificações, Ajuda | `/integracoes`, `/notificacoes`, `/suporte` | OK | a revalidar |
+| Página | Status | Testes |
+|---|---|---|
+| Dashboard | Validada (leitura) | `finance-017`, `enterprise-001-context` |
+| Receber e cobranças | Validada | `finance-002`, `finance-014` |
+| Pagar | Validada | `finance-019-payables-suppliers`, `finance-023`, `enterprise-payables-flow` |
+| Movimentações, Recorrências | Validada | como na PF |
+| Fluxo de caixa | Validada (leitura) | `finance-017`, relatórios do Codex |
+| Bancos e contas | Validada | `finance-018`, `enterprise-accounts-flow` |
+| Cartões e faturas | Validada (014/015) | `finance-020`, `enterprise-invoices-flow` |
+| Conciliação bancária | Validada (014); lista limitada a 500 linhas | `finance-021`, `enterprise-reconciliation-flow`, `reconciliation-filters-flow` |
+| Clientes, Fornecedores (+ detalhe) | Validada | `finance-003-contacts`, `contact-filters-flow` |
+| Categorias | Sem teste de gravação | DRE por grupo depende da 020 |
+| Centros de custo | Validada (014) | `finance-022-cost-centers` |
+| Relatórios | Validada (leitura) | `enterprise-009/010/011`, `ui-006` |
+| DRE gerencial | Validada (leitura, 020) | `enterprise-004-management-dre` |
+| Planejamento, Metas | Validada | como na PF |
+| Obrigações | Validada (018) | `enterprise-006`, `enterprise-business-modules-flow`, `obligation-filters-flow` |
+| Ordens de serviço | Validada (019) | `enterprise-007`, `enterprise-008`, `service-order-filters-flow` |
+| Equipe, Permissões | Validada (016) | `enterprise-002-team`, `enterprise-permissions-flow`, `enterprise-invite-login-flow` |
+| Configurações da empresa (logotipo) | Validada (017) | `enterprise-003`, `enterprise-005-company-logo`, `enterprise-company-flow` |
+| Segurança | Validada | `enterprise-security-flow` |
+| Auditoria | Validada (leitura) | `enterprise-003-company-audit` |
+| Integrações, Notificações | Como na PF | |
+
+## Suíte nesta rodada
+
+70 testes PHP rodados contra o `realizze_pjtest`: 69 passaram. `core-001-email-smtp` exige `TEST_MAIL_TO` e envio real, por isso não foi executado. Seis testes chamam o Apache real (`auth-002-http`, `app-005-routes`, `cms-100-e2e`, `core-support-helpers`, `core-007-environment-router`, `email-confirmation-http-v1`) e ficaram de fora, para não tocar no `realizze_dev`; eles entram na homologação (Etapa 7). Os três testes Node (`ui-003`, `ui-004`, `cms-003`) passam. Os fluxos HTTP novos desta missão também passam.
