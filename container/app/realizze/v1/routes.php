@@ -85,7 +85,7 @@ return [
                 return;
             }
             if ($organization !== null) {
-                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'obrigacoes' => 'finance.view', 'ordens-de-servico' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'dre' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view', 'auditoria' => 'team.manage'][$section] ?? null;
+                $sectionPermission = \Moves\Services\OrganizationTeam::SECTION_PERMISSIONS[$section] ?? null;
                 $sessionUser = \Moves\Services\SessionAuth::current();
                 if ($sectionPermission !== null && !\Moves\Services\OrganizationTeam::can((int) $sessionUser['id'], (int) $organization['id'], $sectionPermission)) {
                     $renderError(403);
@@ -94,6 +94,12 @@ return [
             }
             // Prévias antigas que ficaram fora do menu da empresa levam à tela que as substituiu.
             $replaced = ['empresarial' => 'overview', 'configuracoes' => 'empresa', 'assistente' => 'overview', 'contatos' => 'clientes'];
+            // Na PF, as preferências reais (dados, segurança e acessos) ficam em Meu perfil; a prévia sem controles saiu do caminho.
+            if ($organization === null && $section === 'configuracoes') {
+                header('Cache-Control: no-store');
+                header('Location: ' . AppUrl::section('perfil'), true, 302);
+                return;
+            }
             if ($organization !== null && isset($replaced[$section])) {
                 header('Cache-Control: no-store');
                 header('Location: ' . AppUrl::section($replaced[$section], $organization), true, 302);
@@ -104,9 +110,9 @@ return [
                 $renderError(404);
                 return;
             }
-            if ($organization === null && \Moves\Services\PersonalAccessContext::ownerId() !== null) {
-                $permission = ['overview'=>'dashboard.view','receber'=>'income.view','pagar'=>'expenses.view','contas'=>'accounts.view','relatorios'=>'reports.view','metas'=>'goals.manage','categorias'=>'categories.manage'][$section] ?? null;
-                if ($permission === null || !\Moves\Services\PersonalAccessContext::can($permission)) { $renderError(403); return; }
+            if ($organization === null && !\Moves\Services\PersonalAccessContext::canOpen($section)) {
+                $renderError(403);
+                return;
             }
             if ($period !== null) {
                 // A URL define o período; a tela continua lendo os mesmos parâmetros.

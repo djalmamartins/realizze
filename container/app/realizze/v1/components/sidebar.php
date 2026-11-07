@@ -50,6 +50,10 @@ $navLink = static function (string $key) use ($items, $section, $sidebarHref, $i
 $navLink('overview');
 foreach ($navGroups as [$groupTitle, $groupIcon, $groupKeys]):
     if ($groupKeys === []) continue;
+    if ($groupTitle === '') {
+        foreach ($groupKeys as $key) { $navLink($key); }
+        continue;
+    }
     $groupOpen = in_array($section, $groupKeys, true); ?>
 <details class="nav-group"<?= $groupOpen ? ' open' : '' ?>>
 <summary<?= $groupOpen ? ' class="is-active"' : '' ?>><span class="symbol" aria-hidden="true"><?= $icon($groupIcon) ?></span><?= $escapeSidebar($groupTitle) ?></summary>
