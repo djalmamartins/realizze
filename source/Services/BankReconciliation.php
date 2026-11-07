@@ -18,22 +18,36 @@ final class BankReconciliation
 
     public function lines(array $filters = []): array
     {
-        $where = ['l.financial_context_id=?'];
-        $args = [$this->contextId];
-        if (in_array($filters['status'] ?? '', self::STATUSES, true)) { $where[] = 'l.status=?'; $args[] = $filters['status']; }
-        $account = filter_var($filters['account_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if ($account !== false) { $where[] = 'l.account_id=?'; $args[] = $account; }
+        [$where, $args] = $this->filterWhere($filters, true);
         $q=$this->pdo->prepare('SELECT l.*,a.name account,e.description entry_description,e.due_date entry_date FROM finance_reconciliation_lines l INNER JOIN finance_accounts a ON a.id=l.account_id LEFT JOIN finance_entries e ON e.id=l.matched_entry_id WHERE '.implode(' AND ',$where).' ORDER BY l.status=\'pending\' DESC,l.occurred_on DESC,l.id DESC LIMIT 500');
         $q->execute($args);
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** @return array<string,int> quantidade de linhas por situação */
-    public function counts(): array
+    /** @return array<string,int> quantidade de linhas por situação, com os mesmos filtros de conta, período e busca */
+    public function counts(array $filters = []): array
     {
-        $q=$this->pdo->prepare('SELECT status,COUNT(*) total FROM finance_reconciliation_lines WHERE financial_context_id=? GROUP BY status');
-        $q->execute([$this->contextId]);
+        [$where, $args] = $this->filterWhere($filters, false);
+        $q=$this->pdo->prepare('SELECT l.status,COUNT(*) total FROM finance_reconciliation_lines l WHERE '.implode(' AND ',$where).' GROUP BY l.status');
+        $q->execute($args);
         return array_map('intval', array_column($q->fetchAll(PDO::FETCH_ASSOC), 'total', 'status')) + array_fill_keys(self::STATUSES, 0);
+    }
+
+    /** Filtros da tela: situação, conta, período (data do extrato) e busca na descrição. Sempre restritos ao contexto. */
+    private function filterWhere(array $filters, bool $withStatus): array
+    {
+        $where = ['l.financial_context_id=?'];
+        $args = [$this->contextId];
+        if ($withStatus && in_array($filters['status'] ?? '', self::STATUSES, true)) { $where[] = 'l.status=?'; $args[] = $filters['status']; }
+        $account = filter_var($filters['account_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($account !== false) { $where[] = 'l.account_id=?'; $args[] = $account; }
+        foreach (['start' => '>=', 'end' => '<='] as $key => $op) {
+            $value = (string) ($filters[$key] ?? '');
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) { $where[] = "l.occurred_on $op ?"; $args[] = $value; }
+        }
+        $search = trim(mb_substr((string) ($filters['search'] ?? ''), 0, 120));
+        if ($search !== '') { $where[] = 'l.description LIKE ?'; $args[] = '%' . addcslashes($search, '%_\\') . '%'; }
+        return [$where, $args];
     }
 
     /**
