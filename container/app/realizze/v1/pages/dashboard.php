@@ -131,6 +131,10 @@ if ($activeOrganization !== null) {
     // Acesso delegado a outra pessoa: só as telas que o convite libera.
     $canOpenSection = static fn (string $key): bool => $key === 'suporte' || \Moves\Services\PersonalAccessContext::canOpen($key);
 }
+// O título da página e o item do menu usam o mesmo nome (Configurações da empresa mantém o nome completo no título).
+foreach ($activeOrganization !== null ? ['receber', 'contas', 'equipe'] : ['faturas'] as $titleKey) {
+    if (isset($items[$titleKey], $sections[$titleKey])) $sections[$titleKey][0] = $items[$titleKey][1];
+}
 if (!$canOpenSection('overview')) {
     unset($items['overview']);
 }

@@ -22,7 +22,11 @@ $check = static function (string $label, H $h, string $start, array $mustHave, a
         if ($r['code'] !== 200) { $failures[] = "$label: $link respondeu {$r['code']}"; continue; }
         if (preg_match('/(Warning|Notice|Deprecated|Fatal error)<\/b>|Uncaught|Stack trace/', $r['body'])) $failures[] = "$label: erro PHP em $link";
         if (str_contains($link, '/suporte')) continue;
-        if (!str_contains($r['body'], 'aria-current="page"')) $failures[] = "$label: $link sem item ativo no menu";
+        if (!preg_match('/aria-current="page"><span class="symbol"[^>]*>.*?<\/span>([^<]+)/s', $r['body'], $active)) { $failures[] = "$label: $link sem item ativo no menu"; continue; }
+        // Título da página igual ao item do menu (Configurações abre Meu perfil / Configurações da empresa, nomes completos).
+        preg_match('/<h1 id="app-page-title">([^<]+)/', $r['body'], $h1);
+        $menuName = html_entity_decode(trim($active[1])); $title = html_entity_decode(trim($h1[1] ?? $menuName));
+        if ($menuName !== 'Configurações' && $link !== '/p' && !preg_match('#^/e/[^/]+$#', $link) && $title !== $menuName) $failures[] = "$label: $link título \"$title\" difere do menu \"$menuName\"";
         // Mesmo menu em todas as telas: a navegação não muda conforme a página.
         if ($menuLinks($r['body']) !== $links) $failures[] = "$label: menu diferente em $link";
     }
