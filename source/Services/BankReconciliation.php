@@ -19,7 +19,7 @@ final class BankReconciliation
     public function lines(array $filters = []): array
     {
         [$where, $args] = $this->filterWhere($filters, true);
-        $q=$this->pdo->prepare('SELECT l.*,a.name account,e.description entry_description,e.due_date entry_date FROM finance_reconciliation_lines l INNER JOIN finance_accounts a ON a.id=l.account_id LEFT JOIN finance_entries e ON e.id=l.matched_entry_id WHERE '.implode(' AND ',$where).' ORDER BY l.status=\'pending\' DESC,l.occurred_on DESC,l.id DESC LIMIT 500');
+        $q=$this->pdo->prepare('SELECT l.*,a.name account,e.description entry_description,e.due_date entry_date FROM finance_reconciliation_lines l INNER JOIN finance_accounts a ON a.id=l.account_id LEFT JOIN finance_entries e ON e.id=l.matched_entry_id WHERE '.implode(' AND ',$where).' ORDER BY l.status=\'pending\' DESC,l.occurred_on DESC,l.id DESC LIMIT '.max(1,min(500,(int)($filters['limit']??500))).' OFFSET '.max(0,(int)($filters['offset']??0)));
         $q->execute($args);
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }

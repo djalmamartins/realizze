@@ -11,12 +11,15 @@ $start=$validDate($_GET['inicio']??null)?$_GET['inicio']:'';
 $end=$validDate($_GET['fim']??null)?$_GET['fim']:'';
 $search=is_string($_GET['busca']??null)?trim(mb_substr($_GET['busca'],0,120)):'';
 $scope=['account_id'=>$accountFilter,'start'=>$start,'end'=>$end,'search'=>$search];
-$lines=$accounts=$suggestions=[];$counts=array_fill_keys(array_keys($statusLabels),0);$error=null;
+$lines=$accounts=$suggestions=[];$page=$pages=1;$counts=array_fill_keys(array_keys($statusLabels),0);$error=null;
 try{
     $context=(int)FinanceContext::currentId();$service=new BankReconciliation($context);
     $accounts=array_values(array_filter((new Finance($context))->accounts(),static fn($a)=>$a['type']!=='credit_card'));
-    $lines=$service->lines(['status'=>$status]+$scope);
     $counts=$service->counts($scope);
+    // 50 linhas por página; o total vem da contagem com os mesmos filtros.
+    $perPage=50;$total=$status===''?array_sum($counts):(int)($counts[$status]??0);
+    $pages=max(1,(int)ceil($total/$perPage));$page=min($pages,max(1,(int)($_GET['pagina_extrato']??1)));
+    $lines=$service->lines(['status'=>$status,'limit'=>$perPage,'offset'=>($page-1)*$perPage]+$scope);
     $suggestions=$service->suggestions($lines);
 }catch(Throwable $x){error_log('Realizze reconciliation: '.$x->getMessage());$error='A estrutura de conciliação ainda precisa da migration 014.';}
 $flash=$_SESSION['finance_flash']??null;unset($_SESSION['finance_flash']);
@@ -93,6 +96,7 @@ $kinds=['income'=>'Receita','expense'=>'Despesa','transfer'=>'Transferência'];
   </tr>
   <?php endforeach; ?>
   </tbody></table></div>
+  <?php if($pages>1): ?><nav class="receivables-pagination" aria-label="Páginas do extrato"><?php for($p=1;$p<=$pages;$p++): ?><a href="<?= $e($link(['pagina_extrato'=>$p>1?$p:'']+$filters)) ?>"<?= $p===$page?' aria-current="page"':'' ?>><?= $p ?></a><?php endfor; ?></nav><?php endif; ?>
   <?php endif; ?>
   <?php endif; ?>
 </section>

@@ -38,7 +38,7 @@ Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 022. As páginas ma
 | Fluxo de caixa | Validada (leitura) | `finance-017`, relatórios do Codex |
 | Bancos e contas | Validada | `finance-018`, `enterprise-accounts-flow` |
 | Cartões e faturas | Validada (014/015) | `finance-020`, `enterprise-invoices-flow` |
-| Conciliação bancária | Validada (014); lista limitada a 500 linhas | `finance-021`, `enterprise-reconciliation-flow`, `reconciliation-filters-flow` |
+| Conciliação bancária | Validada (014); paginada (50 por página) | `finance-021`, `enterprise-reconciliation-flow`, `reconciliation-filters-flow` |
 | Clientes, Fornecedores (+ detalhe) | Validada | `finance-003-contacts`, `contact-filters-flow` |
 | Categorias | Validada | `categories-flow`; DRE por grupo depende da 020 |
 | Centros de custo | Validada (014) | `finance-022-cost-centers` |

@@ -10,7 +10,7 @@ Atualizado em 07/11/2026. P0 impede produção ou é risco crítico; P1 é essen
 | Integrar a `dev-claude` (commits locais acima da `main`; ver `git log main..dev-claude`) na `main` e enviar ao GitHub. `app.realizze.lab` serve a `main`. | Djalma | 1 h + revisão |
 | Agendar os crons: `process-mail-queue.php`, `process-notifications.php`, `finance-recurring-due.php`, `process-goal-schedules.php`. Hoje nenhum roda: e-mails de confirmação e recuperação de senha ficam na fila. | Djalma / infra | 0,5 dia |
 | `.env` de produção: `APP_ENV=production`, `REALIZZE_APP_ENABLED=1`, `REALIZZE_CMS_ENABLED=1`, SMTP real, `REALIZZE_CMS_PREVIEW_ALLOWED_IPS`. | Djalma | 0,5 dia |
-| Backup diário do banco com teste de restauração e controle de migrations aplicadas (hoje o script testa caso a caso e está fora do Git). | Djalma + Claude | 1 dia |
+| Backup diário do banco com teste de restauração. Controle de migrations: `scripts/migrations-status.php` (só leitura) mostra o que falta; passo a passo em `PRODUCAO_CHECKLIST.md`. | Djalma | 0,5 dia |
 | Termos de uso e privacidade revisados pelo jurídico (o cadastro já registra aceite em `user_legal_acceptances`). | Djalma / jurídico | externo |
 
 ## P1: essencial para a v1.0
@@ -30,12 +30,12 @@ Ainda abertos:
 | Decidir as prévias `/p/assistente` e `/p/empresarial` (fora do menu): remover ou redirecionar. | Djalma decide; 0,5 dia depois | |
 | Remover do `realizze_dev` o usuário temporário `pj-audit@example.invalid` e as empresas Auditoria Alfa/Beta (não alterei o `realizze_dev` sem autorização). | Djalma | 0,5 h |
 | Worktree `realizze-homolog`: decidir o destino das alterações não commitadas. | Djalma | |
-| Numeração repetida de migrations (dois `003_` e dois `108_`). Renomear arquivos já aplicados pode confundir o script de migrations; resolver junto com o controle de migrations aplicadas (P0). | Claude, depois do P0 | 0,5 dia |
+| Numeração repetida de migrations (dois `003_` e dois `108_`): sinalizada pelo `migrations-status.php`; não renomear arquivos já aplicados. Resolvido como documentação. | | |
 | Editar nome e cor de uma categoria (hoje só criar e excluir). Não mexi porque a tela de Categorias foi dada como satisfatória. | Djalma decide | 0,5 dia |
 
 ## P2: depois da v1.0
 
-- Conciliação com paginação (hoje até 500 linhas).
+- ~~Conciliação com paginação~~ feito em 07/11 (50 por página, `reconciliation-filters-flow`).
 - Cartão "Conexão bancária" na sidebar com botão desativado; Open Finance e importação CSV/OFX na PF.
 - Alerta de limite do MEI, lembretes de DAS e DASN-SIMEI e NFS-e nacional (dependem de contador; ver `CONFORMIDADE.md`).
 - Cobrança real no CMS (gateway), planos e preços.
