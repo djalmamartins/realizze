@@ -608,6 +608,10 @@
 .contact-count{margin:0 28px 10px;color:#52695a;font-size:13px;font-weight:600}
 .contact-legal{display:block;margin-top:2px;color:#6b7a73;font-size:12px;font-weight:400}
 .contact-table .nowrap{white-space:nowrap}
+.finance-entries .nowrap{white-space:nowrap}
+/* Ações em linha (OS, obrigações): os formulários de situação ficam lado a lado com os botões. */
+.finance-entries .finance-actions{white-space:nowrap}
+.finance-entries .finance-actions form{display:inline-flex;gap:6px;align-items:center;margin:0}
 .contact-table{min-width:760px}
 .finance-dialog-wide{width:min(680px,calc(100vw - 32px))}
 .finance-dialog form,.finance-dialog-body{max-height:calc(100dvh - 64px)}
