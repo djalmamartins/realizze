@@ -31,16 +31,27 @@ $detail = static function (array $row) use ($roleNames, $fieldLabels): string {
 };
 $filters = array_intersect_key($_GET, array_flip(['tipo', 'pessoa', 'de', 'ate']));
 $pageLink = static fn (int $target): string => AppUrl::section('auditoria', null, $filters + ['p' => $target]);
+$filterUrl = static fn (string ...$without): string => AppUrl::section('auditoria', null, array_diff_key($filters, array_flip($without)));
+$formatFilterDate = static fn (mixed $value): string => is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? (new DateTimeImmutable($value))->format('d/m/Y') : '…';
+$filterChips = [];
+if (!empty($filters['tipo'])) $filterChips['Ação: ' . (OrganizationAudit::EVENTS[$filters['tipo']] ?? $filters['tipo'])] = $filterUrl('tipo');
+if (!empty($filters['pessoa'])) {
+    foreach ($actors as $actor) if ((string) $actor['id'] === (string) $filters['pessoa']) $filterChips['Pessoa: ' . $actor['name']] = $filterUrl('pessoa');
+}
+if (!empty($filters['de']) || !empty($filters['ate'])) $filterChips['Período: ' . $formatFilterDate($filters['de'] ?? null) . ' a ' . $formatFilterDate($filters['ate'] ?? null)] = $filterUrl('de', 'ate');
+$filterClearUrl = AppUrl::section('auditoria');
 ?>
 <section class="card finance-workspace" aria-labelledby="audit-title">
   <div class="finance-toolbar"><div><h2 id="audit-title">Auditoria</h2><p class="muted">Ações administrativas em <?= $e($active['name'] ?? 'nesta empresa') ?>: equipe, convites e dados cadastrais. O registro não pode ser editado.</p></div></div>
-  <form method="get" class="finance-filter-bar" action="<?= $e(AppUrl::section('auditoria')) ?>">
+  <div class="finance-filter-bar"><?php $filterPanelId = 'audit-filters'; require __DIR__ . '/../components/filter-button.php'; ?></div>
+  <?php require __DIR__ . '/../components/filter-bar.php'; ?>
+  <dialog class="finance-dialog filter-dialog" id="audit-filters" aria-labelledby="audit-filters-title"><form method="get" action="<?= $e(AppUrl::section('auditoria')) ?>" data-swap-get>
+    <header><h2 id="audit-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <?php $periodStart = (string) ($_GET['de'] ?? ''); $periodEnd = (string) ($_GET['ate'] ?? ''); $periodStartName = 'de'; $periodEndName = 'ate'; require __DIR__ . '/../components/filter-period.php'; unset($periodStartName, $periodEndName); ?>
     <label>Ação<select name="tipo"><option value="">Todas</option><?php foreach (OrganizationAudit::EVENTS as $key => $label): ?><option value="<?= $e($key) ?>"<?= ($_GET['tipo'] ?? '') === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
     <label>Pessoa<select name="pessoa"><option value="">Todas</option><?php foreach ($actors as $actor): ?><option value="<?= (int) $actor['id'] ?>"<?= (string) ($_GET['pessoa'] ?? '') === (string) $actor['id'] ? ' selected' : '' ?>><?= $e($actor['name']) ?></option><?php endforeach; ?></select></label>
-    <label>De<input type="date" name="de" value="<?= $e($_GET['de'] ?? '') ?>"></label>
-    <label>Até<input type="date" name="ate" value="<?= $e($_GET['ate'] ?? '') ?>"></label>
-    <button type="submit">Filtrar</button>
-  </form>
+    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Aplicar</button></footer>
+  </form></dialog>
   <?php if ($failed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar a auditoria</h3><p>Tente novamente em instantes.</p></div>
   <?php elseif ($log['rows'] === []): ?>

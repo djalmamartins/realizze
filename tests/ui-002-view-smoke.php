@@ -224,6 +224,21 @@ foreach (['max-width:calc(100vw - 32px)', 'grid-template-columns:repeat(2,minmax
 }
 echo 'OK - APP-UI-071: modal de pagamento fora da tabela e protegido contra overflow.' . PHP_EOL;
 
+// APP-UI-078: os módulos PJ prioritários reutilizam o filtro oficial.
+foreach (['obrigacoes' => 'obligation-filters', 'ordens-de-servico' => 'service-order-filters', 'auditoria' => 'audit-filters'] as $page => $dialogId) {
+    $source = file_get_contents($root . '/pages/' . $page . '.php');
+    foreach (['components/filter-button.php', 'components/filter-bar.php', 'filter-dialog', 'id="' . $dialogId . '"', 'Limpar filtros', '>Aplicar<'] as $needle) {
+        if (!is_string($source) || !str_contains($source, $needle)) {
+            throw new RuntimeException('APP-UI-078: filtro compartilhado incompleto em ' . $page . ': ' . $needle);
+        }
+    }
+}
+$obligationsSource = (string) file_get_contents($root . '/pages/obrigacoes.php');
+if (strpos($obligationsSource, 'id="obligation-edit-') < strpos($obligationsSource, '</table>')) {
+    throw new RuntimeException('APP-UI-078: modal de obrigação renderizado dentro da tabela.');
+}
+echo 'OK - APP-UI-078: filtros de Obrigações, Ordens de Serviço e Auditoria compartilham o padrão oficial.' . PHP_EOL;
+
 // APP-UI-044: shared financial tables have captions and escape dynamic metadata.
 foreach ([
 ] as $page => $caption) {

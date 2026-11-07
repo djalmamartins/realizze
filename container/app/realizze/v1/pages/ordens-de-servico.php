@@ -24,6 +24,16 @@ $flash = $_SESSION['service_orders_flash'] ?? null;
 unset($_SESSION['service_orders_flash']);
 $labels = ['draft' => 'Rascunho', 'open' => 'Aberta', 'in_progress' => 'Em andamento', 'completed' => 'Concluída', 'cancelled' => 'Cancelada'];
 $historyLabels = ['created' => 'Criada', 'updated' => 'Editada', 'status_changed' => 'Situação alterada', 'receivable_created' => 'Cobrança gerada'];
+$statusFilter = is_string($_GET['situacao'] ?? null) ? $_GET['situacao'] : '';
+$customerFilter = (int) ($_GET['cliente'] ?? 0);
+$filterQuery = array_filter(['situacao' => $statusFilter, 'cliente' => $customerFilter]);
+$filterUrl = static fn (string $without): string => AppUrl::section('ordens-de-servico', null, array_diff_key($filterQuery, [$without => true]));
+$filterChips = [];
+if ($statusFilter !== '') $filterChips['Situação: ' . ($labels[$statusFilter] ?? $statusFilter)] = $filterUrl('situacao');
+if ($customerFilter > 0) {
+    foreach ($customers as $customer) if ((int) $customer['id'] === $customerFilter) $filterChips['Cliente: ' . ($customer['trade_name'] ?: $customer['legal_name'])] = $filterUrl('cliente');
+}
+$filterClearUrl = AppUrl::section('ordens-de-servico');
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>"><?= $e($flash[1]) ?></p><?php endif; ?>
 
@@ -37,11 +47,14 @@ $historyLabels = ['created' => 'Criada', 'updated' => 'Editada', 'status_changed
       <div class="finance-goal-stat finance-indicator is-neutral"><span><?= $label ?></span><strong><?= (int) $data['indicators'][$key] ?></strong></div>
     <?php endforeach; ?>
   </div>
-  <form class="finance-filter-bar" method="get" data-swap-get>
-    <label>Situação<select name="situacao"><option value="">Todas</option><?php foreach ($labels as $key => $label): ?><option value="<?= $e($key) ?>"<?= ($_GET['situacao'] ?? '') === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
-    <label>Cliente<select name="cliente"><option value="">Todos</option><?php foreach ($customers as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= (int) ($_GET['cliente'] ?? 0) === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
-    <button class="finance-button">Filtrar</button>
-  </form>
+  <div class="finance-filter-bar"><?php $filterPanelId = 'service-order-filters'; require __DIR__ . '/../components/filter-button.php'; ?></div>
+  <?php require __DIR__ . '/../components/filter-bar.php'; ?>
+  <dialog class="finance-dialog filter-dialog" id="service-order-filters" aria-labelledby="service-order-filters-title"><form method="get" action="<?= $e(AppUrl::section('ordens-de-servico')) ?>" data-swap-get>
+    <header><h2 id="service-order-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <label>Situação<select name="situacao"><option value="">Todas</option><?php foreach ($labels as $key => $label): ?><option value="<?= $e($key) ?>"<?= $statusFilter === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
+    <label>Cliente<select name="cliente"><option value="">Todos</option><?php foreach ($customers as $customer): ?><option value="<?= (int) $customer['id'] ?>"<?= $customerFilter === (int) $customer['id'] ? ' selected' : '' ?>><?= $e($customer['trade_name'] ?: $customer['legal_name']) ?></option><?php endforeach; ?></select></label>
+    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Aplicar</button></footer>
+  </form></dialog>
 
   <?php if ($data['rows'] === []): ?>
     <div class="finance-empty"><h3>Nenhuma ordem de serviço</h3><p>Cadastre a primeira ordem para organizar a execução e a cobrança.</p></div>

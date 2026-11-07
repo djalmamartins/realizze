@@ -1,5 +1,5 @@
 <?php
-use Moves\Services\{Finance, OrganizationContext, OrganizationDirectory, OrganizationObligations, OrganizationTeam, SessionAuth};
+use Moves\Services\{AppUrl, Finance, OrganizationContext, OrganizationDirectory, OrganizationObligations, OrganizationTeam, SessionAuth};
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $org = OrganizationContext::current();
@@ -25,6 +25,13 @@ unset($_SESSION['obligations_flash']);
 $labels = ['pending' => 'Pendente', 'upcoming' => 'Próxima do vencimento', 'overdue' => 'Vencida', 'completed' => 'Concluída', 'cancelled' => 'Cancelada'];
 $types = ['tax' => 'Fiscal', 'labor' => 'Trabalhista', 'license' => 'Licença', 'contract' => 'Contrato', 'other' => 'Outra'];
 $actions = ['created' => 'Criada', 'updated' => 'Editada', 'completed' => 'Concluída', 'pending' => 'Reaberta', 'cancelled' => 'Cancelada'];
+$filterQuery = array_filter(['inicio' => $start, 'fim' => $end, 'situacao' => $status, 'tipo' => $type], static fn (mixed $value): bool => $value !== '');
+$filterUrl = static fn (array $without = []): string => AppUrl::section('obrigacoes', null, array_diff_key($filterQuery, array_flip($without)));
+$filterChips = [];
+if ($start !== date('Y-m-01') || $end !== date('Y-m-t', strtotime('+2 months'))) $filterChips['Período: ' . (new DateTimeImmutable($start))->format('d/m/Y') . ' a ' . (new DateTimeImmutable($end))->format('d/m/Y')] = $filterUrl(['inicio', 'fim']);
+if ($status !== '') $filterChips['Situação: ' . ($labels[$status] ?? $status)] = $filterUrl(['situacao']);
+if ($type !== '') $filterChips['Tipo: ' . ($types[$type] ?? $type)] = $filterUrl(['tipo']);
+$filterClearUrl = AppUrl::section('obrigacoes');
 ?>
 <?php if (is_array($flash)): ?>
   <p class="finance-flash finance-flash-<?= $e($flash[0]) ?>"><?= $e($flash[1]) ?></p>
@@ -40,13 +47,15 @@ $actions = ['created' => 'Criada', 'updated' => 'Editada', 'completed' => 'Concl
       <div class="finance-goal-stat finance-indicator <?= $key === 'overdue' && $data['indicators'][$key] > 0 ? 'is-overdue' : 'is-neutral' ?>"><span><?= $label ?></span><strong><?= (int) $data['indicators'][$key] ?></strong></div>
     <?php endforeach; ?>
   </div>
-  <form class="finance-filter-bar" method="get" data-swap-get>
-    <label>De<input type="date" name="inicio" value="<?= $e($start) ?>"></label>
-    <label>Até<input type="date" name="fim" value="<?= $e($end) ?>"></label>
+  <div class="finance-filter-bar"><?php $filterPanelId = 'obligation-filters'; require __DIR__ . '/../components/filter-button.php'; ?></div>
+  <?php require __DIR__ . '/../components/filter-bar.php'; ?>
+  <dialog class="finance-dialog filter-dialog" id="obligation-filters" aria-labelledby="obligation-filters-title"><form method="get" action="<?= $e(AppUrl::section('obrigacoes')) ?>" data-swap-get>
+    <header><h2 id="obligation-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+    <?php $periodStart = $start; $periodEnd = $end; require __DIR__ . '/../components/filter-period.php'; ?>
     <label>Situação<select name="situacao"><option value="">Todas</option><?php foreach ($labels as $key => $label): ?><option value="<?= $e($key) ?>"<?= $status === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
     <label>Tipo<select name="tipo"><option value="">Todos</option><?php foreach ($types as $key => $label): ?><option value="<?= $e($key) ?>"<?= $type === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
-    <button class="finance-button" type="submit">Filtrar</button>
-  </form>
+    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Aplicar</button></footer>
+  </form></dialog>
 
   <?php if ($data['rows'] === []): ?>
     <div class="finance-empty"><h3>Nenhuma obrigação no período</h3><p>Cadastre compromissos reais da empresa; nenhuma obrigação fiscal é presumida.</p></div>
@@ -76,20 +85,21 @@ $actions = ['created' => 'Criada', 'updated' => 'Editada', 'completed' => 'Concl
           <?php endif; ?>
         </td>
       </tr>
-      <?php if ($canManage && $row['status'] !== 'cancelled'): ?>
-        <dialog class="finance-dialog" id="obligation-edit-<?= $id ?>"><form method="post" action="/minha-conta/obrigacoes/atualizar" enctype="multipart/form-data" data-finance-form>
-          <header><h2>Editar obrigação</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-          <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="id" value="<?= $id ?>">
-          <?php require __DIR__ . '/../components/obligation-fields.php'; ?>
-          <footer><button type="button" data-finance-close>Cancelar</button><button class="primary">Salvar alterações</button></footer>
-        </form></dialog>
-      <?php endif; ?>
     <?php endforeach; ?>
     </tbody></table></div>
   <?php endif; ?>
 </section>
 
-<?php if ($canManage): $row = null; ?>
+<?php if ($canManage): ?>
+  <?php foreach ($data['rows'] as $row): $id = (int) $row['id']; if ($row['status'] === 'cancelled') continue; ?>
+    <dialog class="finance-dialog" id="obligation-edit-<?= $id ?>"><form method="post" action="/minha-conta/obrigacoes/atualizar" enctype="multipart/form-data" data-finance-form>
+      <header><h2>Editar obrigação</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+      <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="id" value="<?= $id ?>">
+      <?php require __DIR__ . '/../components/obligation-fields.php'; ?>
+      <footer><button type="button" data-finance-close>Cancelar</button><button class="primary">Salvar alterações</button></footer>
+    </form></dialog>
+  <?php endforeach; ?>
+  <?php $row = null; ?>
   <dialog class="finance-dialog" id="obligation-create"><form method="post" action="/minha-conta/obrigacoes/salvar" enctype="multipart/form-data" data-finance-form>
     <header><h2>Nova obrigação</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
     <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="idempotency_key" value="<?= $e(bin2hex(random_bytes(16))) ?>">

@@ -7,8 +7,10 @@ $periodPresets = [
     'Próximos 30 dias' => [$periodToday->format('Y-m-d'), $periodToday->modify('+30 days')->format('Y-m-d')],
     'Este ano' => [$periodToday->format('Y-01-01'), $periodToday->format('Y-12-31')],
 ];
+$periodStartName = $periodStartName ?? 'inicio';
+$periodEndName = $periodEndName ?? 'fim';
 ?>
-<fieldset class="filter-period">
+<fieldset class="filter-period" data-filter-period data-start-name="<?= $e($periodStartName) ?>" data-end-name="<?= $e($periodEndName) ?>">
   <legend>Período</legend>
   <div class="filter-presets">
     <?php foreach ($periodPresets as $presetLabel => [$presetStart, $presetEnd]): ?>
@@ -16,7 +18,7 @@ $periodPresets = [
     <?php endforeach; ?>
   </div>
   <div class="finance-dialog-row">
-    <label>Início<input type="date" name="inicio" value="<?= $e($periodStart) ?>"></label>
-    <label>Fim<input type="date" name="fim" value="<?= $e($periodEnd) ?>"></label>
+    <label>Início<input type="date" name="<?= $e($periodStartName) ?>" value="<?= $e($periodStart) ?>"></label>
+    <label>Fim<input type="date" name="<?= $e($periodEndName) ?>" value="<?= $e($periodEnd) ?>"></label>
   </div>
 </fieldset>
