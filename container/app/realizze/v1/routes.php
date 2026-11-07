@@ -387,7 +387,7 @@ return [
             }, 'app.notifications.' . $action);
         }
 
-        foreach (['update' => 'dados', 'password' => 'senha', '2fa_begin' => '2fa/iniciar', '2fa_confirm' => '2fa/confirmar', '2fa_disable' => '2fa/desativar', 'session_revoke' => 'sessao/encerrar', 'sessions_revoke' => 'sessoes/encerrar-outras', 'invite' => 'convite', 'invite_revoke' => 'convite/revogar', 'invite_accept' => 'convite/aceitar', 'invite_decline' => 'convite/recusar', 'notifications' => 'notificacoes'] as $action => $slug) {
+        foreach (['update' => 'dados', 'password' => 'senha', '2fa_begin' => '2fa/iniciar', '2fa_confirm' => '2fa/confirmar', '2fa_disable' => '2fa/desativar', 'session_revoke' => 'sessao/encerrar', 'sessions_revoke' => 'sessoes/encerrar-outras', 'invite' => 'convite', 'invite_revoke' => 'convite/revogar', 'invite_accept' => 'convite/aceitar', 'invite_decline' => 'convite/recusar', 'notifications' => 'notificacoes', 'data_export' => 'exportar-dados', 'account_delete' => 'excluir-conta'] as $action => $slug) {
             $router->post('/minha-conta/perfil/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
                 (new \Moves\App\ProfileActions())->handle($action);
