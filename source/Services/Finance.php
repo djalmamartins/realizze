@@ -574,6 +574,82 @@ final class Finance
         }
     }
 
+    /**
+     * Estorno de uma baixa (recebimento ou pagamento) registrada por engano. A baixa sai das somas, o lançamento volta a
+     * ficar em aberto ou parcial e o registro fica no histórico (finance_entry_audit_logs, ação 'updated' com
+     * event=settlement_reversed, porque a CHECK da tabela só aceita as ações originais) com valor, data e conta.
+     * Idempotente pelo id da baixa: repetir o envio não estorna outra. Pagamento feito com meta é estornado em Metas;
+     * lançamento conciliado com o extrato precisa ter a conciliação desfeita antes.
+     *
+     * @return array{status:string,balance_cents:int}
+     */
+    public function reverseSettlement(int $entryId, int $settlementId, int $userId): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $q = $this->pdo->prepare("SELECT id, kind, amount_cents, status, paid_at FROM finance_entries WHERE id = ? AND financial_context_id = ? AND kind IN ('income','expense') FOR UPDATE");
+            $q->execute([$entryId, $this->contextId]);
+            $entry = $q->fetch(PDO::FETCH_ASSOC);
+            if ($entry === false) throw new InvalidArgumentException('Lançamento não encontrado.');
+            if ($entry['status'] === 'cancelled') throw new InvalidArgumentException('Lançamento cancelado não tem baixa para estornar.');
+            if (GoalWallets::ready() && (new GoalWallets($this->contextId))->operationForEntry($entryId) !== null) {
+                throw new InvalidArgumentException('Este pagamento saiu de uma meta. Estorne pela tela de Metas.');
+            }
+            if ($this->hasTable('finance_reconciliation_lines')) {
+                $matched = $this->pdo->prepare("SELECT COUNT(*) FROM finance_reconciliation_lines WHERE matched_entry_id = ? AND financial_context_id = ? AND status = 'matched'");
+                $matched->execute([$entryId, $this->contextId]);
+                if ((int) $matched->fetchColumn() > 0) throw new InvalidArgumentException('Este lançamento está conciliado com o extrato. Desfaça a conciliação antes de estornar.');
+            }
+            $find = $this->pdo->prepare('SELECT id, amount_cents, received_at, account_id, payment_method FROM finance_entry_settlements WHERE id = ? AND entry_id = ? AND financial_context_id = ? FOR UPDATE');
+            $find->execute([$settlementId, $entryId, $this->contextId]);
+            $settlement = $find->fetch(PDO::FETCH_ASSOC);
+            if ($settlement === false) {
+                // Baixa simples, sem registro em settlements (data de pagamento só no lançamento).
+                $any = $this->pdo->prepare('SELECT COUNT(*) FROM finance_entry_settlements WHERE entry_id = ? AND financial_context_id = ?');
+                $any->execute([$entryId, $this->contextId]);
+                if ($settlementId !== 0 || (int) $any->fetchColumn() > 0 || $entry['paid_at'] === null) throw new InvalidArgumentException('Esta baixa já foi estornada ou não existe.');
+                $this->pdo->prepare("UPDATE finance_entries SET status = 'pending', paid_at = NULL WHERE id = ? AND financial_context_id = ?")->execute([$entryId, $this->contextId]);
+                $this->entryAudit($entryId, 'updated', $userId, ['event' => 'settlement_reversed', 'paid_at' => $entry['paid_at'], 'amount_cents' => (int) $entry['amount_cents']]);
+                $this->pdo->commit();
+                return ['status' => 'pending', 'balance_cents' => (int) $entry['amount_cents']];
+            }
+            $this->pdo->prepare('DELETE FROM finance_entry_settlements WHERE id = ? AND financial_context_id = ?')->execute([$settlementId, $this->contextId]);
+            $rest = $this->pdo->prepare('SELECT COALESCE(SUM(amount_cents), 0), MAX(received_at) FROM finance_entry_settlements WHERE entry_id = ? AND financial_context_id = ?');
+            $rest->execute([$entryId, $this->contextId]);
+            [$settled, $lastDate] = $rest->fetch(PDO::FETCH_NUM);
+            $settled = (int) $settled;
+            $amount = (int) $entry['amount_cents'];
+            $complete = $settled >= $amount;
+            // Mesma convenção das baixas: receita usa partially_received; despesa parcial continua pending.
+            $status = $complete ? 'received' : ($entry['kind'] === 'income' && $settled > 0 ? 'partially_received' : 'pending');
+            $this->pdo->prepare('UPDATE finance_entries SET status = ?, paid_at = ? WHERE id = ? AND financial_context_id = ?')
+                ->execute([$status, $complete ? $lastDate : null, $entryId, $this->contextId]);
+            $this->entryAudit($entryId, 'updated', $userId, ['event' => 'settlement_reversed', 
+                'settlement_id' => (int) $settlement['id'], 'amount_cents' => (int) $settlement['amount_cents'],
+                'received_at' => $settlement['received_at'], 'account_id' => (int) $settlement['account_id'], 'payment_method' => $settlement['payment_method'],
+                'balance_cents' => max(0, $amount - $settled),
+            ]);
+            $this->pdo->commit();
+            return ['status' => $status, 'balance_cents' => max(0, $amount - $settled)];
+        } catch (\Throwable $exception) {
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
+            throw $exception;
+        }
+    }
+
+    private function hasTable(string $table): bool
+    {
+        $q = $this->pdo->prepare('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?');
+        $q->execute([$table]);
+        return (int) $q->fetchColumn() === 1;
+    }
+
+    private function entryAudit(int $entryId, string $action, int $userId, array $metadata): void
+    {
+        $this->pdo->prepare('INSERT INTO finance_entry_audit_logs (financial_context_id, entry_id, action, actor_user_id, metadata_json) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$this->contextId, $entryId, $action, $userId, json_encode($metadata, JSON_THROW_ON_ERROR)]);
+    }
+
     /** @return list<array<string,mixed>> */
     public function expenseSettlements(int $entryId): array
     {
@@ -1270,7 +1346,7 @@ final class Finance
         $statement = $this->pdo->prepare(
             "SELECT c.id, c.name, c.kind, c.color, COALESCE(SUM(e.amount_cents), 0) AS total, COUNT(e.id) AS entries
              FROM finance_categories AS c
-             LEFT JOIN finance_entries AS e ON e.category_id = c.id AND e.due_date BETWEEN ? AND ?
+             LEFT JOIN finance_entries AS e ON e.category_id = c.id AND e.due_date BETWEEN ? AND ? AND e.status <> 'cancelled'
              WHERE c.financial_context_id = ?
              GROUP BY c.id ORDER BY c.kind DESC, c.name"
         );

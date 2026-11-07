@@ -306,7 +306,7 @@ return [
             (new \Moves\App\FinanceActions())->goalPhoto();
         }, 'app.finance.goal_photo');
 
-        foreach (['create' => 'lancamento', 'update' => 'lancamento-editar', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'account_update' => 'conta-editar', 'account_archive' => 'conta-arquivar', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'category_dre' => 'categoria-dre', 'budget' => 'orcamento', 'budget_delete' => 'orcamento-excluir', 'budget_copy' => 'orcamento-copiar', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir', 'goal_reserve' => 'meta-guardar', 'goal_release' => 'meta-resgatar', 'goal_transfer' => 'meta-transferir', 'goal_pay' => 'meta-pagar', 'goal_reverse' => 'meta-estornar', 'goal_status' => 'meta-situacao', 'goal_schedule' => 'meta-aporte-programado', 'goal_schedule_status' => 'meta-aporte-programado-situacao'] as $action => $slug) {
+        foreach (['create' => 'lancamento', 'update' => 'lancamento-editar', 'settle' => 'baixa', 'settle_reverse' => 'baixa-estornar', 'delete' => 'excluir', 'account' => 'conta', 'account_update' => 'conta-editar', 'account_archive' => 'conta-arquivar', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'category_dre' => 'categoria-dre', 'budget' => 'orcamento', 'budget_delete' => 'orcamento-excluir', 'budget_copy' => 'orcamento-copiar', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir', 'goal_reserve' => 'meta-guardar', 'goal_release' => 'meta-resgatar', 'goal_transfer' => 'meta-transferir', 'goal_pay' => 'meta-pagar', 'goal_reverse' => 'meta-estornar', 'goal_status' => 'meta-situacao', 'goal_schedule' => 'meta-aporte-programado', 'goal_schedule_status' => 'meta-aporte-programado-situacao'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
@@ -314,7 +314,7 @@ return [
                 if (\Moves\Services\PersonalAccessContext::ownerId() !== null) {
                     $permission = match ($action) {
                         'create' => ($_POST['kind'] ?? '') === 'income' ? 'income.create' : 'expenses.create',
-                        'settle' => 'payments.register', 'update', 'delete' => 'entries.edit',
+                        'settle', 'settle_reverse' => 'payments.register', 'update', 'delete' => 'entries.edit',
                         'category','category_delete','category_dre' => 'categories.manage',
                         'goal','goal_update','goal_add','goal_contribution_delete','goal_delete','goal_reserve','goal_release','goal_transfer','goal_status','goal_schedule','goal_schedule_status' => 'goals.manage',
                         // Estas duas mexem em lançamentos: além de metas, exigem a permissão de lançamentos.

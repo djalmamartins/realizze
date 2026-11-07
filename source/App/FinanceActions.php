@@ -74,6 +74,10 @@ final class FinanceActions
                 'account_archive' => $finance->archiveAccount($id) ? ['success', 'Conta arquivada. O histórico continua nos relatórios.'] : ['error', 'Conta não encontrada.'],
                 'transfer' => [$finance->transfer($_POST, (int) $user['id']) > 0 ? 'success' : 'error', 'Transferência registrada.'],
                 'settle' => $this->settle($finance, $kind, $id, (int) $user['id']),
+                'settle_reverse' => (static function () use ($finance, $id, $user): array {
+                    $result = $finance->reverseSettlement($id, (int) filter_var($_POST['settlement_id'] ?? 0, FILTER_VALIDATE_INT), (int) $user['id']);
+                    return ['success', $result['status'] === 'received' ? 'Baixa estornada.' : 'Baixa estornada. Saldo em aberto: ' . Finance::money($result['balance_cents']) . '.'];
+                })(),
                 'delete' => $finance->delete($id, (int) $user['id']) ? ['success', 'Lançamento excluído.'] : ['error', 'Lançamento não encontrado.'],
                 default => ['error', 'Ação inválida.'],
             };

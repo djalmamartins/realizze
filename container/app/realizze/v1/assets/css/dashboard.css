@@ -1592,3 +1592,7 @@ body[data-readonly~="contacts"] button[data-finance-open^="contact"],body[data-r
 .report-period-form input:focus-visible,.report-period-form button:focus-visible{outline:3px solid var(--ds-color-focus);outline-offset:2px}
 @media(max-width:650px){.report-heading .finance-toolbar-actions{width:100%}.report-heading .finance-toolbar-actions>*{flex:1;justify-content:center}.report-heading-subsection{padding-inline:0}.report-period-form{display:grid;grid-template-columns:1fr;margin-inline:20px}.report-period-form button{width:100%}}
 @media(forced-colors:active){.report-period-form{border-color:CanvasText}.report-period-form button{border:1px solid ButtonText}}
+/* Estorno de baixa dentro do histórico de recebimentos. */
+.inline-form{display:inline;margin:0}
+.link-button{border:0;background:none;padding:0 0 0 6px;color:#b42318;font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer}
+.link-button:focus-visible{outline:2px solid #16a34a;outline-offset:2px;border-radius:4px}
