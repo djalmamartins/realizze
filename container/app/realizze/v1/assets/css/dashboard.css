@@ -427,23 +427,23 @@
 .finance-actions button.is-danger{border-color:transparent;color:#a4161a}
 .finance-actions button.is-danger:hover{background:#fdecec}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.finance-dialog{width:min(520px,calc(100vw - 32px));padding:0;border:0;border-radius:18px;box-shadow:0 30px 80px #0b241a4d;color:inherit}
+.finance-dialog{width:min(520px,calc(100vw - 32px));max-width:calc(100vw - 32px);margin:auto;padding:0;overflow:hidden;border:0;border-radius:18px;background:#fff;box-shadow:0 30px 80px #0b241a4d;color:inherit}
 .finance-dialog::backdrop{background:#0b241a80}
-.finance-dialog form{display:grid;gap:14px;padding:24px}
+.finance-dialog form{display:grid;min-width:0;gap:14px;padding:24px;overflow-y:auto}
 .finance-dialog header{display:flex;align-items:center;justify-content:space-between}
 .finance-dialog h2{margin:0;font-size:19px}
 .finance-dialog header button{width:34px;height:34px;border:0;border-radius:9px;background:#f3f7f5;font-size:20px;cursor:pointer}
-.finance-dialog label{display:grid;gap:6px;font-size:13px;font-weight:600}
+.finance-dialog label{display:grid;min-width:0;gap:6px;font-size:13px;font-weight:600}
 .finance-dialog input:not([type=checkbox]),.finance-dialog select{width:100%;min-height:44px;padding:0 12px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit;font-weight:400}
 .finance-dialog textarea{box-sizing:border-box;width:100%;padding:10px 12px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit;font-weight:400;resize:vertical}
 .finance-dialog input:focus,.finance-dialog select:focus,.finance-dialog textarea:focus{outline:none;border-color:#078b4c;box-shadow:0 0 0 3px #078b4c33}
-.finance-dialog-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.finance-dialog-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .finance-check{display:flex!important;align-items:center;gap:8px;font-weight:500!important}
 .finance-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
 .finance-dialog footer button{min-height:calc(44px - var(--app-button-trim));padding:0 18px;border:1px solid #d6e2dc;border-radius:10px;background:#fff;font:inherit;font-weight:600;cursor:pointer}
 .finance-dialog footer .primary{border-color:#078b4c;background:#078b4c;color:#fff}
 .finance-dialog footer .is-danger{border-color:#b42318;background:#b42318;color:#fff}
-@media(max-width:650px){.finance-filter-bar{margin-inline:20px}.finance-status{width:100%}.finance-status a{flex:1;text-align:center;padding-inline:4px}.finance-dialog-row{grid-template-columns:1fr}.finance-entries{min-width:760px}}
+@media(max-width:650px){.finance-filter-bar{margin-inline:20px}.finance-status{width:100%}.finance-status a{flex:1;text-align:center;padding-inline:4px}.finance-dialog form{padding:20px}.finance-dialog-row{grid-template-columns:1fr}.finance-dialog footer{flex-wrap:wrap}.finance-dialog footer button{flex:1 1 150px}.finance-entries{min-width:760px}}
 .finance-entries td{padding:13px 14px;border-bottom:1px solid #eef3f0}
 .finance-entries tr:last-child td{border-bottom:0}
 .finance-entries th:first-child,.finance-entries td:first-child{padding-left:28px}

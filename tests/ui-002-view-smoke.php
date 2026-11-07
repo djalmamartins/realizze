@@ -209,6 +209,21 @@ echo 'OK - ENT-027: onze módulos PJ acessíveis, sem valores inventados e sem s
 echo 'OK - UI-026: sem valores financeiros fictícios na visão geral.' . PHP_EOL;
 echo 'UI-002: templates renderizados com MovesCode View.' . PHP_EOL;
 
+// APP-UI-071: diálogos não podem ser filhos de tabela. O parser HTML os realoca e
+// pode quebrar centralização, foco e dimensões dos campos em navegadores diferentes.
+$financeEntriesSource = file_get_contents($root . '/components/finance-entries.php');
+$tableEnd = is_string($financeEntriesSource) ? strpos($financeEntriesSource, '</table>') : false;
+$settlementDialog = is_string($financeEntriesSource) ? strpos($financeEntriesSource, 'id="expense-settle-') : false;
+if ($tableEnd === false || $settlementDialog === false || $settlementDialog < $tableEnd) {
+    throw new RuntimeException('APP-UI-071: modal de pagamento renderizado dentro da tabela.');
+}
+foreach (['max-width:calc(100vw - 32px)', 'grid-template-columns:repeat(2,minmax(0,1fr))'] as $rule) {
+    if (!str_contains((string) $enterpriseCss, $rule)) {
+        throw new RuntimeException('APP-UI-071: proteção responsiva ausente no modal: ' . $rule);
+    }
+}
+echo 'OK - APP-UI-071: modal de pagamento fora da tabela e protegido contra overflow.' . PHP_EOL;
+
 // APP-UI-044: shared financial tables have captions and escape dynamic metadata.
 foreach ([
 ] as $page => $caption) {
