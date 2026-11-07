@@ -14,7 +14,8 @@ final class H {
         preg_match_all('/^Set-Cookie:\s*([^=]+)=([^;]*)/mi', $head, $m, PREG_SET_ORDER);
         foreach ($m as [, $k, $v]) { if ($v === '' || $v === 'deleted') unset($this->jar[$k]); else $this->jar[$k] = $v; }
         preg_match('/^Location:\s*(\S+)/mi', $head, $loc);
-        return ['code' => $code, 'body' => $body, 'location' => $loc[1] ?? null];
+        preg_match('/^Content-Type:\s*([^\r\n]+)/mi', $head, $type);
+        return ['code' => $code, 'body' => $body, 'location' => $loc[1] ?? null, 'type' => $type[1] ?? null];
     }
     public function csrf(string $html): string { preg_match('/name="csrf_token" value="([^"]+)"/', $html, $m); return $m[1] ?? ''; }
     public function login(string $email, string $password): bool {
