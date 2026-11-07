@@ -37,6 +37,16 @@ $mask = static function (?string $d): string {
 };
 $path = strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?') ?: '/pj/minha-empresa/contatos';
 $query = array_filter(['busca' => $search, 'tipo' => $type, 'situacao' => $status] + ($fixedRole ? [] : ['papel' => $role]), static fn ($x) => $x !== '');
+$filterChips = [];
+$withoutFilter = static function (string $key) use ($path, $query): string {
+    $remaining = array_diff_key($query, [$key => true]);
+    return $path . ($remaining === [] ? '' : '?' . http_build_query($remaining));
+};
+if ($search !== '') $filterChips['Busca: ' . $search] = $withoutFilter('busca');
+if (!$fixedRole && $role !== '') $filterChips['Papel: ' . ['customer' => 'Clientes', 'supplier' => 'Fornecedores', 'both' => 'Ambos'][$role]] = $withoutFilter('papel');
+if ($type !== '') $filterChips['Tipo: ' . ($type === 'individual' ? 'Pessoa física' : 'Pessoa jurídica')] = $withoutFilter('tipo');
+if ($status !== '') $filterChips['Situação: ' . ($status === 'active' ? 'Ativos' : 'Inativos')] = $withoutFilter('situacao');
+$filterClearUrl = $path;
 $rowDialogs = '';
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
@@ -45,13 +55,16 @@ $rowDialogs = '';
     <div><h2 id="contacts-title"><?= $e($labels['title']) ?></h2><p class="muted"><?= $e($labels['lead']) ?></p></div>
     <button class="primary" type="button" data-finance-open="contact-create">+ <?= $e($labels['new']) ?></button>
   </div>
-  <form class="contact-filters" method="get" action="<?= $e($path) ?>" data-swap-get>
+  <div class="finance-filter-bar"><?php $filterPanelId = 'contact-filters'; require __DIR__ . '/../components/filter-button.php'; ?></div>
+  <?php require __DIR__ . '/../components/filter-bar.php'; ?>
+  <dialog class="finance-dialog filter-dialog" id="contact-filters" aria-labelledby="contact-filters-title"><form method="get" action="<?= $e($path) ?>" data-swap-get>
+    <header><h2 id="contact-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
     <label class="contact-filter-search">Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Nome, fantasia ou documento"></label>
     <?php if (!$fixedRole): ?><label>Papel<select name="papel"><option value="">Todos</option><option value="customer"<?= $role === 'customer' ? ' selected' : '' ?>>Clientes</option><option value="supplier"<?= $role === 'supplier' ? ' selected' : '' ?>>Fornecedores</option><option value="both"<?= $role === 'both' ? ' selected' : '' ?>>Ambos</option></select></label><?php endif; ?>
     <label>Tipo<select name="tipo"><option value="">Todos</option><option value="individual"<?= $type === 'individual' ? ' selected' : '' ?>>Pessoa física</option><option value="company"<?= $type === 'company' ? ' selected' : '' ?>>Pessoa jurídica</option></select></label>
     <label>Situação<select name="situacao"><option value="">Todas</option><option value="active"<?= $status === 'active' ? ' selected' : '' ?>>Ativos</option><option value="inactive"<?= $status === 'inactive' ? ' selected' : '' ?>>Inativos</option></select></label>
-    <div class="contact-filter-actions"><button class="primary" type="submit">Filtrar</button><?php if ($query !== []): ?><a href="<?= $e($path) ?>">Limpar</a><?php endif; ?></div>
-  </form>
+    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Aplicar</button></footer>
+  </form></dialog>
   <?php if ($failed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar os <?= $e($labels['many']) ?></h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php elseif (!$result['rows']): ?>

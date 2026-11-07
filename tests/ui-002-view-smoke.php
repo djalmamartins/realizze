@@ -234,7 +234,7 @@ if ($receivablesTableEnd === false || $receivablesDialogOutput === false || $rec
 echo 'OK - APP-UI-071: modais de recebimento renderizados fora da tabela.' . PHP_EOL;
 
 // APP-UI-078: os módulos PJ prioritários reutilizam o filtro oficial.
-foreach (['obrigacoes' => 'obligation-filters', 'ordens-de-servico' => 'service-order-filters', 'auditoria' => 'audit-filters'] as $page => $dialogId) {
+foreach (['obrigacoes' => 'obligation-filters', 'ordens-de-servico' => 'service-order-filters', 'auditoria' => 'audit-filters', 'contatos' => 'contact-filters'] as $page => $dialogId) {
     $source = file_get_contents($root . '/pages/' . $page . '.php');
     foreach (['components/filter-button.php', 'components/filter-bar.php', 'filter-dialog', 'id="' . $dialogId . '"', 'Limpar filtros', '>Aplicar<'] as $needle) {
         if (!is_string($source) || !str_contains($source, $needle)) {
