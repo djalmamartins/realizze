@@ -612,6 +612,7 @@
 /* Ações em linha (OS, obrigações): os formulários de situação ficam lado a lado com os botões. */
 .finance-entries .finance-actions{white-space:nowrap}
 .finance-entries .finance-actions form{display:inline-flex;gap:6px;align-items:center;margin:0}
+.finance-entries .finance-actions select{height:32px;width:auto;min-width:0;max-width:130px;padding:0 24px 0 8px;border:1px solid #d6e2db;border-radius:8px;background-color:#fff;color:#17241d;font:inherit;font-size:13px}
 .contact-table{min-width:760px}
 .finance-dialog-wide{width:min(680px,calc(100vw - 32px))}
 .finance-dialog form,.finance-dialog-body{max-height:calc(100dvh - 64px)}
