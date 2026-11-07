@@ -51,8 +51,11 @@ try {
     $logged = $client->request('/entrar', ['email' => $email, 'password' => $password, 'csrf_token' => $token[1] ?? '']);
     $check($logged['status'] === 302 && $logged['location'] === '/p', 'Login permanece no App e aponta para /p');
 
-    $personal = ['', '/receber', '/pagar', '/movimentacoes', '/cartoes', '/relatorios', '/planejamento', '/metas', '/categorias', '/configuracoes'];
+    $personal = ['', '/receber', '/pagar', '/movimentacoes', '/cartoes', '/relatorios', '/planejamento', '/metas', '/categorias', '/faturas', '/perfil'];
     foreach ($personal as $path) { $response = $client->request('/p' . $path); $check($response['status'] === 200, 'Rota PF /p' . $path); }
+    // Configurações PF passou a abrir Meu perfil (a prévia antiga não tinha controles).
+    $response = $client->request('/p/configuracoes');
+    $check($response['status'] === 302 && $response['location'] === '/p/perfil', 'Rota PF /p/configuracoes leva a Meu perfil');
     $company = ['', '/receber', '/pagar', '/movimentacoes', '/clientes', '/fornecedores', '/cartoes', '/relatorios', '/planejamento', '/metas', '/categorias', '/equipe', '/empresa'];
     foreach ($company as $path) { $response = $client->request('/e/' . $slug . $path); $check($response['status'] === 200, 'Rota PJ /e/' . $slug . $path); }
 
