@@ -224,6 +224,15 @@ foreach (['max-width:calc(100vw - 32px)', 'grid-template-columns:repeat(2,minmax
 }
 echo 'OK - APP-UI-071: modal de pagamento fora da tabela e protegido contra overflow.' . PHP_EOL;
 
+$receivablesSource = (string) file_get_contents($root . '/components/receivables.php');
+$receivablesTableEnd = strpos($receivablesSource, '</table>');
+$receivablesDialogOutput = strpos($receivablesSource, '<?= $receivableDialogs ?>');
+if ($receivablesTableEnd === false || $receivablesDialogOutput === false || $receivablesDialogOutput < $receivablesTableEnd
+    || str_contains($receivablesSource, 'receivables-dialog-row')) {
+    throw new RuntimeException('APP-UI-071: modais de recebimento ainda estão estruturalmente dentro da tabela.');
+}
+echo 'OK - APP-UI-071: modais de recebimento renderizados fora da tabela.' . PHP_EOL;
+
 // APP-UI-078: os módulos PJ prioritários reutilizam o filtro oficial.
 foreach (['obrigacoes' => 'obligation-filters', 'ordens-de-servico' => 'service-order-filters', 'auditoria' => 'audit-filters'] as $page => $dialogId) {
     $source = file_get_contents($root . '/pages/' . $page . '.php');

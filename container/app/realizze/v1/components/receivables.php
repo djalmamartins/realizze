@@ -31,6 +31,7 @@ $summary = ['to_receive' => 0, 'received' => 0, 'overdue' => 0, 'forecast' => 0]
 $loadFailed = false;
 $receivables = null;
 $tabCounts = $entryTags = $entryDetails = $editData = [];
+$receivableDialogs = '';
 $entryExtras = false;
 try {
     $contextId = FinanceContext::currentId();
@@ -179,7 +180,7 @@ $renderState = static function () use ($state, $e): void {
           <button type="button" data-finance-open="receivable-history-<?= (int) $entry['id'] ?>">Detalhes</button>
         </td>
       </tr>
-      <tr class="receivables-dialog-row"><td colspan="7">
+      <?php ob_start(); ?>
       <?php if ($canSettle): ?>
       <dialog class="finance-dialog" id="receivable-settle-<?= (int) $entry['id'] ?>" aria-labelledby="receivable-settle-title-<?= (int) $entry['id'] ?>"><form method="post" action="/minha-conta/financeiro/recebimento-baixa" data-finance-form>
         <header><h2 id="receivable-settle-title-<?= (int) $entry['id'] ?>">Registrar recebimento</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
@@ -220,11 +221,12 @@ $renderState = static function () use ($state, $e): void {
         <ol><?php foreach ($history['audit'] as $event): ?><li><?= $e(['created' => 'Criado', 'updated' => 'Editado', 'settled' => 'Baixa registrada', 'cancelled' => 'Cancelado'][$event['action']] ?? $event['action']) ?> em <?= $e((new DateTimeImmutable($event['created_at']))->format('d/m/Y H:i')) ?></li><?php endforeach; ?></ol>
         <footer><button type="button" data-finance-close>Fechar</button><?php if ($editable && $entry['received_cents'] === 0): ?><button type="button" class="is-danger" data-finance-close data-finance-open-after="receivable-cancel-<?= (int) $entry['id'] ?>">Cancelar recebimento</button><?php endif; ?><?php if ($editable): ?><button type="button" class="primary" data-entry-edit="<?= $e(json_encode($editData[(int) $entry['id']] ?? [], JSON_UNESCAPED_UNICODE)) ?>">Editar</button><?php endif; ?></footer>
       </div></dialog>
-      </td></tr>
+      <?php $receivableDialogs .= (string) ob_get_clean(); ?>
       <?php endforeach; ?>
       </tbody>
     </table>
   </div>
+  <?= $receivableDialogs ?>
   <?php endif; ?>
 
   <?php if ($result['pages'] > 1): ?><nav class="receivables-pagination" aria-label="Páginas de recebimentos"><?php for ($number = 1; $number <= $result['pages']; $number++): ?><a href="<?= $e($query(['page' => $number])) ?>"<?= $number === $result['page'] ? ' aria-current="page"' : '' ?>><?= $number ?></a><?php endfor; ?></nav><?php endif; ?>

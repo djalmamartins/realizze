@@ -483,7 +483,6 @@
 .finance-badge.is-partially_received{background:#e8f0ff;color:#2457a6}
 .finance-badge.is-cancelled{background:#edf0ef;color:#52615a}
 .finance-badge.is-overdue{background:#fdecec;color:#a4161a}
-.receivables-dialog-row>td{height:0!important;padding:0!important;border:0!important}
 .receivables-history{display:grid;gap:14px;padding:24px}
 .receivables-history header,.receivables-history footer{display:flex;align-items:center;justify-content:space-between}
 .receivables-history ol{display:grid;gap:8px;margin:0;padding-left:22px}
