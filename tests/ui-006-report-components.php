@@ -61,4 +61,16 @@ foreach (['--ds-color-brand:#079550', '--ds-space-7:28px', '.report-period-form'
     }
 }
 
+$reports = (string) file_get_contents($root . '/pages/relatorios.php');
+foreach (['$selectedReport', 'class="report-catalog no-print"', "['relatorio' => \$key]", 'report-detail report-billing', 'name="relatorio" value="ledger"'] as $needle) {
+    if (!str_contains($reports, $needle)) {
+        throw new RuntimeException('Central de relatórios sem navegação progressiva: ' . $needle);
+    }
+}
+foreach (['.report-center.is-catalog .report-detail', '.report-center.report-selected-ledger .report-ledger', '@media(max-width:560px){.report-catalog'] as $needle) {
+    if (!str_contains($css, $needle)) {
+        throw new RuntimeException('Central de relatórios sem responsividade progressiva: ' . $needle);
+    }
+}
+
 echo "OK - componentes de relatório compartilham composição, responsividade e escape.\n";

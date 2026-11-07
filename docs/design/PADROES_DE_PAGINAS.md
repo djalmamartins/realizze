@@ -10,6 +10,9 @@
 
 ## Central de Relatórios
 
+- A entrada é um catálogo por categorias; não renderiza simultaneamente indicadores, gráficos e tabelas de todos os relatórios.
+- A seleção usa o parâmetro `relatorio` e permanece ao trocar período ou visão.
+- Somente o detalhamento escolhido fica visível; o catálogo continua disponível para troca sem duplicar rotas ou serviços.
 - Período e critério devem permanecer visíveis e persistir em links e exportações.
 - Previsto e realizado são apresentados separadamente.
 - Toda exportação repete os filtros aplicados.

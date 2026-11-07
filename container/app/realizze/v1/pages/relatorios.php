@@ -10,6 +10,8 @@ use Moves\Services\ServiceOrderReport;
 
 $e = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $period = Finance::period($_GET);
+$reportKeys = ['overview', 'position', 'billing', 'charts', 'ledger', 'service-orders', 'obligations', 'methodology'];
+$selectedReport = in_array($_GET['relatorio'] ?? '', $reportKeys, true) ? (string) $_GET['relatorio'] : '';
 $billingFilters = [
     'origin' => in_array($_GET['faturamento_origem'] ?? '', ['manual','service_order'], true)
         ? (string) $_GET['faturamento_origem'] : '',
@@ -53,7 +55,7 @@ $obligationFilterQuery = array_filter([
     'ob_responsavel' => $obligationFilters['responsible'],
 ], static fn (string $value): bool => $value !== '');
 $link = static fn (array $query): string => \Moves\Services\AppUrl::section(
-    'relatorios', null, $query + $billingFilterQuery + $ledgerFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery
+    'relatorios', null, $query + ($selectedReport === '' ? [] : ['relatorio' => $selectedReport]) + $billingFilterQuery + $ledgerFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery
 );
 $monthly = $period['view'] === 'mensal';
 $months = $monthly ? 6 : 12;
@@ -163,14 +165,14 @@ $billingComparison = static function (int $current, int $previous): string {
         . ($delta === 0 ? 'sem variação' : ($delta > 0 ? 'alta ' : 'queda ') . Finance::money(abs($delta)));
 };
 ?>
-<section class="card finance-workspace finance-report" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
+<section class="card finance-workspace finance-report report-center<?= $selectedReport === '' ? ' is-catalog' : ' has-selection report-selected-' . $e($selectedReport) ?>" aria-labelledby="reports-title" data-print-title="Realizze - Relatório - <?= $e($period['long']) ?>">
   <header class="report-print-head">
     <img src="/assets/realizze/v1/images/<?= $activeOrganization !== null ? 'new-logo-realizze-empresa.svg' : 'new-logo-realizze.svg' ?>" alt="Realizze">
     <div><strong>Relatório financeiro: <?= $e($period['long']) ?></strong><span><?= $e($holder) ?> · Período de <?= $e($period['start']->format('d/m/Y')) ?> a <?= $e($period['end']->format('d/m/Y')) ?> · Emitido em <?= $e(date('d/m/Y H:i')) ?></span></div>
   </header>
   <div class="no-print"><?= $appView->render('components::report-heading', [
-      'reportHeading' => ['id' => 'reports-title', 'title' => 'Relatórios', 'description' => 'Resultado de ' . $period['long'] . ', dia a dia.'],
-      'reportActions' => [
+      'reportHeading' => ['id' => 'reports-title', 'title' => 'Relatórios', 'description' => $selectedReport === '' ? 'Escolha um relatório para analisar ' . $period['long'] . '.' : 'Detalhamento de ' . $period['long'] . '.'],
+      'reportActions' => $selectedReport === '' ? [] : [
           ['label' => 'Exportar CSV', 'href' => $ledgerExport, 'download' => true],
           ['type' => 'button', 'label' => 'Gerar PDF', 'class' => 'primary', 'print' => true],
       ],
@@ -179,16 +181,27 @@ $billingComparison = static function (int $current, int $previous): string {
     <nav class="finance-month" aria-label="Período"><a href="<?= $e($link($period['previous'])) ?>" aria-label="Período anterior">‹</a><strong><?= $e($period['long']) ?></strong><a href="<?= $e($link($period['next'])) ?>" aria-label="Próximo período">›</a></nav>
     <nav class="finance-status" aria-label="Visão"><a href="<?= $e($link($monthly ? ['mes' => $period['start']->format('Y-m')] : $period['other'])) ?>"<?= $monthly ? ' aria-current="true"' : '' ?>>Mensal</a><a href="<?= $e($link($monthly ? $period['other'] : ['visao' => 'anual', 'ano' => $period['start']->format('Y')])) ?>"<?= $monthly ? '' : ' aria-current="true"' ?>>Anual</a></nav>
   </div>
+  <?php $reportCatalog = [
+      'Financeiro' => [['overview','Visão financeira','Indicadores essenciais do período.'],['position','Posição de contas','Saldos e movimentação das contas.'],['charts','Análise gráfica','Evolução e categorias.']],
+      'Pagar e receber' => [['ledger','Pagar e receber','Lançamentos e situações por vencimento.'],['billing','Faturamento gerencial','Receitas por competência e recebimento.']],
+      'Operacional' => [['service-orders','Ordens de serviço','Execução e cobranças vinculadas.'],['obligations','Agenda de obrigações','Vencimentos, responsáveis e comprovantes.']],
+      'Gestão e auditoria' => [['methodology','Metodologia e limites','Fontes, fórmulas e rastreabilidade.']],
+  ]; ?>
+  <nav class="report-catalog no-print" aria-label="Catálogo de relatórios">
+    <?php foreach ($reportCatalog as $category => $items): ?>
+    <section><h3><?= $e($category) ?></h3><div><?php foreach ($items as [$key,$title,$description]): ?><a href="<?= $e($link($billingQuery + ['relatorio' => $key])) ?>"<?= $selectedReport === $key ? ' aria-current="page"' : '' ?>><strong><?= $e($title) ?></strong><span><?= $e($description) ?></span></a><?php endforeach; ?></div></section>
+    <?php endforeach; ?>
+  </nav>
   <?php if ($loadFailed || $report === null): ?>
   <div class="finance-empty"><h3>Não foi possível carregar os relatórios</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php else: ?>
-  <div class="finance-goal-summary is-four" aria-label="Indicadores do período">
+  <div class="finance-goal-summary is-four report-detail report-overview" aria-label="Indicadores do período">
     <div class="finance-goal-stat finance-indicator <?= $totals['income_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Receitas do período</span><strong><?= $e(Finance::money($totals['income'])) ?></strong><small>Realizado até <?= $e($asOfLabel) ?>: <?= $e(Finance::money($totals['income_paid'])) ?> · aberto <?= $e(Finance::money($totals['income'] - $totals['income_paid'])) ?></small></div>
     <div class="finance-goal-stat finance-indicator <?= $totals['expense_paid'] > 0 ? 'is-realized' : 'is-neutral' ?>"><span>Despesas do período</span><strong><?= $e(Finance::money($totals['expense'])) ?></strong><small>Realizado até <?= $e($asOfLabel) ?>: <?= $e(Finance::money($totals['expense_paid'])) ?> · aberto <?= $e(Finance::money($totals['expense'] - $totals['expense_paid'])) ?></small></div>
     <div class="finance-goal-stat finance-indicator is-forecast"><span>Resultado previsto</span><strong><?= $e(Finance::money($resultExpected)) ?></strong><small>Realizado na data-base <?= $e(Finance::money($resultPaid)) ?></small></div>
     <?php $overdueTotal = $totals['expense_overdue'] + $totals['income_overdue']; ?><div class="finance-goal-stat finance-indicator <?= $overdueTotal > 0 ? 'is-overdue' : 'is-neutral' ?>"><span>Em atraso</span><strong><?= $e(Finance::money($overdueTotal)) ?></strong><small>A pagar <?= $e(Finance::money($totals['expense_overdue'])) ?> · a receber <?= $e(Finance::money($totals['income_overdue'])) ?></small></div>
   </div>
-  <section class="report-daily-list" aria-labelledby="account-position-title">
+  <section class="report-daily-list report-detail report-position" aria-labelledby="account-position-title">
     <?= $appView->render('components::report-heading', [
         'reportHeading' => ['id' => 'account-position-title', 'title' => 'Posição de contas', 'description' => 'Saldos de contas bancárias e carteiras; cartões e seus limites não compõem o caixa.', 'level' => 3, 'subsection' => true],
         'reportActions' => [['label' => 'Exportar posição', 'href' => $positionExport, 'download' => true]],
@@ -207,7 +220,7 @@ $billingComparison = static function (int $current, int $previous): string {
     </table></div><?php endif; ?>
   </section>
   <?php if ($billing !== null): $bill = $billing['totals']; $billPrevious = $billingPrevious['totals'] ?? []; ?>
-  <section class="report-daily-list" aria-labelledby="billing-title">
+  <section class="report-daily-list report-detail report-billing" aria-labelledby="billing-title">
     <?= $appView->render('components::report-heading', [
         'reportHeading' => [
             'id' => 'billing-title', 'title' => 'Faturamento gerencial', 'level' => 3, 'subsection' => true,
@@ -216,6 +229,7 @@ $billingComparison = static function (int $current, int $previous): string {
         'reportActions' => [['label' => 'Exportar faturamento', 'href' => $billingExport, 'download' => true]],
     ]) ?>
     <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <input type="hidden" name="relatorio" value="billing">
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
@@ -225,7 +239,7 @@ $billingComparison = static function (int $current, int $previous): string {
       <label>Origem<select name="faturamento_origem"><option value="">Todas</option><option value="manual"<?= $billing['filters']['origin'] === 'manual' ? ' selected' : '' ?>>Lançamento manual</option><option value="service_order"<?= $billing['filters']['origin'] === 'service_order' ? ' selected' : '' ?>>Ordem de serviço</option></select></label>
       <label>Cliente<select name="faturamento_cliente"><option value="">Todos</option><option value="unassigned"<?= $billing['filters']['customer'] === 'unassigned' ? ' selected' : '' ?>>Sem cliente cadastrado</option><?php foreach ($billing['customers'] as $customer): ?><option value="<?= $e($customer['key']) ?>"<?= $billing['filters']['customer'] === $customer['key'] ? ' selected' : '' ?>><?= $e($customer['label']) ?></option><?php endforeach; ?></select></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $ledgerFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if ($billing['filters']['origin'] !== '' || $billing['filters']['customer'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, ['relatorio'=>'billing'] + $billingQuery + $ledgerFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de faturamento">
       <div class="finance-goal-stat finance-indicator is-forecast"><span>Faturado</span><strong><?= $e(Finance::money($bill['billed_cents'])) ?></strong><small><?= $e($billingComparison($bill['billed_cents'], (int) ($billPrevious['billed_cents'] ?? 0))) ?></small></div>
@@ -259,12 +273,13 @@ $billingComparison = static function (int $current, int $previous): string {
   </section>
   <?php endif; ?>
   <?php if ($serviceOrders !== null): $osTotals=$serviceOrders['totals']; $osStatus=$serviceOrders['status']; ?>
-  <section class="report-daily-list" aria-labelledby="service-orders-report-title">
+  <section class="report-daily-list report-detail report-service-orders" aria-labelledby="service-orders-report-title">
     <div class="finance-toolbar">
       <div><h3 id="service-orders-report-title">Operação de serviços</h3><p class="muted">Ordens iniciadas no período. Valores comerciais, sem cálculo de margem ou efeito automático no caixa.</p></div>
       <a class="finance-button" href="<?= $e($serviceOrderExport) ?>" download>Exportar ordens</a>
     </div>
     <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <input type="hidden" name="relatorio" value="service-orders">
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
@@ -272,7 +287,7 @@ $billingComparison = static function (int $current, int $previous): string {
       <label>Situação<select name="os_situacao"><option value="">Todas</option><?php foreach (['draft'=>'Rascunho','open'=>'Aberta','in_progress'=>'Em andamento','completed'=>'Concluída','cancelled'=>'Cancelada'] as $key=>$label): ?><option value="<?= $key ?>"<?= $serviceOrders['filters']['status']===$key?' selected':'' ?>><?= $label ?></option><?php endforeach; ?></select></label>
       <label>Cliente<select name="os_cliente"><option value="">Todos</option><?php foreach($serviceOrders['customers'] as $customer): ?><option value="<?= (int)$customer['id'] ?>"<?= $serviceOrders['filters']['customer']===(int)$customer['id']?' selected':'' ?>><?= $e($customer['name']) ?></option><?php endforeach; ?></select></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if($serviceOrders['filters']['status']!==''||$serviceOrders['filters']['customer']>0): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,$billingQuery+$billingFilterQuery+$ledgerFilterQuery+$obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if($serviceOrders['filters']['status']!==''||$serviceOrders['filters']['customer']>0): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,['relatorio'=>'service-orders']+$billingQuery+$billingFilterQuery+$ledgerFilterQuery+$obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de ordens de serviço">
       <div class="finance-goal-stat finance-indicator is-forecast"><span>Valor das ordens</span><strong><?= $e(Finance::money($osTotals['order_cents'])) ?></strong><small><?= $osTotals['orders'] ?> ordens · descontos <?= $e(Finance::money($osTotals['discount_cents'])) ?></small></div>
@@ -290,10 +305,11 @@ $billingComparison = static function (int $current, int $previous): string {
   </section>
   <?php endif; ?>
   <?php if($obligations!==null):$obTotals=$obligations['totals'];$obStatus=$obligations['status']; ?>
-  <section class="report-daily-list" aria-labelledby="obligations-report-title">
+  <section class="report-daily-list report-detail report-obligations" aria-labelledby="obligations-report-title">
     <div class="finance-toolbar"><div><h3 id="obligations-report-title">Agenda de obrigações</h3><p class="muted">Controle manual por vencimento. Não calcula impostos nem gera despesas.</p></div><a class="finance-button" href="<?= $e($obligationExport) ?>" download>Exportar obrigações</a></div>
     <?php $obTypeLabels=['tax'=>'Fiscal','labor'=>'Trabalhista','license'=>'Licença','contract'=>'Contrato','other'=>'Outra']; ?>
     <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <input type="hidden" name="relatorio" value="obligations">
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
@@ -301,7 +317,7 @@ $billingComparison = static function (int $current, int $previous): string {
       <label>Tipo<select name="ob_tipo"><option value="">Todos</option><?php foreach($obligations['types']as$type):?><option value="<?= $e($type) ?>"<?= $obligations['filters']['type']===$type?' selected':'' ?>><?= $e($obTypeLabels[$type]??$type) ?></option><?php endforeach;?></select></label>
       <label>Responsável<select name="ob_responsavel"><option value="">Todos</option><option value="unassigned"<?= $obligations['filters']['responsible']==='unassigned'?' selected':'' ?>>Não definido</option><?php foreach($obligations['responsibles']as$responsible):?><option value="<?= (int)$responsible['id'] ?>"<?= $obligations['filters']['responsible']===(string)$responsible['id']?' selected':'' ?>><?= $e($responsible['name']) ?></option><?php endforeach;?></select></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if($obligations['filters']['type']!==''||$obligations['filters']['responsible']!==''):?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,$billingQuery+$billingFilterQuery+$ledgerFilterQuery+$serviceOrderFilterQuery)) ?>">Limpar</a><?php endif;?>
+      <?php if($obligations['filters']['type']!==''||$obligations['filters']['responsible']!==''):?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios',null,['relatorio'=>'obligations']+$billingQuery+$billingFilterQuery+$ledgerFilterQuery+$serviceOrderFilterQuery)) ?>">Limpar</a><?php endif;?>
     </form>
     <div class="finance-goal-summary is-four" aria-label="Indicadores de obrigações">
       <div class="finance-goal-stat finance-indicator is-neutral"><span>Obrigações</span><strong><?= $obTotals['obligations'] ?></strong><small>Valor informado <?= $e(Finance::money($obTotals['declared_cents'])) ?></small></div>
@@ -314,7 +330,7 @@ $billingComparison = static function (int $current, int $previous): string {
       <?php $obLabels=['pending'=>'Pendente','upcoming'=>'Próxima','overdue'=>'Vencida','completed'=>'Concluída','cancelled'=>'Cancelada'];foreach(array_slice($obligations['rows'],0,100)as$row):?><tr class="<?= $row['display_status']==='cancelled'?'is-cancelled':'' ?>"><td><a href="<?= $e(ReportTrace::obligation((int)$row['id'],$obligations['start'],$obligations['end'])) ?>"><?= $e($row['title']) ?></a><small><?= $e($row['obligation_type']) ?> · <?= $e($row['frequency']) ?></small></td><td><?= $e((new DateTimeImmutable($row['competence_date']))->format('m/Y')) ?></td><td><?= $e($brDate($row['due_date'])) ?></td><td><?= $e($row['responsible_name']?:'Não definido') ?></td><td><span class="report-situation <?= $row['display_status']==='completed'?'is-paid':($row['display_status']==='overdue'?'is-late':($row['display_status']==='cancelled'?'is-muted':'is-open')) ?>"><?= $e($obLabels[$row['display_status']]) ?></span></td><td><?= $row['attachment_count'] ?></td><td class="is-money"><?= $row['amount_cents']===null?'—':$e(Finance::money($row['amount_cents'])) ?></td></tr><?php endforeach;?></tbody></table></div><?php if(count($obligations['rows'])>100):?><p class="report-note">Exibindo as primeiras 100 obrigações. O CSV contém todo o período.</p><?php endif;endif;?>
   </section>
   <?php endif; ?>
-  <div class="finance-report-panels<?= $monthly ? ' has-daily' : '' ?>">
+  <div class="finance-report-panels report-detail report-charts<?= $monthly ? ' has-daily' : '' ?>">
     <?php if ($monthly): ?>
     <section class="finance-report-panel"><h3>Receitas e despesas por dia</h3>
       <div class="bars report-daily" role="img" aria-label="Gráfico de barras de receitas e despesas por dia do mês">
@@ -351,9 +367,10 @@ $billingComparison = static function (int $current, int $previous): string {
     <?php endif; ?>
   </div>
   <?php $ledger = $payReceiveReport ?? $report; $ledgerTotals = $ledger['totals']; $ledgerResult = $ledgerTotals['income'] - $ledgerTotals['expense']; ?>
-  <section class="report-daily-list" aria-labelledby="report-days-title">
+  <section class="report-daily-list report-detail report-ledger" aria-labelledby="report-days-title">
     <div class="finance-toolbar"><h3 id="report-days-title">Pagar e receber <small><?= (int) $ledger['count'] ?> <?= $ledger['count'] === 1 ? 'lançamento' : 'lançamentos' ?> por vencimento · posição em <?= $e($asOfLabel) ?></small></h3><a class="finance-button no-print" href="<?= $e($ledgerExport) ?>" download>Exportar seleção</a></div>
     <form class="finance-filter-bar no-print" method="get" action="<?= $e(\Moves\Services\AppUrl::section('relatorios')) ?>" data-swap-get>
+      <input type="hidden" name="relatorio" value="ledger">
       <?php if ($monthly): ?><input type="hidden" name="mes" value="<?= $e($period['start']->format('Y-m')) ?>">
       <?php elseif ($period['view'] === 'anual'): ?><input type="hidden" name="visao" value="anual"><input type="hidden" name="ano" value="<?= $e($period['start']->format('Y')) ?>">
       <?php else: ?><input type="hidden" name="inicio" value="<?= $e($period['start']->format('Y-m-d')) ?>"><input type="hidden" name="fim" value="<?= $e($period['end']->format('Y-m-d')) ?>"><?php endif; ?>
@@ -364,7 +381,7 @@ $billingComparison = static function (int $current, int $previous): string {
       <label>Conta<select name="pr_conta"><option value="">Todas</option><?php foreach ($reportAccounts as $account): ?><option value="<?= (int) $account['id'] ?>"<?= (int) $ledger['filters']['account_id'] === (int) $account['id'] ? ' selected' : '' ?>><?= $e($account['name']) ?></option><?php endforeach; ?></select></label>
       <label>Contraparte<input type="search" name="pr_contraparte" maxlength="80" value="<?= $e($ledger['filters']['counterparty']) ?>" placeholder="Cliente ou fornecedor"></label>
       <button class="finance-button" type="submit">Aplicar filtros</button>
-      <?php if ($ledger['filters']['status'] !== '' || $ledger['filters']['account_id'] > 0 || $ledger['filters']['counterparty'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, $billingQuery + $billingFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
+      <?php if ($ledger['filters']['status'] !== '' || $ledger['filters']['account_id'] > 0 || $ledger['filters']['counterparty'] !== ''): ?><a class="finance-button" href="<?= $e(\Moves\Services\AppUrl::section('relatorios', null, ['relatorio'=>'ledger'] + $billingQuery + $billingFilterQuery + $serviceOrderFilterQuery + $obligationFilterQuery)) ?>">Limpar</a><?php endif; ?>
     </form>
     <?php if ($ledger['days'] === []): ?>
     <div class="finance-empty"><h3>Nenhum lançamento neste período</h3><p><?= $ledgerFilterQuery !== [] ? 'Nenhum lançamento corresponde aos filtros aplicados.' : 'Os lançamentos de ' . $e($period['long']) . ' aparecem aqui, um a um.' ?></p></div>
@@ -398,7 +415,7 @@ $billingComparison = static function (int $current, int $previous): string {
     <p class="report-note">Transferências entre contas e lançamentos cancelados aparecem na lista, mas não entram nos totais. Dias sem lançamentos não aparecem.</p>
     <?php endif; ?>
   </section>
-  <section class="report-daily-list" aria-labelledby="report-methodology-title">
+  <section class="report-daily-list report-detail report-methodology" aria-labelledby="report-methodology-title">
     <div class="finance-toolbar">
       <div><h3 id="report-methodology-title">Metodologia e limites</h3><p class="muted">Fontes, critérios temporais e fórmulas dos indicadores gerenciais. Nenhum deles substitui documento contábil ou fiscal oficial.</p></div>
       <a class="finance-button no-print" href="/minha-conta/financeiro/exportar?relatorio=metodologia" download>Exportar metodologia</a>

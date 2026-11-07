@@ -82,6 +82,18 @@
 .finance-search-preview input,.finance-search-preview select{width:100%;min-height:42px;padding:10px 12px;border:1px solid #e1eae4;border-radius:9px;background:#f9fbfa;color:#738678;font:inherit}
 .finance-search-preview :disabled{opacity:1;cursor:not-allowed}
 .finance-report-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0 26px}
+.report-catalog{display:grid;gap:22px;margin:8px 28px 30px}
+.report-catalog section{display:grid;gap:10px}
+.report-catalog h3{margin:0;color:#40554a;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.report-catalog section>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.report-catalog a{display:grid;gap:6px;min-height:94px;padding:16px;border:1px solid #e2ebe5;border-radius:13px;background:#fff}
+.report-catalog a:hover,.report-catalog a[aria-current=page]{border-color:#80c7a2;background:#f1faf5}
+.report-catalog a strong{color:#183b2b;font-size:14px}.report-catalog a span{color:#687a70;font-size:12.5px;line-height:1.5}
+.report-center.is-catalog .report-detail,.report-center.has-selection .report-detail{display:none}
+.report-center.report-selected-overview .report-overview,.report-center.report-selected-position .report-position,.report-center.report-selected-billing .report-billing,.report-center.report-selected-charts .report-charts,.report-center.report-selected-ledger .report-ledger,.report-center.report-selected-service-orders .report-service-orders,.report-center.report-selected-obligations .report-obligations,.report-center.report-selected-methodology .report-methodology{display:grid}
+.report-center.report-selected-overview .report-overview{display:grid}
+@media(max-width:850px){.report-catalog section>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.report-catalog{margin-inline:20px}.report-catalog section>div{grid-template-columns:1fr}.report-catalog a{min-height:0}}
 .finance-report-panel{min-width:0;padding:19px;border:1px solid #eaf0eb;border-radius:13px;background:#fff}
 .finance-report-panel h3{font-size:15px;margin:0}
 .finance-chart-empty{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:#738678;font-size:13px}
