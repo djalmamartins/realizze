@@ -27,6 +27,21 @@ Atualizado em 07/11/2026. Branch de trabalho: `dev-claude` (sem push; Djalma env
 - `tests/ui-003-mobile-menu.js`: passa (a falha registrada antes foi corrigida em commits do Codex; agora confirmada também em navegador real).
 - Commit: `a30c871`.
 
+## Etapa 3: layout e filtros (em andamento)
+
+Referência: Contas a Receber PF (`components/receivables.php`): abas de situação com contagem, botão Filtros com modal (`filter-button`, `filter-period`), etiquetas dos filtros ativos com Limpar (`filter-bar`).
+
+| Módulo | Situação | Evidência | Commit |
+|---|---|---|---|
+| Receber e Pagar PJ | Já usam os mesmos componentes da PF | | |
+| Obrigações | Padronizado: abas (Pendentes, Próximas, Vencidas, Concluídas, Canceladas), período por vencimento, tipo | `tests/http/obligation-filters-flow.php` (10 OK), capturas 1440/390 | `a937628` |
+| Ordens de serviço | Padronizado: abas, busca (número, cliente, descrição), prazo, cliente, responsável. **Bug corrigido:** a última ordem da lista era substituída pela penúltima (referência de `foreach` sem `unset`); indicadores zeravam ao filtrar uma situação | `tests/http/service-order-filters-flow.php` (8 OK, falhava antes da correção), `enterprise-business-modules-flow` (11 OK) | `10873fe` |
+| Clientes e Fornecedores | Pendente: formulário próprio com busca, tipo e situação | | |
+| Conciliação | Pendente: formulário solto com situação e conta | | |
+| Fluxo de caixa, DRE, Relatórios | Usam `report-period-form` (padrão dos relatórios do Codex); revisar só se houver divergência | | |
+
+Observações visuais: o seletor de situação inline das OS ainda usa o `select` nativo sem estilo; a sidebar PJ é verde-escura e a PF é clara (identidade por contexto, a confirmar com Djalma).
+
 ## Próxima atividade
 
-Etapa 3: filtros PJ no padrão de Contas a Receber PF.
+Clientes/Fornecedores e Conciliação no mesmo padrão; depois a revisão página por página (Etapa 4).
