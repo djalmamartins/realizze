@@ -4,7 +4,7 @@ Atualizada em 07/11/2026 (Etapa 4). Toda linha abaixo passou pela varredura no n
 
 Status: **Validada** = fluxos de gravação cobertos por teste automatizado que passou nesta rodada. **Validada (leitura)** = só exibe dados; carga e números conferidos. **Sem teste de gravação** = abre e funciona na varredura, mas nenhum teste cobre salvar/editar. **Parcial** = falta função. **Bloqueada** = depende de migration no `realizze_dev`.
 
-Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 020. As páginas marcadas com (014-020) só funcionam no banco de teste até Djalma aplicá-las.
+Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 022. As páginas marcadas com (014-022) só funcionam no banco de teste até Djalma aplicá-las.
 
 ## PF (`/p`)
 
@@ -21,10 +21,10 @@ Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 020. As páginas ma
 | Planejamento | Validada | `finance-015-planning` |
 | Sair das Dívidas | Validada | `debt-001`, `debt-002`, `debt-003` |
 | Relatórios | Validada (leitura) | `finance-006-report`, `finance-024`, `finance-025` (não redesenhar) |
-| Categorias | Sem teste de gravação | Satisfatória para Djalma (não redesenhar) |
+| Categorias | Validada | `categories-flow`, `finance-027-category-totals` (não redesenhar) |
 | Notificações | Validada | `notifications-001-app` |
 | Integrações | Parcial | Página informativa: integração bancária não existe |
-| Configurações / Meu perfil | Validada | `profile-001-security`, `security-001-csrf-session` |
+| Configurações / Meu perfil | Validada (troca de e-mail depende da 022) | `profile-001-security`, `security-001-csrf-session`, `privacy-lgpd-flow`, `email-change-flow` |
 | Assistente, Empresarial | Parcial (prévias fora do menu) | Decisão de Djalma |
 
 ## PJ (`/e/{empresa}`)
@@ -40,7 +40,7 @@ Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 020. As páginas ma
 | Cartões e faturas | Validada (014/015) | `finance-020`, `enterprise-invoices-flow` |
 | Conciliação bancária | Validada (014); lista limitada a 500 linhas | `finance-021`, `enterprise-reconciliation-flow`, `reconciliation-filters-flow` |
 | Clientes, Fornecedores (+ detalhe) | Validada | `finance-003-contacts`, `contact-filters-flow` |
-| Categorias | Sem teste de gravação | DRE por grupo depende da 020 |
+| Categorias | Validada | `categories-flow`; DRE por grupo depende da 020 |
 | Centros de custo | Validada (014) | `finance-022-cost-centers` |
 | Relatórios | Validada (leitura) | `enterprise-009/010/011`, `ui-006` |
 | DRE gerencial | Validada (leitura, 020) | `enterprise-004-management-dre` |
@@ -48,7 +48,7 @@ Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 020. As páginas ma
 | Obrigações | Validada (018) | `enterprise-006`, `enterprise-business-modules-flow`, `obligation-filters-flow` |
 | Ordens de serviço | Validada (019) | `enterprise-007`, `enterprise-008`, `service-order-filters-flow` |
 | Equipe, Permissões | Validada (016) | `enterprise-002-team`, `enterprise-permissions-flow`, `enterprise-invite-login-flow` |
-| Configurações da empresa (logotipo) | Validada (017) | `enterprise-003`, `enterprise-005-company-logo`, `enterprise-company-flow` |
+| Configurações da empresa (logotipo, enquadramento) | Validada (017, 021) | `enterprise-003`, `enterprise-005-company-logo`, `enterprise-company-flow` |
 | Segurança | Validada | `enterprise-security-flow` |
 | Auditoria | Validada (leitura) | `enterprise-003-company-audit` |
 | Integrações, Notificações | Como na PF | |
