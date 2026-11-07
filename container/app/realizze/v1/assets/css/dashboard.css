@@ -468,6 +468,8 @@
 .receivables-filter-actions button,.receivables-filter-actions a{min-height:calc(38px - var(--app-button-trim));padding:0 15px;border:1px solid #cfe3d8;border-radius:9px;background:#fff;color:#066f3e;font:inherit;font-weight:600;display:inline-flex;align-items:center;cursor:pointer}
 .receivables-filter-actions .primary{border-color:#078b4c;background:#078b4c;color:#fff}
 .receivables-origin{display:block;margin-top:4px;color:#6b7a73;font-size:11.5px;font-weight:400}
+/* Linha secundária sob o título (Obrigações, Ordens, Conciliação): mesmo tratamento de Receber. */
+.finance-table td>strong+small{display:block;margin-top:4px;color:#6b7a73;font-size:11.5px;font-weight:400}
 .finance-badge.is-partially_received{background:#e8f0ff;color:#2457a6}
 .finance-badge.is-cancelled{background:#edf0ef;color:#52615a}
 .finance-badge.is-overdue{background:#fdecec;color:#a4161a}
