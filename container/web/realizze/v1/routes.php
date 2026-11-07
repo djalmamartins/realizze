@@ -80,6 +80,21 @@ return [
             $render('forgot', ['requested' => true]);
         }, 'web.password.forgot.submit');
 
+        // Troca de e-mail: GET só mostra (leitores de e-mail abrem links sozinhos); a troca acontece no POST.
+        $router->get('/confirmar-novo-email', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            header('Referrer-Policy: no-referrer');
+            $token = is_string($_GET['token'] ?? null) ? $_GET['token'] : '';
+            $render('email-change', ['token' => $token, 'pending' => \Moves\Services\EmailChange::pending($token), 'changed' => null]);
+        }, 'web.email_change');
+        $router->post('/confirmar-novo-email', static function () use ($render): void {
+            header('Cache-Control: no-store');
+            header('Referrer-Policy: no-referrer');
+            if (!\Moves\Services\Csrf::validate($_POST['csrf_token'] ?? null)) { http_response_code(403); $render('email-change', ['changed' => false]); return; }
+            $token = is_string($_POST['token'] ?? null) ? $_POST['token'] : '';
+            $render('email-change', ['changed' => \Moves\Services\EmailChange::confirm($token)]);
+        }, 'web.email_change.confirm');
+
         $router->get('/redefinir-senha', static function () use ($render): void {
             header('Cache-Control: no-store');
             header('Referrer-Policy: no-referrer');

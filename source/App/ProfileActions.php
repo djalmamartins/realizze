@@ -36,10 +36,11 @@ final class ProfileActions
                 'invite_accept' => $this->acceptInvite($userId, (string) $user['email']),
                 'invite_decline' => $this->declineInvite($userId, (string) $user['email']),
                 'notifications' => $this->notifications($userId),
+                'email' => $this->emailChange($userId),
                 default => throw new \InvalidArgumentException('Ação inválida.'),
             };
             $tab = match (true) {
-                str_starts_with($action, '2fa'), $action === 'password' => 'seguranca',
+                str_starts_with($action, '2fa'), $action === 'password', $action === 'email' => 'seguranca',
                 str_contains($action, 'session') => 'sessoes',
                 str_starts_with($action, 'invite') => 'permissoes',
                 $action === 'notifications' => 'notificacoes',
@@ -55,6 +56,19 @@ final class ProfileActions
         }
         header('Cache-Control: no-store');
         header('Location: /p/perfil?aba=' . rawurlencode($tab), true, 303);
+    }
+
+    private function emailChange(int $userId): string
+    {
+        try {
+            \Moves\Services\EmailChange::request($userId, (string) ($_POST['current_password'] ?? ''), (string) ($_POST['new_email'] ?? ''));
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            error_log('Realizze troca de e-mail: ' . $e->getMessage());
+            throw new \InvalidArgumentException('Não foi possível enviar o link agora. Tente de novo em alguns minutos.');
+        }
+        return 'Se o endereço puder ser usado, enviamos um link para ele. O e-mail só muda depois da confirmação.';
     }
 
     /** LGPD: cópia dos dados (download JSON) e exclusão da conta, ambas com a senha atual. */
