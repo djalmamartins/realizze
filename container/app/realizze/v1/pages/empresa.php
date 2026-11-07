@@ -24,7 +24,7 @@ $typed = is_array($_SESSION['company_form'] ?? null) ? $_SESSION['company_form']
 unset($_SESSION['company_form']);
 $value = static fn (string $field, mixed $stored): string => (string) ($typed[$field] ?? $stored ?? '');
 $document = (string) ($company['document_value'] ?? '');
-$cnpj = strlen($document) === 14 ? preg_replace('/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/', '$1.$2.$3/$4-$5', $document) : '';
+$cnpj = strlen($document) === 14 ? \Moves\Services\Organizations::formatCnpj($document) : '';
 $phoneDigits = (string) ($company['phone'] ?? '');
 $phone = preg_match('/^(\d{2})(\d{4,5})(\d{4})$/', $phoneDigits, $p) ? "({$p[1]}) {$p[2]}-{$p[3]}" : $phoneDigits;
 $history = [];
@@ -50,7 +50,7 @@ $logoUrl = OrganizationLogos::url($company);
     <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>">
     <label>Razão social<input name="name" maxlength="180" required value="<?= $e($value('name', $company['name'])) ?>"></label>
     <label>Nome fantasia<input name="trade_name" maxlength="180" value="<?= $e($value('trade_name', $company['trade_name'])) ?>"></label>
-    <label>CNPJ<input name="cnpj" inputmode="numeric" maxlength="18" placeholder="00.000.000/0000-00" value="<?= $e($value('cnpj', $cnpj)) ?>"><small>Opcional. Conferimos os dígitos verificadores.</small></label>
+    <label>CNPJ<input name="cnpj" maxlength="18" autocapitalize="characters" spellcheck="false" placeholder="00.000.000/0000-00" value="<?= $e($value('cnpj', $cnpj)) ?>"><small>Opcional. Conferimos os dígitos verificadores.</small></label>
     <label>E-mail da empresa<input type="email" name="email" maxlength="255" value="<?= $e($value('email', $company['email'])) ?>"></label>
     <label>Telefone<input name="phone" inputmode="tel" maxlength="20" placeholder="(31) 3333-4444" value="<?= $e($value('phone', $phone)) ?>"></label>
     <label>Endereço no App<input value="<?= $e(AppUrl::base($active)) ?>" disabled><small>Não muda quando o nome muda, para manter os links salvos.</small></label>

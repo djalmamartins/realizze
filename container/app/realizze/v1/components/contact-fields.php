@@ -8,7 +8,7 @@ $defaultCustomer = $defaultRole ?? 'customer';
   <legend>Identificação</legend>
   <div class="finance-dialog-row">
     <label>Tipo de pessoa<select name="person_type" required data-contact-type><option value="individual"<?= $v('person_type', 'individual') === 'individual' ? ' selected' : '' ?>>Pessoa física</option><option value="company"<?= $v('person_type') === 'company' ? ' selected' : '' ?>>Pessoa jurídica</option></select></label>
-    <label>CPF ou CNPJ<input name="document" value="<?= $e($v('document_value')) ?>" inputmode="numeric" maxlength="18"></label>
+    <label>CPF ou CNPJ<input name="document" value="<?= $e($v('document_value')) ?>" maxlength="18" autocapitalize="characters" spellcheck="false"></label>
   </div>
   <label><span data-contact-name-label><?= $v('person_type') === 'company' ? 'Razão social' : 'Nome completo' ?></span><input name="legal_name" value="<?= $e($v('legal_name')) ?>" maxlength="180" required></label>
   <div class="finance-dialog-row">

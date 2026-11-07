@@ -77,7 +77,8 @@ final class Contacts
         $where = ['financial_context_id = ?']; $params = [$this->contextId];
         $search = trim((string) ($filters['search'] ?? ''));
         if ($search !== '') {
-            $digits = preg_replace('/\D+/', '', $search) ?? '';
+            // Documento: números ou CNPJ alfanumérico, sem máscara. Só vale como documento se houver algum número.
+            $digits = preg_match('/\d/', $search) === 1 && preg_match('/^[0-9A-Za-z.\/\s-]+$/', $search) === 1 ? Organizations::normalizeCnpj($search) : '';
             $like = '%' . mb_substr($search, 0, 180) . '%';
             $where[] = $digits === ''
                 ? '(legal_name LIKE ? OR trade_name LIKE ? OR social_name LIKE ?)'
@@ -133,7 +134,8 @@ final class Contacts
         if ($name === '' || mb_strlen($name) > 180) throw new InvalidArgumentException('Informe o nome ou razão social.');
         $customer = isset($d['is_customer']) ? 1 : 0; $supplier = isset($d['is_supplier']) ? 1 : 0;
         if (!$customer && !$supplier) throw new InvalidArgumentException('Marque cliente, fornecedor ou ambos.');
-        $document = preg_replace('/\D+/', '', (string)($d['document'] ?? '')) ?? '';
+        // CPF só tem números; CNPJ pode ter letras nas 12 primeiras posições (formato alfanumérico).
+        $document = $type === 'company' ? Organizations::normalizeCnpj((string)($d['document'] ?? '')) : (preg_replace('/\D+/', '', (string)($d['document'] ?? '')) ?? '');
         if ($document !== '' && (($type === 'individual' && !self::validCpf($document)) || ($type === 'company' && !Organizations::validCnpj($document)))) throw new InvalidArgumentException($type === 'individual' ? 'CPF inválido.' : 'CNPJ inválido.');
         $email = $this->text($d['email'] ?? null, 254);
         if ($email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) === false) throw new InvalidArgumentException('E-mail inválido.');

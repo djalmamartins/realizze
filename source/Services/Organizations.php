@@ -17,7 +17,7 @@ final class Organizations
         if ($name === '' || mb_strlen($name) > 180) {
             throw new InvalidArgumentException('Informe o nome da empresa.');
         }
-        $digits = preg_replace('/\D+/', '', $cnpj) ?? '';
+        $digits = self::normalizeCnpj($cnpj);
         if ($digits !== '' && !self::validCnpj($digits)) {
             throw new InvalidArgumentException('CNPJ inválido.');
         }
@@ -67,7 +67,7 @@ final class Organizations
         if (mb_strlen($tradeName) > 180) {
             throw new InvalidArgumentException('O nome fantasia pode ter até 180 caracteres.');
         }
-        $cnpj = preg_replace('/\D+/', '', (string) ($data['cnpj'] ?? '')) ?? '';
+        $cnpj = self::normalizeCnpj((string) ($data['cnpj'] ?? ''));
         if ($cnpj !== '' && !self::validCnpj($cnpj)) {
             throw new InvalidArgumentException('CNPJ inválido.');
         }
@@ -144,16 +144,29 @@ final class Organizations
         throw new \RuntimeException('Não foi possível definir o endereço da empresa.');
     }
 
+    /**
+     * CNPJ sem máscara, em maiúsculas. Aceita o numérico e o alfanumérico (IN RFB nº 2.229/2024, a partir de julho de 2026):
+     * remove só pontos, barra, hífen e espaços, para que letras não sejam descartadas.
+     */
+    public static function normalizeCnpj(string $value): string
+    {
+        return strtoupper(preg_replace('/[\s.\/-]+/', '', trim($value)) ?? '');
+    }
+
+    /**
+     * 12 posições com dígitos ou letras maiúsculas e 2 dígitos verificadores numéricos. Módulo 11 com pesos 2 a 9;
+     * cada caractere vale o código ASCII menos 48 (0-9 valem 0-9, A vale 17). Para CNPJ só numérico o resultado é o de sempre.
+     */
     public static function validCnpj(string $value): bool
     {
-        if (!preg_match('/^\d{14}$/', $value) || preg_match('/^(\d)\1+$/', $value)) {
+        if (!preg_match('/^[0-9A-Z]{12}\d{2}$/', $value) || preg_match('/^(.)\1+$/', $value)) {
             return false;
         }
         foreach ([12, 13] as $size) {
             $sum = 0;
             $weight = $size - 7;
             for ($i = 0; $i < $size; $i++) {
-                $sum += (int) $value[$i] * $weight--;
+                $sum += (ord($value[$i]) - 48) * $weight--;
                 if ($weight < 2) {
                     $weight = 9;
                 }
@@ -164,5 +177,11 @@ final class Organizations
             }
         }
         return true;
+    }
+
+    /** 00.000.000/0000-00, também com letras; valor fora do formato volta como está. */
+    public static function formatCnpj(string $value): string
+    {
+        return preg_replace('/^([0-9A-Z]{2})([0-9A-Z]{3})([0-9A-Z]{3})([0-9A-Z]{4})(\d{2})$/', '$1.$2.$3/$4-$5', $value) ?? $value;
     }
 }

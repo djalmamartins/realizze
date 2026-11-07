@@ -105,7 +105,7 @@ foreach ($sidebarGroups[$group] as $entry):
     <header><h2 id="company-dialog-title">Cadastrar empresa</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
     <input type="hidden" name="csrf_token" value="<?= $escapeSidebar($csrf ?? '') ?>"><input type="hidden" name="back" value="overview">
     <label>Nome da empresa<input name="name" maxlength="180" required></label>
-    <label>CNPJ<input name="cnpj" inputmode="numeric" maxlength="18" placeholder="Opcional: 00.000.000/0000-00"></label>
+    <label>CNPJ<input name="cnpj" maxlength="18" autocapitalize="characters" spellcheck="false" placeholder="Opcional: 00.000.000/0000-00"></label>
     <footer><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Cadastrar</button></footer>
   </form>
 </dialog>
