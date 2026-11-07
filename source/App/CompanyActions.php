@@ -35,7 +35,7 @@ final class CompanyActions
             };
         } catch (InvalidArgumentException $exception) {
             $message = ['error', $exception->getMessage()];
-            $_SESSION['company_form'] = array_intersect_key($_POST, array_flip(['name', 'trade_name', 'cnpj', 'email', 'phone']));
+            $_SESSION['company_form'] = array_intersect_key($_POST, array_flip(['name', 'trade_name', 'cnpj', 'email', 'phone', 'tax_regime']));
         } catch (Throwable $exception) {
             error_log('Realizze company: ' . $exception->getMessage());
             $message = ['error', 'Não foi possível salvar. Tente novamente.'];

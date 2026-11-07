@@ -11,6 +11,8 @@ $pdo = \MovesCode\Model\Connection::get();
 if (!str_contains((string) $pdo->query('SELECT DATABASE()')->fetchColumn(), 'test')) throw new RuntimeException('Banco de teste obrigatório.');
 // Estado inicial conhecido: sem ele, a segunda execução encontrava os dados já salvos ("Nada foi alterado").
 $pdo->prepare("UPDATE organizations SET trade_name = NULL, email = NULL, phone = NULL WHERE slug = ?")->execute([$slug]);
+$hasRegime = (bool) $pdo->query("SHOW COLUMNS FROM organizations LIKE 'tax_regime'")->fetchColumn();
+if ($hasRegime) $pdo->prepare('UPDATE organizations SET tax_regime = NULL WHERE slug = ?')->execute([$slug]);
 $o = new H(); $o->login('pj-dono@example.invalid', 'PjMissao#2026');
 $page = $o->req('GET', "/e/$slug/empresa"); $csrf = $o->csrf($page['body']);
 $check(str_contains($page['body'], 'name="trade_name"'), 'Dono vê o formulário de edição');
@@ -48,4 +50,18 @@ $check(str_contains($vp['body'], 'não tem permissão') && !str_contains($vp['bo
 $check($v->req('GET', "/e/$slug/auditoria")['code'] === 403, 'Visualizador não abre a auditoria');
 $check(!str_contains($v->req('GET', "/e/$slug")['body'], '/auditoria"'), 'Menu do Visualizador não mostra Auditoria');
 $check($v->req('GET', '/e/missao-beta-me/empresa')['code'] === 404, 'Quem não é membro da Beta recebe 404');
+// Enquadramento (migration 021): informativo, com valor fora da lista recusado.
+if ($hasRegime) {
+    $page = $o->req('GET', "/e/$slug/empresa");
+    $check(str_contains($page['body'], 'name="tax_regime"') && str_contains($page['body'], 'não calcula impostos'), 'Formulário oferece o enquadramento, com aviso de que é só informativo');
+    $base = ['csrf_token' => $o->csrf($page['body']), 'name' => 'Missao Alfa Ltda', 'trade_name' => 'Alfa Serviços', 'cnpj' => '11222333000181', 'email' => 'financeiro@alfa.example', 'phone' => '3133334444'];
+    $o->req('POST', '/minha-conta/empresa/dados', $base + ['tax_regime' => 'lucro-inventado']);
+    $check(str_contains($o->req('GET', "/e/$slug/empresa")['body'], 'Escolha um enquadramento da lista'), 'Enquadramento fora da lista é recusado');
+    $o->req('POST', '/minha-conta/empresa/dados', $base + ['tax_regime' => 'mei']);
+    $check($pdo->query("SELECT tax_regime FROM organizations WHERE slug = " . $pdo->quote($slug))->fetchColumn() === 'mei', 'Enquadramento MEI é salvo');
+    $v2 = $v->req('GET', "/e/$slug/empresa");
+    $check(str_contains($v2['body'], '<dt>Enquadramento</dt><dd>MEI</dd>'), 'Visualizador vê o enquadramento');
+    $o->req('POST', '/minha-conta/empresa/dados', $base);
+    $check($pdo->query("SELECT tax_regime FROM organizations WHERE slug = " . $pdo->quote($slug))->fetchColumn() === 'mei', 'Envio sem o campo não apaga o enquadramento');
+}
 echo "$ok OK, $fail falha(s)\n"; exit($fail ? 1 : 0);

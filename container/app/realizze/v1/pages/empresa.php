@@ -35,7 +35,9 @@ if ($canEdit) {
         error_log('Realizze company history: ' . $exception->getMessage());
     }
 }
-$labels = ['name' => 'Razão social', 'trade_name' => 'Nome fantasia', 'document_value' => 'CNPJ', 'email' => 'E-mail', 'phone' => 'Telefone'];
+$labels = ['name' => 'Razão social', 'trade_name' => 'Nome fantasia', 'document_value' => 'CNPJ', 'email' => 'E-mail', 'phone' => 'Telefone', 'tax_regime' => 'Enquadramento'];
+$regimes = \Moves\Services\Organizations::TAX_REGIMES;
+$regimeReady = \Moves\Services\Organizations::supportsTaxRegime();
 $logoUrl = OrganizationLogos::url($company);
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
@@ -53,6 +55,7 @@ $logoUrl = OrganizationLogos::url($company);
     <label>CNPJ<input name="cnpj" maxlength="18" autocapitalize="characters" spellcheck="false" placeholder="00.000.000/0000-00" value="<?= $e($value('cnpj', $cnpj)) ?>"><small>Opcional. Conferimos os dígitos verificadores.</small></label>
     <label>E-mail da empresa<input type="email" name="email" maxlength="255" value="<?= $e($value('email', $company['email'])) ?>"></label>
     <label>Telefone<input name="phone" inputmode="tel" maxlength="20" placeholder="(31) 3333-4444" value="<?= $e($value('phone', $phone)) ?>"></label>
+    <?php if ($regimeReady): $regimeValue = $value('tax_regime', $company['tax_regime']); ?><label>Enquadramento<select name="tax_regime"><option value="">Não informado</option><?php foreach ($regimes as $key => $label): ?><option value="<?= $e($key) ?>"<?= $regimeValue === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select><small>Só para registro. O Realizze não calcula impostos nem cria obrigações a partir dele; confirme com seu contador.</small></label><?php endif; ?>
     <label>Endereço no App<input value="<?= $e(AppUrl::base($active)) ?>" disabled><small>Não muda quando o nome muda, para manter os links salvos.</small></label>
     <div class="is-wide profile-actions"><button class="finance-button is-primary" type="submit">Salvar dados</button></div>
   </form>
@@ -63,6 +66,7 @@ $logoUrl = OrganizationLogos::url($company);
     <div><dt>CNPJ</dt><dd><?= $e($cnpj ?: 'Não informado') ?></dd></div>
     <div><dt>E-mail</dt><dd><?= $e($company['email'] ?: 'Não informado') ?></dd></div>
     <div><dt>Telefone</dt><dd><?= $e($phone ?: 'Não informado') ?></dd></div>
+    <?php if ($regimeReady): ?><div><dt>Enquadramento</dt><dd><?= $e($regimes[$company['tax_regime'] ?? ''] ?? 'Não informado') ?></dd></div><?php endif; ?>
     <div><dt>Situação</dt><dd><?= $company['status'] === 'active' ? 'Ativa' : 'Inativa' ?></dd></div>
   </dl>
   <p class="profile-pending">Somente o proprietário e administradores alteram estes dados.</p>

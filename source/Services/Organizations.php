@@ -11,6 +11,15 @@ use Throwable;
 /** Cadastro de empresas: quem cadastra vira dono, com papel e permissões próprios. */
 final class Organizations
 {
+    /** Enquadramento informativo (migration 021). Nenhuma regra fiscal deriva dele. */
+    public const TAX_REGIMES = ['mei' => 'MEI', 'simples' => 'Simples Nacional', 'presumido' => 'Lucro Presumido', 'real' => 'Lucro Real', 'outro' => 'Outro'];
+
+    public static function supportsTaxRegime(): bool
+    {
+        static $ready = null;
+        return $ready ??= Connection::get()->query("SHOW COLUMNS FROM organizations LIKE 'tax_regime'")->fetchColumn() !== false;
+    }
+
     public static function create(int $ownerId, string $name, string $cnpj): int
     {
         $name = trim($name);
@@ -79,6 +88,10 @@ final class Organizations
         if ($phone !== '' && !preg_match('/^\d{10,11}$/', $phone)) {
             throw new InvalidArgumentException('Informe o telefone com DDD, com 10 ou 11 números.');
         }
+        $regime = (string) ($data['tax_regime'] ?? '');
+        if ($regime !== '' && !isset(self::TAX_REGIMES[$regime])) {
+            throw new InvalidArgumentException('Escolha um enquadramento da lista.');
+        }
         $after = [
             'name' => $name,
             'trade_name' => $tradeName === '' ? null : $tradeName,
@@ -86,11 +99,11 @@ final class Organizations
             'document_value' => $cnpj === '' ? null : $cnpj,
             'email' => $email === '' ? null : $email,
             'phone' => $phone === '' ? null : $phone,
-        ];
+        ] + (self::supportsTaxRegime() && array_key_exists('tax_regime', $data) ? ['tax_regime' => $regime === '' ? null : $regime] : []);
         $pdo = Connection::get();
         $pdo->beginTransaction();
         try {
-            $find = $pdo->prepare("SELECT name, trade_name, document_type, document_value, email, phone FROM organizations WHERE id = ? AND status = 'active' FOR UPDATE");
+            $find = $pdo->prepare('SELECT ' . implode(', ', array_keys($after)) . " FROM organizations WHERE id = ? AND status = 'active' FOR UPDATE");
             $find->execute([$organizationId]);
             $before = $find->fetch(\PDO::FETCH_ASSOC);
             if ($before === false) {
@@ -103,7 +116,7 @@ final class Organizations
                 }
             }
             if ($changes !== []) {
-                $pdo->prepare('UPDATE organizations SET name = ?, trade_name = ?, document_type = ?, document_value = ?, email = ?, phone = ? WHERE id = ?')
+                $pdo->prepare('UPDATE organizations SET ' . implode(', ', array_map(static fn (string $field): string => "$field = ?", array_keys($after))) . ' WHERE id = ?')
                     ->execute([...array_values($after), $organizationId]);
             }
             $pdo->commit();
