@@ -1596,3 +1596,7 @@ body[data-readonly~="contacts"] button[data-finance-open^="contact"],body[data-r
 .inline-form{display:inline;margin:0}
 .link-button{border:0;background:none;padding:0 0 0 6px;color:#b42318;font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer}
 .link-button:focus-visible{outline:2px solid #16a34a;outline-offset:2px;border-radius:4px}
+
+/* Primeiros passos: tarefa já feita. */
+.setup-task.is-done{color:#4c6f5d;background:#f1f8f3}
+.setup-task.is-done span[aria-hidden]{color:#078b4c;font-weight:700}

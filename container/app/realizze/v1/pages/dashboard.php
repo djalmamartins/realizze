@@ -205,7 +205,7 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
 </head>
 <body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>"<?= $readOnly !== [] ? ' data-readonly="' . implode(' ', $readOnly) . '"' : '' ?> data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>" data-logo-pf="<?= htmlspecialchars($personalLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>" data-logo-pj="<?= htmlspecialchars($enterpriseLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>">
 <a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
-<noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros interativos não estão disponíveis nesta prévia.</p></noscript>
+<noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros e janelas de cadastro precisam de JavaScript.</p></noscript>
 <div class="shell" id="shell">
 <?= $appView->render('components::sidebar', [
     'items' => $items,

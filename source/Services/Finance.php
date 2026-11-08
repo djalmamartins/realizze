@@ -1035,6 +1035,29 @@ final class Finance
      *
      * @return list<array{entry_id:int,kind:string,date:string,amount_cents:int,description:string,account:string,category:?string,source:string}>
      */
+    /**
+     * Primeiros passos: o que já existe no contexto (contas, categorias, cartão, lançamento, orçamento ou meta).
+     * Lido dos próprios dados, sem guardar progresso à parte.
+     *
+     * @return array<string,bool>
+     */
+    public function setupProgress(): array
+    {
+        $count = function (string $sql): int {
+            $q = $this->pdo->prepare($sql);
+            $q->execute([$this->contextId]);
+            return (int) $q->fetchColumn();
+        };
+        return [
+            'account' => $count("SELECT COUNT(*) FROM finance_accounts WHERE financial_context_id = ? AND type <> 'credit_card'") > 0,
+            'categories' => $count('SELECT COUNT(*) FROM finance_categories WHERE financial_context_id = ?') > 0,
+            'card' => $count("SELECT COUNT(*) FROM finance_accounts WHERE financial_context_id = ? AND type = 'credit_card'") > 0,
+            'entry' => $count('SELECT COUNT(*) FROM finance_entries WHERE financial_context_id = ?') > 0,
+            'planning' => $count('SELECT (SELECT COUNT(*) FROM finance_budgets WHERE financial_context_id = ?)') > 0
+                || $count('SELECT COUNT(*) FROM finance_goals WHERE financial_context_id = ?') > 0,
+        ];
+    }
+
     public function cashMovements(string $start, string $end): array
     {
         $start=self::date($start); $end=self::date($end);

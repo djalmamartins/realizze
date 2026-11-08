@@ -25,8 +25,14 @@ unset($_SESSION['finance_flash']);
 if ($data === null): ?>
 <section class="card"><div class="finance-empty"><h3>Não foi possível carregar seus dados</h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div></section>
 <?php return; endif;
-if ($manual === []) {
-    echo $appView->render('components::getting-started', ['icon' => $icon]);
+try {
+    $setup = $finance->setupProgress();
+} catch (Throwable $exception) {
+    $setup = [];
+}
+// Primeiros passos some quando tudo estiver feito.
+if ($setup !== [] && in_array(false, $setup, true)) {
+    echo $appView->render('components::getting-started', ['icon' => $icon, 'setup' => $setup]);
 }
 $total = (int) $period['start']->diff($period['end'])->days + 1;
 $elapsed = $today < $period['start'] ? 0 : ($today > $period['end'] ? $total : (int) $period['start']->diff($today)->days + 1);

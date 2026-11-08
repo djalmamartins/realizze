@@ -39,8 +39,8 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 ### P1
 
 - [ ] **PF-05. Categoria não pode ser editada.** Só criar e excluir. Falta renomear e trocar a cor. Contrato C10. **Decisão (Djalma):** a tela de Categorias foi dada como satisfatória; só fazer se ele pedir.
-- [ ] **PF-06. Tirar as sobras de prévia do menu e do painel.** O cartão "Conexão bancária" ocupa o menu com um botão desativado, "Primeiros passos" promete "Em breve", e o `noscript` diz "nesta prévia".
-- [ ] **PF-07. Primeiros passos sem progresso.** A lista não marca o que já foi feito, embora os dados existam (contas, categorias, lançamentos, orçamento).
+- [x] **PF-06. Tirar as sobras de prévia do menu e do painel.** O cartão "Conexão bancária" ocupa o menu com um botão desativado, "Primeiros passos" promete "Em breve", e o `noscript` diz "nesta prévia". **Feito em 08/11:** sem o cartão "Conexão bancária", sem "Em breve" em Primeiros passos e sem "nesta prévia" no noscript.
+- [x] **PF-07. Primeiros passos sem progresso.** A lista não marca o que já foi feito, embora os dados existam (contas, categorias, lançamentos, orçamento). **Feito em 08/11:** `Finance::setupProgress` lê os dados; o quadro mostra "x de 5" e some quando tudo está feito. Teste `getting-started-flow`.
 - [x] **PF-08. Configurações é uma prévia inteira.** `/p/configuracoes` tem tudo desativado, enquanto sessões e dados da conta já estão em Perfil. Ligar o que existe e tirar o resto. **Feito em 07/11:** /p/configuracoes leva a Meu perfil, a30c871.
 - [ ] **PF-09. `/p/empresarial` é a prévia antiga dos módulos.** Trocar por "Criar empresa" real ou redirecionar. A ação `company` já existe.
 - [x] **PF-10. Faturas de cartão na PF.** Cartão tem limite, fechamento e vencimento, mas não há fatura, parcelas nem pagamento. Contratos C7 e C25. Item grande, dividir ao começar. **Feito em 07/11:** Faturas PF no menu (a30c871), serviço testado em finance-020.
