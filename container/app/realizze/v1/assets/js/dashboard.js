@@ -256,6 +256,14 @@
     $('#theme-toggle')?.addEventListener('click', () => {
       notify('O tema escuro será disponibilizado em uma próxima etapa.');
     });
+
+    // /p/empresarial (prévia antiga) leva a /p#cadastrar-empresa: abre o cadastro real de empresa.
+    const companyDialog = $('#company-dialog');
+    const here = window.location;
+    if (here?.hash === '#cadastrar-empresa' && companyDialog && !companyDialog.open && typeof companyDialog.showModal === 'function') {
+      window.history?.replaceState(window.history.state, '', here.pathname + here.search);
+      companyDialog.showModal();
+    }
   };
 
   if (document.readyState === 'loading') {

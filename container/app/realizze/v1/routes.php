@@ -100,6 +100,12 @@ return [
                 header('Location: ' . AppUrl::section('perfil'), true, 302);
                 return;
             }
+            // A prévia antiga dos módulos PJ deu lugar ao cadastro real, aberto no painel PF pelo menu de contexto.
+            if ($organization === null && $section === 'empresarial') {
+                header('Cache-Control: no-store');
+                header('Location: ' . AppUrl::base() . (\Moves\Services\OrganizationContext::enabled() ? '#cadastrar-empresa' : ''), true, 302);
+                return;
+            }
             if ($organization !== null && isset($replaced[$section])) {
                 header('Cache-Control: no-store');
                 header('Location: ' . AppUrl::section($replaced[$section], $organization), true, 302);
