@@ -101,7 +101,7 @@ unset($_SESSION['finance_flash']);
       <?php foreach ($rows as $row): $sign = ['income' => '+ ', 'expense' => '− ', 'transfer' => '']; $tone = ['income' => 'green', 'expense' => 'red', 'transfer' => ''][$row['kind']]; ?>
       <tr>
         <td><?= $e((new DateTimeImmutable($row['paid_at']))->format('d/m/Y')) ?></td>
-        <td><strong><?= $e($row['description']) ?></strong><?php $detail = $details[(int) $row['id']] ?? null; $metaHideNotes = false; require dirname(__DIR__) . '/components/entry-meta.php'; ?></td>
+        <td><strong><?= $e($row['description']) ?></strong><?php if (!empty($row['partial'])): ?><small class="contact-legal">Baixa parcial</small><?php endif; ?><?php $detail = $details[(int) $row['id']] ?? null; $metaHideNotes = false; require dirname(__DIR__) . '/components/entry-meta.php'; ?></td>
         <td><?= $row['kind'] === 'transfer' ? 'Transferência' : $e($row['category'] ?? '—') ?></td>
         <td><?= $e($row['account']) ?><?= $row['target_account'] ? ' → ' . $e($row['target_account']) : '' ?></td>
         <td class="num <?= $tone ?>"><strong><?= $sign[$row['kind']] ?><?= $e(Finance::money((int) $row['amount_cents'])) ?></strong></td>

@@ -32,7 +32,7 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 ### P0
 
 - [x] **PF-01. Baixa parcial não entra no saldo.** `Receivables::settle` só preenche `paid_at` na quitação, e `Finance::accountsWithBalance` só olha `paid_at`. Quem recebe R$ 400 de R$ 1.000 não vê o dinheiro na conta, e se a baixa foi em outra conta, o valor cai na conta errada ao quitar. Contrato C26.
-- [ ] **PF-02. Baixa parcial some de Movimentações e do realizado.** Mesma causa em `Finance::movements`, `summary` e `monthlySeries`. "A receber" soma o valor inteiro, mesmo com parte recebida.
+- [x] **PF-02. Baixa parcial some de Movimentações e do realizado.** Mesma causa em `Finance::movements`, `summary` e `monthlySeries`. "A receber" soma o valor inteiro, mesmo com parte recebida. **Feito em 08/11:** `Finance::movements` lista cada baixa na data e com o valor dela (summary e monthlySeries já tinham sido corrigidos em 107a794); teste `finance-029-movements-settlements`.
 - [x] **PF-03. Conta não pode ser editada nem arquivada.** Só existe `createAccount`. Um nome ou saldo inicial digitado errado não tem conserto, e `archived_at` existe sem uso. Contrato C6. **Feito em 07/11:** finance-018-accounts (editar e arquivar).
 - [x] **PF-04. Baixa não pode ser estornada.** A mensagem de `Receivables::cancel` manda estornar antes de cancelar, mas não existe estorno em `Receivables` nem em `ReceivableActions`. Um recebimento com baixa lançada errada fica sem saída. **Feito em 07/11:** estorno de baixa, d25a5f5, settlement-reversal-flow.
 

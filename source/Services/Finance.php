@@ -940,21 +940,40 @@ final class Finance
     }
 
     /** Extrato do período: somente o que já foi pago, recebido ou transferido. */
+    /**
+     * O que entrou, saiu ou foi transferido no período, pela data em que o dinheiro se moveu (PF-02).
+     * Lançamento com baixas aparece uma vez por baixa, com o valor e a conta de cada uma; sem baixas, pela data de
+     * pagamento. Cancelados ficam fora. Antes, a baixa parcial sumia e a quitação entrava com o valor inteiro.
+     */
     public function movements(string $start, string $end, string $kind = 'all'): array
     {
         $filter = in_array($kind, ['income', 'expense', 'transfer'], true) ? ' AND e.kind = ?' : '';
         $statement = $this->pdo->prepare(
-            "SELECT e.id, e.kind, e.description, e.amount_cents, e.paid_at,
+            "SELECT q.* FROM (
+             SELECT e.id, e.kind, e.description, e.amount_cents, e.paid_at, NULL AS settlement_id, 0 AS partial,
                     a.name AS account, t.name AS target_account, c.name AS category
              FROM finance_entries AS e
              INNER JOIN finance_accounts AS a ON a.id = e.account_id
              LEFT JOIN finance_accounts AS t ON t.id = e.target_account_id
              LEFT JOIN finance_categories AS c ON c.id = e.category_id
              WHERE e.financial_context_id = ? AND e.paid_at BETWEEN ? AND ?{$filter}
-             ORDER BY e.paid_at DESC, e.id DESC"
+               AND (e.status IS NULL OR e.status <> 'cancelled')
+               AND NOT EXISTS (SELECT 1 FROM finance_entry_settlements AS x WHERE x.entry_id = e.id)
+             UNION ALL
+             SELECT e.id, e.kind, e.description, s.amount_cents, s.received_at, s.id, s.amount_cents < e.amount_cents,
+                    a.name, NULL, c.name
+             FROM finance_entry_settlements AS s
+             INNER JOIN finance_entries AS e ON e.id = s.entry_id AND e.financial_context_id = s.financial_context_id
+             INNER JOIN finance_accounts AS a ON a.id = s.account_id
+             LEFT JOIN finance_categories AS c ON c.id = e.category_id
+             WHERE s.financial_context_id = ? AND s.received_at BETWEEN ? AND ?{$filter}
+               AND (e.status IS NULL OR e.status <> 'cancelled')
+             ) q ORDER BY q.paid_at DESC, q.id DESC, q.settlement_id DESC"
         );
-        $statement->execute(array_merge([$this->contextId, $start, $end], $filter === '' ? [] : [$kind]));
-        return $statement->fetchAll(PDO::FETCH_ASSOC);
+        $args = [$this->contextId, $start, $end];
+        if ($filter !== '') $args[] = $kind;
+        $statement->execute(array_merge($args, $args));
+        return array_map(static fn (array $row): array => ['partial' => (bool) $row['partial']] + $row, $statement->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /**
