@@ -11,13 +11,22 @@ use Throwable;
 /** Cadastro de empresas: quem cadastra vira dono, com papel e permissões próprios. */
 final class Organizations
 {
+    /** Enquadramento informativo (migration 021). Nenhuma regra fiscal deriva dele. */
+    public const TAX_REGIMES = ['mei' => 'MEI', 'simples' => 'Simples Nacional', 'presumido' => 'Lucro Presumido', 'real' => 'Lucro Real', 'outro' => 'Outro'];
+
+    public static function supportsTaxRegime(): bool
+    {
+        static $ready = null;
+        return $ready ??= Connection::get()->query("SHOW COLUMNS FROM organizations LIKE 'tax_regime'")->fetchColumn() !== false;
+    }
+
     public static function create(int $ownerId, string $name, string $cnpj): int
     {
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 180) {
             throw new InvalidArgumentException('Informe o nome da empresa.');
         }
-        $digits = preg_replace('/\D+/', '', $cnpj) ?? '';
+        $digits = self::normalizeCnpj($cnpj);
         if ($digits !== '' && !self::validCnpj($digits)) {
             throw new InvalidArgumentException('CNPJ inválido.');
         }
@@ -67,7 +76,7 @@ final class Organizations
         if (mb_strlen($tradeName) > 180) {
             throw new InvalidArgumentException('O nome fantasia pode ter até 180 caracteres.');
         }
-        $cnpj = preg_replace('/\D+/', '', (string) ($data['cnpj'] ?? '')) ?? '';
+        $cnpj = self::normalizeCnpj((string) ($data['cnpj'] ?? ''));
         if ($cnpj !== '' && !self::validCnpj($cnpj)) {
             throw new InvalidArgumentException('CNPJ inválido.');
         }
@@ -79,6 +88,10 @@ final class Organizations
         if ($phone !== '' && !preg_match('/^\d{10,11}$/', $phone)) {
             throw new InvalidArgumentException('Informe o telefone com DDD, com 10 ou 11 números.');
         }
+        $regime = (string) ($data['tax_regime'] ?? '');
+        if ($regime !== '' && !isset(self::TAX_REGIMES[$regime])) {
+            throw new InvalidArgumentException('Escolha um enquadramento da lista.');
+        }
         $after = [
             'name' => $name,
             'trade_name' => $tradeName === '' ? null : $tradeName,
@@ -86,11 +99,11 @@ final class Organizations
             'document_value' => $cnpj === '' ? null : $cnpj,
             'email' => $email === '' ? null : $email,
             'phone' => $phone === '' ? null : $phone,
-        ];
+        ] + (self::supportsTaxRegime() && array_key_exists('tax_regime', $data) ? ['tax_regime' => $regime === '' ? null : $regime] : []);
         $pdo = Connection::get();
         $pdo->beginTransaction();
         try {
-            $find = $pdo->prepare("SELECT name, trade_name, document_type, document_value, email, phone FROM organizations WHERE id = ? AND status = 'active' FOR UPDATE");
+            $find = $pdo->prepare('SELECT ' . implode(', ', array_keys($after)) . " FROM organizations WHERE id = ? AND status = 'active' FOR UPDATE");
             $find->execute([$organizationId]);
             $before = $find->fetch(\PDO::FETCH_ASSOC);
             if ($before === false) {
@@ -103,7 +116,7 @@ final class Organizations
                 }
             }
             if ($changes !== []) {
-                $pdo->prepare('UPDATE organizations SET name = ?, trade_name = ?, document_type = ?, document_value = ?, email = ?, phone = ? WHERE id = ?')
+                $pdo->prepare('UPDATE organizations SET ' . implode(', ', array_map(static fn (string $field): string => "$field = ?", array_keys($after))) . ' WHERE id = ?')
                     ->execute([...array_values($after), $organizationId]);
             }
             $pdo->commit();
@@ -144,16 +157,29 @@ final class Organizations
         throw new \RuntimeException('Não foi possível definir o endereço da empresa.');
     }
 
+    /**
+     * CNPJ sem máscara, em maiúsculas. Aceita o numérico e o alfanumérico (IN RFB nº 2.229/2024, a partir de julho de 2026):
+     * remove só pontos, barra, hífen e espaços, para que letras não sejam descartadas.
+     */
+    public static function normalizeCnpj(string $value): string
+    {
+        return strtoupper(preg_replace('/[\s.\/-]+/', '', trim($value)) ?? '');
+    }
+
+    /**
+     * 12 posições com dígitos ou letras maiúsculas e 2 dígitos verificadores numéricos. Módulo 11 com pesos 2 a 9;
+     * cada caractere vale o código ASCII menos 48 (0-9 valem 0-9, A vale 17). Para CNPJ só numérico o resultado é o de sempre.
+     */
     public static function validCnpj(string $value): bool
     {
-        if (!preg_match('/^\d{14}$/', $value) || preg_match('/^(\d)\1+$/', $value)) {
+        if (!preg_match('/^[0-9A-Z]{12}\d{2}$/', $value) || preg_match('/^(.)\1+$/', $value)) {
             return false;
         }
         foreach ([12, 13] as $size) {
             $sum = 0;
             $weight = $size - 7;
             for ($i = 0; $i < $size; $i++) {
-                $sum += (int) $value[$i] * $weight--;
+                $sum += (ord($value[$i]) - 48) * $weight--;
                 if ($weight < 2) {
                     $weight = 9;
                 }
@@ -164,5 +190,11 @@ final class Organizations
             }
         }
         return true;
+    }
+
+    /** 00.000.000/0000-00, também com letras; valor fora do formato volta como está. */
+    public static function formatCnpj(string $value): string
+    {
+        return preg_replace('/^([0-9A-Z]{2})([0-9A-Z]{3})([0-9A-Z]{3})([0-9A-Z]{4})(\d{2})$/', '$1.$2.$3/$4-$5', $value) ?? $value;
     }
 }

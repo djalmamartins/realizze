@@ -3,9 +3,10 @@
 // O cookie de sessão é Secure; aqui ele é reenviado à mão, porque o servidor temporário é HTTP.
 final class H {
     public array $jar = [];
+    public string $host = 'app.realizze.lab';
     public function req(string $method, string $path, array $post = [], array $files = []): array {
         $ch = curl_init((getenv('REALIZZE_TEST_HTTP') ?: 'http://127.0.0.1:18199') . $path);
-        $headers = ['Host: app.realizze.lab', 'X-Forwarded-Proto: https'];
+        $headers = ['Host: ' . $this->host, 'X-Forwarded-Proto: https'];
         if ($this->jar) $headers[] = 'Cookie: ' . implode('; ', array_map(fn($k, $v) => "$k=$v", array_keys($this->jar), $this->jar));
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_HTTPHEADER => $headers, CURLOPT_CUSTOMREQUEST => $method, CURLOPT_TIMEOUT => 60]);
         if ($method === 'POST') curl_setopt($ch, CURLOPT_POSTFIELDS, $files ? $post + $files : http_build_query($post));
@@ -14,7 +15,8 @@ final class H {
         preg_match_all('/^Set-Cookie:\s*([^=]+)=([^;]*)/mi', $head, $m, PREG_SET_ORDER);
         foreach ($m as [, $k, $v]) { if ($v === '' || $v === 'deleted') unset($this->jar[$k]); else $this->jar[$k] = $v; }
         preg_match('/^Location:\s*(\S+)/mi', $head, $loc);
-        return ['code' => $code, 'body' => $body, 'location' => $loc[1] ?? null];
+        preg_match('/^Content-Type:\s*([^\r\n]+)/mi', $head, $type);
+        return ['code' => $code, 'body' => $body, 'location' => $loc[1] ?? null, 'type' => $type[1] ?? null];
     }
     public function csrf(string $html): string { preg_match('/name="csrf_token" value="([^"]+)"/', $html, $m); return $m[1] ?? ''; }
     public function login(string $email, string $password): bool {

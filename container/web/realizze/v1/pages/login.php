@@ -8,6 +8,9 @@ $this->stop();
 <span class="eyebrow">BEM-VINDO DE VOLTA</span>
 <h1>Acesse sua conta</h1>
 <p>Entre para continuar sua experiência.</p>
+<?php if (($_GET['conta'] ?? '') === 'excluida'): ?>
+<p class="form-feedback" role="status">Sua conta e seus dados pessoais foram excluídos.</p>
+<?php endif; ?>
 <?php if (($loginError ?? false) === true): ?>
 <p class="form-feedback" role="alert">Não foi possível entrar. Confira suas credenciais e a confirmação do e-mail. <a href="/reenviar-confirmacao">Reenviar confirmação</a></p>
 <?php endif; ?>

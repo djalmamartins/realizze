@@ -16,8 +16,9 @@ if (!$client->login($email, $password)) {
 $personal = [
     '', 'receber', 'pagar', 'movimentacoes', 'cartoes', 'faturas', 'relatorios',
     'planejamento', 'metas', 'categorias', 'recorrencias', 'sair-das-dividas',
-    'configuracoes', 'notificacoes', 'integracoes', 'perfil',
+    'notificacoes', 'integracoes', 'perfil', 'conciliacao',
 ];
+// /p/configuracoes leva a Meu perfil (302) e /p/empresarial ao cadastro de empresa: conferidos em navigation-menu-flow e empresarial-redirect-flow.
 $enterprise = [
     '', 'receber', 'pagar', 'movimentacoes', 'recorrencias', 'fluxo-de-caixa',
     'cartoes', 'faturas', 'conciliacao', 'clientes', 'fornecedores', 'categorias',

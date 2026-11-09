@@ -91,34 +91,22 @@ $items += [
 if ($activeOrganization === null) {
     $items['sair-das-dividas'] = ['target','Sair das Dívidas',$baseUrl . '/sair-das-dividas'];
 }
-// Navegação PF: preservar módulos e URLs existentes, alterando só a ordem.
-if ($activeOrganization === null) {
-    $priority = ['overview', 'receber', 'pagar', 'movimentacoes', 'recorrencias', 'metas', 'planejamento', 'contas', 'relatorios', 'sair-das-dividas'];
-    $ordered = [];
-    foreach ($priority as $key) {
-        if (isset($items[$key])) {
-            $ordered[$key] = $items[$key];
-        }
-    }
-    $items = $ordered + $items;
-}
 $items['integracoes'] = ['arrows-left-right','Integrações',$baseUrl . '/integracoes'];
+$items['notificacoes'] = ['list-filter', 'Notificações', $baseUrl . '/notificacoes'];
+$items['suporte'] = ['message-circle', 'Ajuda e chamados', '/suporte'];
 $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
-    : ['configuracoes' => ['settings','Configurações',$baseUrl . '/configuracoes']];
-// Menu da empresa em grupos. "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
+    : ['faturas' => ['credit-card','Faturas',$baseUrl . '/faturas'], 'conciliacao' => ['list-filter','Conciliação bancária',$baseUrl . '/conciliacao'], 'configuracoes' => ['settings','Configurações',$baseUrl . '/perfil']];
+// Menu único em áreas para PF e PJ. Um grupo sem título fica aberto, logo abaixo do Dashboard.
+// "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
 $pendingSections = [];
-$navGroups = null;
 $readOnly = [];
 if ($activeOrganization !== null) {
     $items['overview'][1] = 'Dashboard';
     $items['receber'][1] = 'Receber e cobranças';
     $items['contas'][1] = 'Bancos e contas';
-    $items['relatorios'][1] = 'Relatórios';
     $items['equipe'][1] = 'Equipe';
     $items['empresa'][1] = 'Configurações';
-    $items['notificacoes'] = ['list-filter', 'Notificações', $baseUrl . '/notificacoes'];
-    $items['suporte'] = ['message-circle', 'Ajuda e chamados', '/suporte'];
     $navGroups = [
         ['Financeiro', 'arrows-left-right', ['receber', 'pagar', 'movimentacoes', 'recorrencias', 'fluxo-de-caixa', 'contas', 'faturas', 'conciliacao']],
         ['Cadastros', 'building', ['clientes', 'fornecedores', 'categorias', 'centros-de-custo']],
@@ -126,14 +114,32 @@ if ($activeOrganization !== null) {
         ['Administração', 'settings', ['equipe', 'permissoes', 'empresa', 'seguranca', 'auditoria']],
         ['Plataforma', 'message-circle', ['integracoes', 'notificacoes', 'suporte']],
     ];
-    // Esconder é só conveniência: as rotas e as ações validam a permissão de novo.
-    $navPermission = ['overview' => 'finance.view', 'receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'categorias' => 'finance.view', 'relatorios' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'auditoria' => 'team.manage'];
+    // Esconder é só conveniência: as rotas e as ações validam a permissão de novo, com a mesma lista.
     $ownPermissions = \Moves\Services\OrganizationTeam::permissionsFor((int) $user['id'], (int) $activeOrganization['id']);
+    $canOpenSection = static fn (string $key): bool => !isset(\Moves\Services\OrganizationTeam::SECTION_PERMISSIONS[$key])
+        || in_array(\Moves\Services\OrganizationTeam::SECTION_PERMISSIONS[$key], $ownPermissions, true);
     // Papel só de consulta: a tela esconde o que ele não pode gravar (as ações validam de novo no servidor).
     $readOnly = array_keys(array_filter(['finance' => 'finance.manage', 'contacts' => 'contacts.manage'], static fn (string $permission): bool => !in_array($permission, $ownPermissions, true)));
-    foreach ($navGroups as $groupIndex => $group) {
-        $navGroups[$groupIndex][2] = array_values(array_filter($group[2], static fn (string $key): bool => !isset($navPermission[$key]) || in_array($navPermission[$key], $ownPermissions, true)));
-    }
+} else {
+    $navGroups = [
+        ['', '', ['receber', 'pagar', 'movimentacoes']],
+        ['Contas e cartões', 'credit-card', ['contas', 'faturas', 'conciliacao']],
+        ['Planejamento', 'target', ['recorrencias', 'metas', 'planejamento', 'sair-das-dividas']],
+        ['Análise', 'chart-no-axes-column', ['relatorios', 'categorias']],
+        ['Conta', 'settings', ['notificacoes', 'integracoes', 'configuracoes', 'suporte']],
+    ];
+    // Acesso delegado a outra pessoa: só as telas que o convite libera.
+    $canOpenSection = static fn (string $key): bool => $key === 'suporte' || \Moves\Services\PersonalAccessContext::canOpen($key);
+}
+// O título da página e o item do menu usam o mesmo nome (Configurações da empresa mantém o nome completo no título).
+foreach ($activeOrganization !== null ? ['receber', 'contas', 'equipe'] : ['faturas'] as $titleKey) {
+    if (isset($items[$titleKey], $sections[$titleKey])) $sections[$titleKey][0] = $items[$titleKey][1];
+}
+if (!$canOpenSection('overview')) {
+    unset($items['overview']);
+}
+foreach ($navGroups as $groupIndex => $group) {
+    $navGroups[$groupIndex][2] = array_values(array_filter($group[2], static fn (string $key): bool => isset($items[$key]) && $canOpenSection($key)));
 }
 $iconPaths = [
     'house' => '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
@@ -199,12 +205,13 @@ $activeFavicon = $activeOrganization !== null ? $enterpriseFavicon : $personalFa
 </head>
 <body data-context="<?= $activeOrganization !== null ? 'pj' : 'pf' ?>"<?= $readOnly !== [] ? ' data-readonly="' . implode(' ', $readOnly) . '"' : '' ?> data-organization-id="<?= (int) ($activeOrganization['id'] ?? 0) ?>" data-logo-pf="<?= htmlspecialchars($personalLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>" data-logo-pj="<?= htmlspecialchars($enterpriseLogo . '?v=' . $assetVersion, ENT_QUOTES, 'UTF-8') ?>">
 <a class="app-skip-link" href="#overview">Ir para o conteúdo principal</a>
-<noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros interativos não estão disponíveis nesta prévia.</p></noscript>
+<noscript><p class="app-nojs-note">JavaScript desativado: o menu permanece visível. Filtros e janelas de cadastro precisam de JavaScript.</p></noscript>
 <div class="shell" id="shell">
 <?= $appView->render('components::sidebar', [
     'items' => $items,
     'sections' => $sections,
-    'section' => $section === 'contato-detalhe' ? (($_GET['papel'] ?? '') === 'supplier' ? 'fornecedores' : 'clientes') : $section,
+    // Detalhe de contato acende a lista; na PF, Meu perfil é a tela de Configurações.
+    'section' => $section === 'contato-detalhe' ? (($_GET['papel'] ?? '') === 'supplier' ? 'fornecedores' : 'clientes') : ($section === 'perfil' && $activeOrganization === null ? 'configuracoes' : $section),
     'icon' => $icon,
     'name' => $name,
     'user' => $user,

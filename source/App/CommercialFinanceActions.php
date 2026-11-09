@@ -14,6 +14,8 @@ final class CommercialFinanceActions
         if($user===null||!Csrf::validate($_POST['csrf_token']??null)){\Moves\Services\AppError::render(403);return;}
         $org=OrganizationContext::current();
         if($org!==null&&!OrganizationTeam::can((int)$user['id'],(int)$org['id'],'finance.manage')){\Moves\Services\AppError::render(403);return;}
+        // Na PF, faturas e conciliação ficam fora do acesso delegado (as telas também não abrem para quem foi convidado).
+        if($org===null&&\Moves\Services\PersonalAccessContext::ownerId()!==null){\Moves\Services\AppError::render(403);return;}
         try {$context=(int)FinanceContext::currentId();$message=match($action){
             'card_purchase'=>(new CardInvoices($context))->purchase($_POST,(int)$user['id'])?'Compra registrada na fatura.':'',
             'card_pay'=>(new CardInvoices($context))->pay($_POST,(int)$user['id'])?'Pagamento registrado. O valor saiu da conta de origem para o cartão.':'',
@@ -21,6 +23,7 @@ final class CommercialFinanceActions
             'cost_center'=>(new CostCenters($context))->save($_POST,(int)$user['id'])?'Centro de custo salvo.':'',
             'reconciliation_import'=>((new BankReconciliation($context))->importStatement($_FILES['statement']??[],$_POST['account_id']??null,(int)$user['id'])).' linhas importadas para revisão.',
             'reconciliation_review'=>$this->review($context,(int)$user['id']),
+            'reconciliation_create'=>(new BankReconciliation($context))->createEntry($_POST['line_id']??null,$_POST['category_id']??null,(int)$user['id'])>0?'Lançamento criado a partir do extrato e conciliado.':'',
             default=>throw new InvalidArgumentException('Ação inválida.'),
         };$_SESSION['finance_flash']=['success',$message];
         } catch(InvalidArgumentException $e){$_SESSION['finance_flash']=['error',$e->getMessage()];} catch(Throwable $e){error_log('Realizze commercial finance: '.$e->getMessage());$_SESSION['finance_flash']=['error','Não foi possível salvar. Tente novamente.'];}

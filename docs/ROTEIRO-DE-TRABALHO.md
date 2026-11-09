@@ -4,6 +4,8 @@ Auditoria de 02/11/2026 no branch `feat/realizze-integracao-ui-20261101`. Esta �
 
 **Ordem:** PF primeiro (decisão de 01/11/2026), depois PJ, CMS e site. Dentro de cada área, P0 impede o uso ou mostra número errado, P1 é função que falta para lançar, P2 é melhoria.
 
+> **Atualização 07/11/2026:** a consolidação RC1 está em `docs/release/` (matriz, pendências P0/P1/P2, checklist de produção). Itens marcados `[x]` abaixo foram feitos e testados no banco isolado. Para o que resta, ver `docs/release/PENDENCIAS_PRODUCAO.md`.
+
 ## Regras de execução
 
 - Trabalhar só neste branch, com um commit local por item e sem push.
@@ -30,32 +32,32 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 ### P0
 
 - [x] **PF-01. Baixa parcial não entra no saldo.** `Receivables::settle` só preenche `paid_at` na quitação, e `Finance::accountsWithBalance` só olha `paid_at`. Quem recebe R$ 400 de R$ 1.000 não vê o dinheiro na conta, e se a baixa foi em outra conta, o valor cai na conta errada ao quitar. Contrato C26.
-- [ ] **PF-02. Baixa parcial some de Movimentações e do realizado.** Mesma causa em `Finance::movements`, `summary` e `monthlySeries`. "A receber" soma o valor inteiro, mesmo com parte recebida.
-- [ ] **PF-03. Conta não pode ser editada nem arquivada.** Só existe `createAccount`. Um nome ou saldo inicial digitado errado não tem conserto, e `archived_at` existe sem uso. Contrato C6.
-- [ ] **PF-04. Baixa não pode ser estornada.** A mensagem de `Receivables::cancel` manda estornar antes de cancelar, mas não existe estorno em `Receivables` nem em `ReceivableActions`. Um recebimento com baixa lançada errada fica sem saída.
+- [x] **PF-02. Baixa parcial some de Movimentações e do realizado.** Mesma causa em `Finance::movements`, `summary` e `monthlySeries`. "A receber" soma o valor inteiro, mesmo com parte recebida. **Feito em 08/11:** `Finance::movements` lista cada baixa na data e com o valor dela (summary e monthlySeries já tinham sido corrigidos em 107a794); teste `finance-029-movements-settlements`.
+- [x] **PF-03. Conta não pode ser editada nem arquivada.** Só existe `createAccount`. Um nome ou saldo inicial digitado errado não tem conserto, e `archived_at` existe sem uso. Contrato C6. **Feito em 07/11:** finance-018-accounts (editar e arquivar).
+- [x] **PF-04. Baixa não pode ser estornada.** A mensagem de `Receivables::cancel` manda estornar antes de cancelar, mas não existe estorno em `Receivables` nem em `ReceivableActions`. Um recebimento com baixa lançada errada fica sem saída. **Feito em 07/11:** estorno de baixa, d25a5f5, settlement-reversal-flow.
 
 ### P1
 
-- [ ] **PF-05. Categoria não pode ser editada.** Só criar e excluir. Falta renomear e trocar a cor. Contrato C10.
-- [ ] **PF-06. Tirar as sobras de prévia do menu e do painel.** O cartão "Conexão bancária" ocupa o menu com um botão desativado, "Primeiros passos" promete "Em breve", e o `noscript` diz "nesta prévia".
-- [ ] **PF-07. Primeiros passos sem progresso.** A lista não marca o que já foi feito, embora os dados existam (contas, categorias, lançamentos, orçamento).
-- [ ] **PF-08. Configurações é uma prévia inteira.** `/p/configuracoes` tem tudo desativado, enquanto sessões e dados da conta já estão em Perfil. Ligar o que existe e tirar o resto.
-- [ ] **PF-09. `/p/empresarial` é a prévia antiga dos módulos.** Trocar por "Criar empresa" real ou redirecionar. A ação `company` já existe.
-- [ ] **PF-10. Faturas de cartão na PF.** Cartão tem limite, fechamento e vencimento, mas não há fatura, parcelas nem pagamento. Contratos C7 e C25. Item grande, dividir ao começar.
-- [ ] **PF-11. Exportar e excluir a conta (LGPD).** Não encontrei fluxo de exportação de dados pessoais nem de exclusão. Excluir usuário com recorrência ainda falha pela FK `finance_recurring_items.account_id`.
-- [ ] **PF-12. Trocar o e-mail da conta.** O campo em Perfil está desativado com "Alterações exigem verificação".
+- [ ] **PF-05. Categoria não pode ser editada.** Só criar e excluir. Falta renomear e trocar a cor. Contrato C10. **Decisão (Djalma):** a tela de Categorias foi dada como satisfatória; só fazer se ele pedir.
+- [x] **PF-06. Tirar as sobras de prévia do menu e do painel.** O cartão "Conexão bancária" ocupa o menu com um botão desativado, "Primeiros passos" promete "Em breve", e o `noscript` diz "nesta prévia". **Feito em 08/11:** sem o cartão "Conexão bancária", sem "Em breve" em Primeiros passos e sem "nesta prévia" no noscript.
+- [x] **PF-07. Primeiros passos sem progresso.** A lista não marca o que já foi feito, embora os dados existam (contas, categorias, lançamentos, orçamento). **Feito em 08/11:** `Finance::setupProgress` lê os dados; o quadro mostra "x de 5" e some quando tudo está feito. Teste `getting-started-flow`.
+- [x] **PF-08. Configurações é uma prévia inteira.** `/p/configuracoes` tem tudo desativado, enquanto sessões e dados da conta já estão em Perfil. Ligar o que existe e tirar o resto. **Feito em 07/11:** /p/configuracoes leva a Meu perfil, a30c871.
+- [x] **PF-09. `/p/empresarial` é a prévia antiga dos módulos.** Trocar por "Criar empresa" real ou redirecionar. A ação `company` já existe. **Feito em 08/11 (autorizado por Djalma):** `/p/empresarial` leva a `/p#cadastrar-empresa`, que abre o cadastro real de empresa; teste `empresarial-redirect-flow`.
+- [x] **PF-10. Faturas de cartão na PF.** Cartão tem limite, fechamento e vencimento, mas não há fatura, parcelas nem pagamento. Contratos C7 e C25. Item grande, dividir ao começar. **Feito em 07/11:** Faturas PF no menu (a30c871), serviço testado em finance-020.
+- [x] **PF-11. Exportar e excluir a conta (LGPD).** Não encontrei fluxo de exportação de dados pessoais nem de exclusão. Excluir usuário com recorrência ainda falha pela FK `finance_recurring_items.account_id`. **Feito em 07/11:** aba Privacidade, 68a6898, privacy-lgpd-flow.
+- [x] **PF-12. Trocar o e-mail da conta.** O campo em Perfil está desativado com "Alterações exigem verificação". **Feito em 07/11:** migration 022, acd64b2, email-change-flow.
 
-- [ ] **PF-18. Categorias soma lançamentos cancelados.** `Finance::categoriesWithTotals` não filtra `status`. Não mudei porque Categorias ficou fora da etapa de 02/11. Fazer junto com PF-05.
-- [ ] **PF-19. Despesa paga não volta a ficar em aberto.** Só dá para excluir. Fazer junto com PF-04.
-- [ ] **PF-20. Agendar as tarefas de produção.** `finance-recurring-due`, `process-mail-queue`, `process-notifications` e `process-goal-schedules` não têm cron.
-- [ ] **PF-21. Backup, restauração e controle de migrations.** Hoje há só dump manual, sem teste de restauração nem registro de migrations aplicadas.
+- [x] **PF-18. Categorias soma lançamentos cancelados.** `Finance::categoriesWithTotals` não filtra `status`. Não mudei porque Categorias ficou fora da etapa de 02/11. Fazer junto com PF-05. **Feito em 07/11:** d25a5f5, finance-027-category-totals.
+- [x] **PF-19. Despesa paga não volta a ficar em aberto.** Só dá para excluir. Fazer junto com PF-04. **Feito em 07/11:** mesmo estorno do PF-04.
+- [ ] **PF-20. Agendar as tarefas de produção.** `finance-recurring-due`, `process-mail-queue`, `process-notifications` e `process-goal-schedules` não têm cron. **Djalma:** linhas prontas em docs/release/PRODUCAO_CHECKLIST.md.
+- [ ] **PF-21. Backup, restauração e controle de migrations.** Hoje há só dump manual, sem teste de restauração nem registro de migrations aplicadas. **Djalma:** backup e restauração; o controle de migrations já existe (scripts/migrations-status.php).
 - [ ] **PF-22. Djalma: aplicar a migration 013** com `aplicar-migrations.sh`. Sem ela, Dívidas fica sem estorno e sem aplicar acordo.
 
 ### P2
 
-- [ ] **PF-13. Conferir o App em celular real e com cache normal.** Até hoje só houve emulação no Chrome com cache desligado.
-- [ ] **PF-14. Filtros e busca em Movimentações.** Hoje há só tipo e período.
-- [ ] **PF-15. Importar lançamentos por CSV/OFX.** Depende da conciliação (PJ-08), usar o mesmo importador.
+- [ ] **PF-13. Conferir o App em celular real e com cache normal.** Até hoje só houve emulação no Chrome com cache desligado. **Djalma:** precisa de aparelho real.
+- [x] **PF-14. Filtros e busca em Movimentações.** Hoje há só tipo e período. **Conferido em 08/11:** já existem busca, conta, tipo e período com etiquetas (modal de filtros padrão).
+- [x] **PF-15. Importar lançamentos por CSV/OFX.** Depende da conciliação (PJ-08), usar o mesmo importador. **Feito em 09/11:** Conciliação bancária liberada na PF (menu Contas e cartões), importa CSV/OFX e cada linha pode virar receita ou despesa paga na data do extrato, já conciliada (`BankReconciliation::createEntry`, rota `conciliacao-lancar`). Teste `pf-statement-import-flow`.
 - [ ] **PF-16. Decisão: Assistente Financeiro.** `/p/assistente` está no menu sem funcionar, e `AiProvider` não tem provedor. Decidir entre ligar um provedor ou tirar do menu até lá.
 - [ ] **PF-17. Decisão: Open Finance.** Integrações mostra o catálogo sem conexão. Depende de provedor homologado. Contrato C19.
 
@@ -76,10 +78,10 @@ Os itens PJ estão sendo feitos pela missão Empresa, com controle em `docs/empr
 - [x] **PJ-06. Segurança.** O texto diz que 2FA e sessões não existem, mas já existem em Perfil (`TwoFactorAuth`, `UserSessions`). Ligar a tela ao que há e corrigir o texto. Contrato C22.
 - [x] **PJ-07. Centros de custo.** Tabela, cadastro e vínculo no lançamento. Contrato C9.
 - [x] **PJ-08. Conciliação bancária.** Importar OFX/CSV para revisão, nunca conciliar sozinho. Contrato C12.
-- [ ] **PJ-09. DRE gerencial.** Contrato C11. Decisão de Djalma: regime de caixa ou competência.
+- [x] **PJ-09. DRE gerencial.** Contrato C11. Decisão de Djalma: regime de caixa ou competência. **Feito em 07/11:** DRE caixa/competência (docs/empresa/PROGRESSO.md).
 - [x] **PJ-10. Faturas de cartão.** Mesmo trabalho de PF-10.
-- [ ] **PJ-11. Obrigações PJ/MEI.** Regime da empresa e calendário, sem cálculo de tributo. Contrato C13.
-- [ ] **PJ-12. Ordens de serviço.** Módulo opcional por empresa. Contrato C20.
+- [x] **PJ-11. Obrigações PJ/MEI.** Regime da empresa e calendário, sem cálculo de tributo. Contrato C13. **Feito em 07/11:** agenda manual + enquadramento informativo (migration 021).
+- [x] **PJ-12. Ordens de serviço.** Módulo opcional por empresa. Contrato C20. **Feito em 07/11:** ordens de serviço concluídas; bug da lista corrigido em 10873fe.
 - [x] **PJ-13. Voltar ao convite depois do login.** Quem aceita o convite sem sessão perde o caminho.
 - [x] **PJ-14. Histórico administrativo de equipe** em `organization_audit_logs`.
 
@@ -96,7 +98,7 @@ O rastreador abriu todas as telas sem erro. Faltam verificações mais do que fu
 
 ### P1
 
-- [ ] **CMS-01. Rodar `cms-100-e2e` no ambiente temporário.** O teste usa `CURLOPT_RESOLVE` para `127.0.0.1`, então precisa rodar dentro do container temporário.
+- [x] **CMS-01. Rodar `cms-100-e2e` no ambiente temporário.** O teste usa `CURLOPT_RESOLVE` para `127.0.0.1`, então precisa rodar dentro do container temporário. **Feito em 07/11:** passou no Apache temporário ligado ao banco de teste (07/11).
 - [ ] **CMS-02. Conferir cada formulário de `/acao/{name}` por navegador.** O rastreador só fez GET.
 - [ ] **CMS-03. Conferir o layout das telas abertas por ID** que o rastreador não alcançou: `/assinaturas/{id}`, `/cobrancas/{id}`, `/chamados/{id}`, `/paginas/{id}`, `/planos/{id}`, `/destaques/{id}`. Faltam dados de exemplo.
 - [ ] **CMS-04. Liberar fora do local.** `REALIZZE_CMS_ENABLED` em produção. Djalma.
@@ -127,11 +129,11 @@ O rastreador abriu todas as telas sem erro. Faltam verificações mais do que fu
 
 ### P1
 
-- [ ] **INF-03. Numeração repetida de migrations.** Dois `003_` e dois `108_`. Contrato C15.
-- [ ] **INF-04. Controle de migrations aplicadas.** Não há tabela de versões, e `aplicar-migrations.sh` testa caso a caso e está fora do Git. Versionar ou trocar por um executor.
+- [x] **INF-03. Numeração repetida de migrations.** Dois `003_` e dois `108_`. Contrato C15. **Feito em 07/11:** sinalizado por scripts/migrations-status.php; não renomear arquivos aplicados.
+- [x] **INF-04. Controle de migrations aplicadas.** Não há tabela de versões, e `aplicar-migrations.sh` testa caso a caso e está fora do Git. Versionar ou trocar por um executor. **Feito em 07/11:** scripts/migrations-status.php (só leitura), 31109e2.
 - [ ] **INF-05. Faltam no `.env` de produção:** `REALIZZE_APP_ENABLED=1`, `REALIZZE_CMS_ENABLED=1`. Djalma.
 - [ ] **INF-06. Remover o usuário `pj-audit@example.invalid` do `realizze_dev`.** Era temporário, e as empresas Auditoria Alfa/Beta continuam lá. Djalma ou com a permissão dele.
-- [ ] **INF-07. Testes que não rodam em ambiente isolado.** Fazer `app-005`, `auth-002` e os outros HTTP aceitarem host e porta, para a suíte inteira rodar fora do banco real.
+- [x] **INF-07. Testes que não rodam em ambiente isolado.** Fazer `app-005`, `auth-002` e os outros HTTP aceitarem host e porta, para a suíte inteira rodar fora do banco real. **Feito em 07/11:** receita do Apache temporário em docs/release/REALIZZE_2_RC1.md; os 6 testes passam.
 - [ ] **INF-08. Tirar `source/Services/EmailVerification.php.bak` da pasta.** Está fora do Git.
 
 ### P2

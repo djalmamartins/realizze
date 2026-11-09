@@ -33,6 +33,19 @@ final class OrganizationTeam
         'viewer' => ['Visualizador', 'Apenas consulta.', ['organization.view', 'finance.view', 'contacts.view', 'accounts.view', 'reports.view', 'planning.view']],
     ];
 
+    /**
+     * Permissão exigida por cada tela da empresa. A rota e o menu leem esta mesma lista:
+     * um item só aparece no menu quando a tela abre para o papel.
+     */
+    public const SECTION_PERMISSIONS = [
+        'overview' => 'finance.view', 'receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view',
+        'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view',
+        'centros-de-custo' => 'finance.view', 'obrigacoes' => 'finance.view', 'ordens-de-servico' => 'finance.view', 'categorias' => 'finance.view',
+        'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view',
+        'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'dre' => 'reports.view',
+        'planejamento' => 'planning.view', 'metas' => 'planning.view', 'auditoria' => 'team.manage',
+    ];
+
     private const INVITE_DAYS = 7;
 
     public static function isOwner(int $userId, int $organizationId): bool

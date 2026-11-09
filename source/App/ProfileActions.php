@@ -20,6 +20,7 @@ final class ProfileActions
             \Moves\Services\AppError::render(403); return;
         }
         $userId = (int) $user['id'];
+        if ($action === 'data_export' || $action === 'account_delete') { $this->privacy($action, $userId); return; }
         $tab = 'dados';
         try {
             $message = match ($action) {
@@ -35,10 +36,11 @@ final class ProfileActions
                 'invite_accept' => $this->acceptInvite($userId, (string) $user['email']),
                 'invite_decline' => $this->declineInvite($userId, (string) $user['email']),
                 'notifications' => $this->notifications($userId),
+                'email' => $this->emailChange($userId),
                 default => throw new \InvalidArgumentException('Ação inválida.'),
             };
             $tab = match (true) {
-                str_starts_with($action, '2fa'), $action === 'password' => 'seguranca',
+                str_starts_with($action, '2fa'), $action === 'password', $action === 'email' => 'seguranca',
                 str_contains($action, 'session') => 'sessoes',
                 str_starts_with($action, 'invite') => 'permissoes',
                 $action === 'notifications' => 'notificacoes',
@@ -54,6 +56,50 @@ final class ProfileActions
         }
         header('Cache-Control: no-store');
         header('Location: /p/perfil?aba=' . rawurlencode($tab), true, 303);
+    }
+
+    private function emailChange(int $userId): string
+    {
+        try {
+            \Moves\Services\EmailChange::request($userId, (string) ($_POST['current_password'] ?? ''), (string) ($_POST['new_email'] ?? ''));
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            error_log('Realizze troca de e-mail: ' . $e->getMessage());
+            throw new \InvalidArgumentException('Não foi possível enviar o link agora. Tente de novo em alguns minutos.');
+        }
+        return 'Se o endereço puder ser usado, enviamos um link para ele. O e-mail só muda depois da confirmação.';
+    }
+
+    /** LGPD: cópia dos dados (download JSON) e exclusão da conta, ambas com a senha atual. */
+    private function privacy(string $action, int $userId): void
+    {
+        try {
+            $hash = \MovesCode\Model\Connection::get()->prepare('SELECT password FROM users WHERE id = ?');
+            $hash->execute([$userId]);
+            if ($action === 'data_export') {
+                if (!password_verify((string) ($_POST['password'] ?? ''), (string) $hash->fetchColumn())) throw new \InvalidArgumentException('Senha incorreta. Nenhum arquivo foi gerado.');
+                $json = json_encode(\Moves\Services\PersonalData::export($userId), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                header('Content-Type: application/json; charset=utf-8');
+                header('Content-Disposition: attachment; filename="realizze-meus-dados-' . date('Y-m-d') . '.json"');
+                header('Cache-Control: no-store');
+                header('X-Content-Type-Options: nosniff');
+                echo $json;
+                return;
+            }
+            \Moves\Services\PersonalData::delete($userId, (string) ($_POST['password'] ?? ''), (string) ($_POST['confirmation'] ?? ''));
+            \Moves\Services\SessionAuth::signOut();
+            header('Cache-Control: no-store');
+            header('Location: /entrar?conta=excluida', true, 303);
+            return;
+        } catch (\InvalidArgumentException $e) {
+            $_SESSION['profile_flash'] = ['error', $e->getMessage()];
+        } catch (\Throwable $e) {
+            error_log('Realizze privacidade: ' . $e->getMessage());
+            $_SESSION['profile_flash'] = ['error', 'Não foi possível concluir. Nada foi excluído. Tente novamente ou fale com o suporte.'];
+        }
+        header('Cache-Control: no-store');
+        header('Location: /p/perfil?aba=privacidade', true, 303);
     }
 
     private function update(int $id): string { UserProfile::update($id, $_POST); if (isset($_POST['remove_photo'])) UserProfile::removePhoto($id); UserProfile::updatePhoto($id, is_array($_FILES['photo'] ?? null) ? $_FILES['photo'] : []); return 'Dados atualizados com sucesso.'; }

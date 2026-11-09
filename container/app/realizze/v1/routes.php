@@ -79,13 +79,13 @@ return [
                     return;
                 }
             }
-            // Faturas atendem PF e PJ; os demais itens desta lista são exclusivos da empresa.
-            if (((in_array($section, $organizationSections, true) && $section !== 'faturas') || $section === 'contato-detalhe') && $organization === null) {
+            // Faturas e conciliação (importar extrato) atendem PF e PJ; os demais itens desta lista são exclusivos da empresa.
+            if (((in_array($section, $organizationSections, true) && !in_array($section, ['faturas', 'conciliacao'], true)) || $section === 'contato-detalhe') && $organization === null) {
                 $renderError(404);
                 return;
             }
             if ($organization !== null) {
-                $sectionPermission = ['receber' => 'finance.view', 'pagar' => 'finance.view', 'movimentacoes' => 'finance.view', 'recorrencias' => 'finance.view', 'fluxo-de-caixa' => 'finance.view', 'faturas' => 'finance.view', 'conciliacao' => 'finance.view', 'centros-de-custo' => 'finance.view', 'obrigacoes' => 'finance.view', 'ordens-de-servico' => 'finance.view', 'contas' => 'accounts.view', 'clientes' => 'contacts.view', 'fornecedores' => 'contacts.view', 'contatos' => 'contacts.view', 'categorias' => 'finance.view', 'contato-detalhe' => 'contacts.view', 'relatorios' => 'reports.view', 'dre' => 'reports.view', 'planejamento' => 'planning.view', 'metas' => 'planning.view', 'overview' => 'finance.view', 'auditoria' => 'team.manage'][$section] ?? null;
+                $sectionPermission = \Moves\Services\OrganizationTeam::SECTION_PERMISSIONS[$section] ?? null;
                 $sessionUser = \Moves\Services\SessionAuth::current();
                 if ($sectionPermission !== null && !\Moves\Services\OrganizationTeam::can((int) $sessionUser['id'], (int) $organization['id'], $sectionPermission)) {
                     $renderError(403);
@@ -94,6 +94,18 @@ return [
             }
             // Prévias antigas que ficaram fora do menu da empresa levam à tela que as substituiu.
             $replaced = ['empresarial' => 'overview', 'configuracoes' => 'empresa', 'assistente' => 'overview', 'contatos' => 'clientes'];
+            // Na PF, as preferências reais (dados, segurança e acessos) ficam em Meu perfil; a prévia sem controles saiu do caminho.
+            if ($organization === null && $section === 'configuracoes') {
+                header('Cache-Control: no-store');
+                header('Location: ' . AppUrl::section('perfil'), true, 302);
+                return;
+            }
+            // A prévia antiga dos módulos PJ deu lugar ao cadastro real, aberto no painel PF pelo menu de contexto.
+            if ($organization === null && $section === 'empresarial') {
+                header('Cache-Control: no-store');
+                header('Location: ' . AppUrl::base() . (\Moves\Services\OrganizationContext::enabled() ? '#cadastrar-empresa' : ''), true, 302);
+                return;
+            }
             if ($organization !== null && isset($replaced[$section])) {
                 header('Cache-Control: no-store');
                 header('Location: ' . AppUrl::section($replaced[$section], $organization), true, 302);
@@ -104,9 +116,9 @@ return [
                 $renderError(404);
                 return;
             }
-            if ($organization === null && \Moves\Services\PersonalAccessContext::ownerId() !== null) {
-                $permission = ['overview'=>'dashboard.view','receber'=>'income.view','pagar'=>'expenses.view','contas'=>'accounts.view','relatorios'=>'reports.view','metas'=>'goals.manage','categorias'=>'categories.manage'][$section] ?? null;
-                if ($permission === null || !\Moves\Services\PersonalAccessContext::can($permission)) { $renderError(403); return; }
+            if ($organization === null && !\Moves\Services\PersonalAccessContext::canOpen($section)) {
+                $renderError(403);
+                return;
             }
             if ($period !== null) {
                 // A URL define o período; a tela continua lendo os mesmos parâmetros.
@@ -300,7 +312,7 @@ return [
             (new \Moves\App\FinanceActions())->goalPhoto();
         }, 'app.finance.goal_photo');
 
-        foreach (['create' => 'lancamento', 'update' => 'lancamento-editar', 'settle' => 'baixa', 'delete' => 'excluir', 'account' => 'conta', 'account_update' => 'conta-editar', 'account_archive' => 'conta-arquivar', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'category_dre' => 'categoria-dre', 'budget' => 'orcamento', 'budget_delete' => 'orcamento-excluir', 'budget_copy' => 'orcamento-copiar', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir', 'goal_reserve' => 'meta-guardar', 'goal_release' => 'meta-resgatar', 'goal_transfer' => 'meta-transferir', 'goal_pay' => 'meta-pagar', 'goal_reverse' => 'meta-estornar', 'goal_status' => 'meta-situacao', 'goal_schedule' => 'meta-aporte-programado', 'goal_schedule_status' => 'meta-aporte-programado-situacao'] as $action => $slug) {
+        foreach (['create' => 'lancamento', 'update' => 'lancamento-editar', 'settle' => 'baixa', 'settle_reverse' => 'baixa-estornar', 'delete' => 'excluir', 'account' => 'conta', 'account_update' => 'conta-editar', 'account_archive' => 'conta-arquivar', 'transfer' => 'transferencia', 'company' => 'empresa', 'category' => 'categoria', 'category_delete' => 'categoria-excluir', 'category_dre' => 'categoria-dre', 'budget' => 'orcamento', 'budget_delete' => 'orcamento-excluir', 'budget_copy' => 'orcamento-copiar', 'goal' => 'meta', 'goal_update' => 'meta-editar', 'goal_add' => 'meta-valor', 'goal_contribution_delete' => 'meta-aporte-excluir', 'goal_delete' => 'meta-excluir', 'goal_reserve' => 'meta-guardar', 'goal_release' => 'meta-resgatar', 'goal_transfer' => 'meta-transferir', 'goal_pay' => 'meta-pagar', 'goal_reverse' => 'meta-estornar', 'goal_status' => 'meta-situacao', 'goal_schedule' => 'meta-aporte-programado', 'goal_schedule_status' => 'meta-aporte-programado-situacao'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) {
                     return;
@@ -308,7 +320,7 @@ return [
                 if (\Moves\Services\PersonalAccessContext::ownerId() !== null) {
                     $permission = match ($action) {
                         'create' => ($_POST['kind'] ?? '') === 'income' ? 'income.create' : 'expenses.create',
-                        'settle' => 'payments.register', 'update', 'delete' => 'entries.edit',
+                        'settle', 'settle_reverse' => 'payments.register', 'update', 'delete' => 'entries.edit',
                         'category','category_delete','category_dre' => 'categories.manage',
                         'goal','goal_update','goal_add','goal_contribution_delete','goal_delete','goal_reserve','goal_release','goal_transfer','goal_status','goal_schedule','goal_schedule_status' => 'goals.manage',
                         // Estas duas mexem em lançamentos: além de metas, exigem a permissão de lançamentos.
@@ -322,7 +334,7 @@ return [
             }, 'app.finance.' . $action);
         }
 
-        foreach (['card_purchase' => 'cartao-compra', 'card_pay' => 'cartao-pagar-fatura', 'card_reverse' => 'cartao-estornar-pagamento', 'cost_center' => 'centro-de-custo', 'reconciliation_import' => 'conciliacao-importar', 'reconciliation_review' => 'conciliacao-revisar'] as $action => $slug) {
+        foreach (['card_purchase' => 'cartao-compra', 'card_pay' => 'cartao-pagar-fatura', 'card_reverse' => 'cartao-estornar-pagamento', 'cost_center' => 'centro-de-custo', 'reconciliation_import' => 'conciliacao-importar', 'reconciliation_review' => 'conciliacao-revisar', 'reconciliation_create' => 'conciliacao-lancar'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
                 (new \Moves\App\CommercialFinanceActions())->handle($action);
@@ -381,7 +393,7 @@ return [
             }, 'app.notifications.' . $action);
         }
 
-        foreach (['update' => 'dados', 'password' => 'senha', '2fa_begin' => '2fa/iniciar', '2fa_confirm' => '2fa/confirmar', '2fa_disable' => '2fa/desativar', 'session_revoke' => 'sessao/encerrar', 'sessions_revoke' => 'sessoes/encerrar-outras', 'invite' => 'convite', 'invite_revoke' => 'convite/revogar', 'invite_accept' => 'convite/aceitar', 'invite_decline' => 'convite/recusar', 'notifications' => 'notificacoes'] as $action => $slug) {
+        foreach (['update' => 'dados', 'password' => 'senha', '2fa_begin' => '2fa/iniciar', '2fa_confirm' => '2fa/confirmar', '2fa_disable' => '2fa/desativar', 'session_revoke' => 'sessao/encerrar', 'sessions_revoke' => 'sessoes/encerrar-outras', 'invite' => 'convite', 'invite_revoke' => 'convite/revogar', 'invite_accept' => 'convite/aceitar', 'invite_decline' => 'convite/recusar', 'notifications' => 'notificacoes', 'data_export' => 'exportar-dados', 'account_delete' => 'excluir-conta', 'email' => 'email'] as $action => $slug) {
             $router->post('/minha-conta/perfil/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
                 (new \Moves\App\ProfileActions())->handle($action);

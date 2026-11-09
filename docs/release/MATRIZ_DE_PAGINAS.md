@@ -1,38 +1,60 @@
-# Matriz de páginas — Realizze 2.0
+# Matriz de páginas
 
-Validação do ciclo 4 em 07/11/2026. O Apache serve `realizze-main-integration/public`, branch `main`. As 43 rotas abaixo foram abertas em sessão autenticada, sem submissões. Todas responderam com título e layout; nenhuma redirecionou para `/ops/500` ou exibiu erro fatal.
+Atualizada em 07/11/2026 (Etapa 4). Toda linha abaixo passou pela varredura no navegador (Chromium, sessão do dono no banco `realizze_pjtest`) em 1440, 768 e 390 px: carregou com o título certo, sem erro de JS, de console, de rede ou de PHP e sem rolagem lateral. A navegação (rota, item no menu, título igual ao menu, permissão) é coberta por `tests/http/navigation-menu-flow.php`.
 
-Legenda: **OK** = página carregada e coberta pelos testes funcionais indicados; **Bloqueada** = rota carrega, mas o ambiente servido não possui a estrutura de banco requerida.
+Status: **Validada** = fluxos de gravação cobertos por teste automatizado que passou nesta rodada. **Validada (leitura)** = só exibe dados; carga e números conferidos. **Sem teste de gravação** = abre e funciona na varredura, mas nenhum teste cobre salvar/editar. **Parcial** = falta função. **Bloqueada** = depende de migration no `realizze_dev`.
 
-| Contexto | Rotas verificadas | Quantidade | Estado | Layout, filtros, modais e ações principais |
-|---|---|---:|---|---|
-| PF — visão e financeiro | `/p`, `/p/receber`, `/p/pagar`, `/p/movimentacoes`, `/p/cartoes`, `/p/faturas` | 6 | OK | Layout compartilhado; filtros financeiros; modais de lançamento, baixa, transferência, conta e fatura cobertas por smoke e integração isolada. |
-| PF — análise e planejamento | `/p/relatorios`, `/p/planejamento`, `/p/metas`, `/p/categorias`, `/p/recorrencias`, `/p/sair-das-dividas` | 6 | OK | Catálogo progressivo, período, formulários e modais de orçamento/metas carregados; nenhuma operação foi enviada no ambiente compartilhado. |
-| PF — plataforma | `/p/configuracoes`, `/p/notificacoes`, `/p/integracoes`, `/p/perfil` | 4 | OK | Perfil validado com filtro compartilhado; abertura, Escape e retorno de foco conferidos no Apache. |
-| PJ — visão e financeiro | `/e/cueca-verde`, `/receber`, `/pagar`, `/movimentacoes`, `/recorrencias`, `/fluxo-de-caixa`, `/cartoes`, `/faturas` | 8 | OK | Componentes PF/PJ compartilhados; pagamentos e recebimentos totais/parciais validados no banco isolado. |
-| PJ — conciliação | `/e/cueca-verde/conciliacao` | 1 | **Bloqueada** | Rota e layout carregam; ambiente servido informa ausência da migration 014, impedindo linhas, filtro e importação. |
-| PJ — cadastros | `/e/cueca-verde/clientes`, `/fornecedores`, `/categorias` | 3 | OK | Filtros de contatos padronizados; modais são emitidos após a tabela; CRUD coberto por teste isolado. |
-| PJ — centros de custo | `/e/cueca-verde/centros-de-custo` | 1 | **Bloqueada** | Rota carrega; ambiente servido informa ausência da migration 014 para a estrutura financeira dependente. |
-| PJ — gestão | `/e/cueca-verde/relatorios`, `/dre`, `/planejamento`, `/metas`, `/obrigacoes`, `/ordens-de-servico` | 6 | OK | Catálogo por categorias e seleção única conferidos; filtros prioritários padronizados; modais e permissões cobertos por smoke/integração. |
-| PJ — administração | `/e/cueca-verde/equipe`, `/permissoes`, `/empresa`, `/seguranca`, `/auditoria` | 5 | OK | Rotas, títulos e controles carregados; papéis e isolamento cobertos pela suíte de autorização/equipe. |
-| PJ — plataforma | `/e/cueca-verde/notificacoes`, `/integracoes`, `/perfil` | 3 | OK | Layout compartilhado e perfil funcional. |
+Bloqueio geral: no `realizze_dev` faltam as migrations 014 a 022. As páginas marcadas com (014-022) só funcionam no banco de teste até Djalma aplicá-las.
 
-## Resultado
+## PF (`/p`)
 
-- Páginas verificadas: **43**.
-- Totalmente funcionais no ambiente servido: **41**.
-- Precisam de correção do ambiente: **2** (Conciliação e Centros de custo, migration 014).
-- Erros HTTP/fatais encontrados: **0**.
-- Modais inventariadas no código: **45 ocorrências de `<dialog>`**. A regressão estrutural encontrada em Receber foi corrigida; as janelas agora são emitidas fora da tabela.
-- Filtros consolidados neste ciclo: Contatos, Conciliação e Atividade do Perfil, além da validação de Obrigações, Ordens de serviço e Auditoria.
+| Página | Status | Testes |
+|---|---|---|
+| Visão Geral | Validada (leitura) | `finance-017-dashboard-consistency`, `ui-005-finance-indicators` |
+| Receber | Validada | `finance-002-receivables`, `finance-014-partial-settlement`, `finance-012-entry-modal` |
+| Pagar | Validada | `finance-023-payables-partial`, `finance-016-recurring-in-payables` |
+| Movimentações (transferências) | Validada | `finance-009-transfer-balance`, `finance-011-e2e-math` |
+| Contas e Cartões | Validada | `finance-018-accounts`, `finance-004-institutions` |
+| Faturas | Validada, bloqueada no `realizze_dev` (014/015) | `finance-020-card-invoices` |
+| Assinaturas e recorrências | Validada | `finance-008`, `finance-010` |
+| Metas | Validada | `finance-007-goal-progress`, `finance-013-goal-wallets` |
+| Planejamento | Validada | `finance-015-planning` |
+| Sair das Dívidas | Validada | `debt-001`, `debt-002`, `debt-003` |
+| Relatórios | Validada (leitura) | `finance-006-report`, `finance-024`, `finance-025` (não redesenhar) |
+| Categorias | Validada | `categories-flow`, `finance-027-category-totals` (não redesenhar) |
+| Notificações | Validada | `notifications-001-app` |
+| Integrações | Parcial | Página informativa: integração bancária não existe |
+| Configurações / Meu perfil | Validada (troca de e-mail depende da 022) | `profile-001-security`, `security-001-csrf-session`, `privacy-lgpd-flow`, `email-change-flow` |
+| Assistente, Empresarial | Parcial (prévias fora do menu) | Decisão de Djalma |
 
-## Cobertura executada
+## PJ (`/e/{empresa}`)
 
-- `tests/ui-002-view-smoke.php` e `tests/web-assets-smoke.php`.
-- `finance-023-payables-partial`, `finance-002-receivables`, `finance-003-contacts`, `finance-001-isolation`, `finance-012-entry-modal`.
-- `authorization-v1` e `enterprise-002-team`.
-- Navegação autenticada e somente leitura nas 43 rotas pelo Apache.
-- Perfil: abrir/cancelar por Escape/foco; Receber: detalhes/Escape/foco; Contatos: modal e campos do filtro.
-- Central de Relatórios: categorias, escolha de relatório, conteúdo único, período e ações de exportação presentes.
+| Página | Status | Testes |
+|---|---|---|
+| Dashboard | Validada (leitura) | `finance-017`, `enterprise-001-context` |
+| Receber e cobranças | Validada | `finance-002`, `finance-014` |
+| Pagar | Validada | `finance-019-payables-suppliers`, `finance-023`, `enterprise-payables-flow` |
+| Movimentações, Recorrências | Validada | como na PF |
+| Fluxo de caixa | Validada (leitura) | `finance-017`, relatórios do Codex |
+| Bancos e contas | Validada | `finance-018`, `enterprise-accounts-flow` |
+| Cartões e faturas | Validada (014/015) | `finance-020`, `enterprise-invoices-flow` |
+| Conciliação bancária | Validada (014); paginada (50 por página) | `finance-021`, `enterprise-reconciliation-flow`, `reconciliation-filters-flow` |
+| Clientes, Fornecedores (+ detalhe) | Validada | `finance-003-contacts`, `contact-filters-flow` |
+| Categorias | Validada | `categories-flow`; DRE por grupo depende da 020 |
+| Centros de custo | Validada (014) | `finance-022-cost-centers` |
+| Relatórios | Validada (leitura) | `enterprise-009/010/011`, `ui-006` |
+| DRE gerencial | Validada (leitura, 020) | `enterprise-004-management-dre` |
+| Planejamento, Metas | Validada | como na PF |
+| Obrigações | Validada (018) | `enterprise-006`, `enterprise-business-modules-flow`, `obligation-filters-flow` |
+| Ordens de serviço | Validada (019) | `enterprise-007`, `enterprise-008`, `service-order-filters-flow` |
+| Equipe, Permissões | Validada (016) | `enterprise-002-team`, `enterprise-permissions-flow`, `enterprise-invite-login-flow` |
+| Configurações da empresa (logotipo, enquadramento) | Validada (017, 021) | `enterprise-003`, `enterprise-005-company-logo`, `enterprise-company-flow` |
+| Segurança | Validada | `enterprise-security-flow` |
+| Auditoria | Validada (leitura) | `enterprise-003-company-audit` |
+| Integrações, Notificações | Como na PF | |
 
-O teste HTTP reutilizável está em `tests/http/app-pages-smoke.php`. Ele requer uma fixture autenticável no banco apontado; a base isolada disponível neste ciclo não contém os usuários legados `pj-dono@example.invalid`, portanto a cobertura de rotas foi feita pela sessão real, somente leitura.
+## Suíte nesta rodada
+
+70 testes PHP rodados contra o `realizze_pjtest`: 69 passaram. `core-001-email-smtp` exige `TEST_MAIL_TO` e envio real, por isso não foi executado. Seis testes chamam o Apache real (`auth-002-http`, `app-005-routes`, `cms-100-e2e`, `core-support-helpers`, `core-007-environment-router`, `email-confirmation-http-v1`) e ficaram de fora, para não tocar no `realizze_dev`; eles entram na homologação (Etapa 7). Os três testes Node (`ui-003`, `ui-004`, `cms-003`) passam. Os fluxos HTTP novos desta missão também passam.
+
+> A auditoria do Codex de 07/11 (filtros e catálogo de relatórios) está em `docs/release/V1_*.md`; esta lista consolida as duas.

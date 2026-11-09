@@ -18,11 +18,17 @@ $labels = match ($role) {
 };
 $fixedRole = in_array($role, ['customer', 'supplier'], true);
 $result = ['rows' => [], 'total' => 0, 'pages' => 1, 'page' => 1];
+$tabCounts = ['' => 0, 'active' => 0, 'inactive' => 0];
 $service = null;
 $failed = false;
 try {
     $service = new Contacts((int) FinanceContext::currentId());
     $result = $service->listing(compact('search', 'role', 'type', 'status', 'page'));
+    // Contagem das abas com os demais filtros (busca, tipo, papel).
+    $tabCounts = [];
+    foreach (['' => '', 'active' => 'active', 'inactive' => 'inactive'] as $tab => $tabStatus) {
+        $tabCounts[$tab] = $tabStatus === $status ? (int) $result['total'] : (int) $service->listing(['search' => $search, 'role' => $role, 'type' => $type, 'status' => $tabStatus, 'page' => 1])['total'];
+    }
 } catch (Throwable $exception) {
     error_log('Realizze contacts view: ' . $exception->getMessage());
     $failed = true;
@@ -37,16 +43,6 @@ $mask = static function (?string $d): string {
 };
 $path = strtok((string) ($_SERVER['REQUEST_URI'] ?? ''), '?') ?: '/pj/minha-empresa/contatos';
 $query = array_filter(['busca' => $search, 'tipo' => $type, 'situacao' => $status] + ($fixedRole ? [] : ['papel' => $role]), static fn ($x) => $x !== '');
-$filterChips = [];
-$withoutFilter = static function (string $key) use ($path, $query): string {
-    $remaining = array_diff_key($query, [$key => true]);
-    return $path . ($remaining === [] ? '' : '?' . http_build_query($remaining));
-};
-if ($search !== '') $filterChips['Busca: ' . $search] = $withoutFilter('busca');
-if (!$fixedRole && $role !== '') $filterChips['Papel: ' . ['customer' => 'Clientes', 'supplier' => 'Fornecedores', 'both' => 'Ambos'][$role]] = $withoutFilter('papel');
-if ($type !== '') $filterChips['Tipo: ' . ($type === 'individual' ? 'Pessoa física' : 'Pessoa jurídica')] = $withoutFilter('tipo');
-if ($status !== '') $filterChips['Situação: ' . ($status === 'active' ? 'Ativos' : 'Inativos')] = $withoutFilter('situacao');
-$filterClearUrl = $path;
 $rowDialogs = '';
 ?>
 <?php if (is_array($flash)): ?><p class="finance-flash finance-flash-<?= $e($flash[0]) ?>" role="status"><?= $e($flash[1]) ?></p><?php endif; ?>
@@ -55,16 +51,42 @@ $rowDialogs = '';
     <div><h2 id="contacts-title"><?= $e($labels['title']) ?></h2><p class="muted"><?= $e($labels['lead']) ?></p></div>
     <button class="primary" type="button" data-finance-open="contact-create">+ <?= $e($labels['new']) ?></button>
   </div>
-  <div class="finance-filter-bar"><?php $filterPanelId = 'contact-filters'; require __DIR__ . '/../components/filter-button.php'; ?></div>
-  <?php require __DIR__ . '/../components/filter-bar.php'; ?>
-  <dialog class="finance-dialog filter-dialog" id="contact-filters" aria-labelledby="contact-filters-title"><form method="get" action="<?= $e($path) ?>" data-swap-get>
-    <header><h2 id="contact-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
-    <label class="contact-filter-search">Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Nome, fantasia ou documento"></label>
-    <?php if (!$fixedRole): ?><label>Papel<select name="papel"><option value="">Todos</option><option value="customer"<?= $role === 'customer' ? ' selected' : '' ?>>Clientes</option><option value="supplier"<?= $role === 'supplier' ? ' selected' : '' ?>>Fornecedores</option><option value="both"<?= $role === 'both' ? ' selected' : '' ?>>Ambos</option></select></label><?php endif; ?>
-    <label>Tipo<select name="tipo"><option value="">Todos</option><option value="individual"<?= $type === 'individual' ? ' selected' : '' ?>>Pessoa física</option><option value="company"<?= $type === 'company' ? ' selected' : '' ?>>Pessoa jurídica</option></select></label>
-    <label>Situação<select name="situacao"><option value="">Todas</option><option value="active"<?= $status === 'active' ? ' selected' : '' ?>>Ativos</option><option value="inactive"<?= $status === 'inactive' ? ' selected' : '' ?>>Inativos</option></select></label>
-    <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button class="primary" type="submit">Aplicar</button></footer>
-  </form></dialog>
+  <?php
+  // Mesmo padrão de Contas a Receber: abas de situação, modal de filtros, etiquetas e Limpar.
+  $link = static function (array $changes = []) use ($path, $query): string {
+      $next = array_filter(array_merge($query, $changes), static fn ($x) => $x !== '' && $x !== null);
+      return $path . ($next === [] ? '' : '?' . http_build_query($next));
+  };
+  $without = static fn (string ...$keys): string => $link(array_fill_keys($keys, ''));
+  $typeLabels = ['individual' => 'Pessoa física', 'company' => 'Pessoa jurídica'];
+  $roleLabels = ['customer' => 'Clientes', 'supplier' => 'Fornecedores', 'both' => 'Ambos'];
+  ?>
+  <div class="finance-filter-bar">
+    <nav class="finance-status receivables-tabs" aria-label="Situação">
+      <?php foreach (['' => 'Todos', 'active' => 'Ativos', 'inactive' => 'Inativos'] as $value => $label): ?>
+      <a href="<?= $e($link(['situacao' => $value, 'page' => ''])) ?>"<?= $status === $value ? ' aria-current="true"' : '' ?>><?= $e($label) ?> (<?= (int) ($tabCounts[$value] ?? 0) ?>)</a>
+      <?php endforeach; ?>
+    </nav>
+    <?php $filterPanelId = 'contact-filters'; require dirname(__DIR__) . '/components/filter-button.php'; ?>
+  </div>
+  <?php
+  $filterChips = [];
+  if ($search !== '') $filterChips['Busca: ' . $search] = $without('busca', 'page');
+  if ($type !== '') $filterChips['Tipo: ' . $typeLabels[$type]] = $without('tipo', 'page');
+  if (!$fixedRole && $role !== '') $filterChips['Papel: ' . $roleLabels[$role]] = $without('papel', 'page');
+  $filterClearUrl = $path . ($status === '' ? '' : '?' . http_build_query(['situacao' => $status]));
+  require dirname(__DIR__) . '/components/filter-bar.php';
+  ?>
+  <dialog class="finance-dialog filter-dialog" id="contact-filters" aria-labelledby="contact-filters-title">
+    <form method="get" action="<?= $e($path) ?>" data-swap-get>
+      <header><h2 id="contact-filters-title">Filtros</h2><button type="button" data-finance-close aria-label="Fechar">×</button></header>
+      <label>Pesquisar<input type="search" name="busca" value="<?= $e($search) ?>" placeholder="Nome, fantasia ou documento" maxlength="180"></label>
+      <?php if ($status !== ''): ?><input type="hidden" name="situacao" value="<?= $e($status) ?>"><?php endif; ?>
+      <?php if (!$fixedRole): ?><label>Papel<select name="papel"><option value="">Todos</option><?php foreach ($roleLabels as $key => $label): ?><option value="<?= $e($key) ?>"<?= $role === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label><?php endif; ?>
+      <label>Tipo<select name="tipo"><option value="">Todos</option><?php foreach ($typeLabels as $key => $label): ?><option value="<?= $e($key) ?>"<?= $type === $key ? ' selected' : '' ?>><?= $e($label) ?></option><?php endforeach; ?></select></label>
+      <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Aplicar</button></footer>
+    </form>
+  </dialog>
   <?php if ($failed): ?>
   <div class="finance-empty"><h3>Não foi possível carregar os <?= $e($labels['many']) ?></h3><p>Atualize a página. Se continuar, tente novamente em alguns minutos.</p></div>
   <?php elseif (!$result['rows']): ?>

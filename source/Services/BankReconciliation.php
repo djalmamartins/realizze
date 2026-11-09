@@ -18,22 +18,36 @@ final class BankReconciliation
 
     public function lines(array $filters = []): array
     {
-        $where = ['l.financial_context_id=?'];
-        $args = [$this->contextId];
-        if (in_array($filters['status'] ?? '', self::STATUSES, true)) { $where[] = 'l.status=?'; $args[] = $filters['status']; }
-        $account = filter_var($filters['account_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        if ($account !== false) { $where[] = 'l.account_id=?'; $args[] = $account; }
-        $q=$this->pdo->prepare('SELECT l.*,a.name account,e.description entry_description,e.due_date entry_date FROM finance_reconciliation_lines l INNER JOIN finance_accounts a ON a.id=l.account_id LEFT JOIN finance_entries e ON e.id=l.matched_entry_id WHERE '.implode(' AND ',$where).' ORDER BY l.status=\'pending\' DESC,l.occurred_on DESC,l.id DESC LIMIT 500');
+        [$where, $args] = $this->filterWhere($filters, true);
+        $q=$this->pdo->prepare('SELECT l.*,a.name account,e.description entry_description,e.due_date entry_date FROM finance_reconciliation_lines l INNER JOIN finance_accounts a ON a.id=l.account_id LEFT JOIN finance_entries e ON e.id=l.matched_entry_id WHERE '.implode(' AND ',$where).' ORDER BY l.status=\'pending\' DESC,l.occurred_on DESC,l.id DESC LIMIT '.max(1,min(500,(int)($filters['limit']??500))).' OFFSET '.max(0,(int)($filters['offset']??0)));
         $q->execute($args);
         return $q->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** @return array<string,int> quantidade de linhas por situação */
-    public function counts(): array
+    /** @return array<string,int> quantidade de linhas por situação, com os mesmos filtros de conta, período e busca */
+    public function counts(array $filters = []): array
     {
-        $q=$this->pdo->prepare('SELECT status,COUNT(*) total FROM finance_reconciliation_lines WHERE financial_context_id=? GROUP BY status');
-        $q->execute([$this->contextId]);
+        [$where, $args] = $this->filterWhere($filters, false);
+        $q=$this->pdo->prepare('SELECT l.status,COUNT(*) total FROM finance_reconciliation_lines l WHERE '.implode(' AND ',$where).' GROUP BY l.status');
+        $q->execute($args);
         return array_map('intval', array_column($q->fetchAll(PDO::FETCH_ASSOC), 'total', 'status')) + array_fill_keys(self::STATUSES, 0);
+    }
+
+    /** Filtros da tela: situação, conta, período (data do extrato) e busca na descrição. Sempre restritos ao contexto. */
+    private function filterWhere(array $filters, bool $withStatus): array
+    {
+        $where = ['l.financial_context_id=?'];
+        $args = [$this->contextId];
+        if ($withStatus && in_array($filters['status'] ?? '', self::STATUSES, true)) { $where[] = 'l.status=?'; $args[] = $filters['status']; }
+        $account = filter_var($filters['account_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($account !== false) { $where[] = 'l.account_id=?'; $args[] = $account; }
+        foreach (['start' => '>=', 'end' => '<='] as $key => $op) {
+            $value = (string) ($filters[$key] ?? '');
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) { $where[] = "l.occurred_on $op ?"; $args[] = $value; }
+        }
+        $search = trim(mb_substr((string) ($filters['search'] ?? ''), 0, 120));
+        if ($search !== '') { $where[] = 'l.description LIKE ?'; $args[] = '%' . addcslashes($search, '%_\\') . '%'; }
+        return [$where, $args];
     }
 
     /**
@@ -104,6 +118,46 @@ final class BankReconciliation
             $this->pdo->commit();
             return $count;
         }catch(\Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();@unlink($path);throw $e;}
+    }
+
+    /**
+     * Lança a linha do extrato como receita (valor positivo) ou despesa (negativo), já paga na data do extrato,
+     * e concilia a linha com o lançamento novo. Só vale para linha pendente: reenviar não cria outro lançamento.
+     */
+    public function createEntry(mixed $lineId, mixed $categoryId, int $userId): int
+    {
+        $line=filter_var($lineId,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($line===false)throw new InvalidArgumentException('Linha inválida.');
+        $this->pdo->beginTransaction();
+        try{
+            $find=$this->pdo->prepare("SELECT * FROM finance_reconciliation_lines WHERE id=? AND financial_context_id=? FOR UPDATE");
+            $find->execute([$line,$this->contextId]);
+            $row=$find->fetch(PDO::FETCH_ASSOC);
+            if($row===false)throw new InvalidArgumentException('Linha não encontrada.');
+            if($row['status']!=='pending'||$row['matched_entry_id']!==null)throw new InvalidArgumentException('Esta linha já foi revisada.');
+            $amount=(int)$row['amount_cents'];
+            if($amount===0)throw new InvalidArgumentException('Linha sem valor.');
+            $kind=$amount>0?'income':'expense';
+            $category=null;
+            $wanted=filter_var($categoryId,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+            if($wanted!==false){
+                $c=$this->pdo->prepare('SELECT id FROM finance_categories WHERE id=? AND financial_context_id=? AND kind=?');
+                $c->execute([$wanted,$this->contextId,$kind]);
+                $category=$c->fetchColumn();
+                if($category===false)throw new InvalidArgumentException('Escolha uma categoria de '.($kind==='income'?'receita':'despesa').'.');
+                $category=(int)$category;
+            }
+            $this->pdo->prepare("INSERT INTO finance_entries (financial_context_id,account_id,category_id,kind,description,amount_cents,due_date,paid_at,status,created_by) VALUES (?,?,?,?,?,?,?,?,'received',?)")
+                ->execute([$this->contextId,(int)$row['account_id'],$category,$kind,mb_substr((string)$row['description'],0,160),abs($amount),$row['occurred_on'],$row['occurred_on'],$userId]);
+            $entry=(int)$this->pdo->lastInsertId();
+            $this->pdo->prepare("UPDATE finance_reconciliation_lines SET status='matched',matched_entry_id=?,reviewed_by=?,reviewed_at=NOW() WHERE id=? AND financial_context_id=?")
+                ->execute([$entry,$userId,$line,$this->contextId]);
+            $this->pdo->commit();
+            return $entry;
+        }catch(\Throwable $exception){
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $exception;
+        }
     }
 
     public function review(mixed $lineId,mixed $entryId,string $status,int $userId): void

@@ -1,0 +1,55 @@
+<?php
+// LGPD-001: baixar os próprios dados e excluir a conta pela tela de Meu perfil. Só no banco de teste.
+// Cria uma pessoa com conta, lançamento, baixa e assinatura (a assinatura travava a exclusão pela FK RESTRICT).
+declare(strict_types=1);
+require __DIR__ . '/client.php';
+require_once dirname(__DIR__, 2) . '/source/Boot/app.php';
+require_once dirname(__DIR__, 2) . '/source/Boot/database.php';
+use Moves\Services\{Finance, FinanceContext, RecurringFinance, Receivables};
+$pdo = \MovesCode\Model\Connection::get();
+if (!str_contains((string) $pdo->query('SELECT DATABASE()')->fetchColumn(), 'test')) throw new RuntimeException('Banco de teste obrigatório.');
+$ok = 0; $fail = 0;
+$check = function (bool $c, string $m) use (&$ok, &$fail) { echo ($c ? 'OK' : 'FALHOU') . " - $m\n"; $c ? $ok++ : $fail++; };
+$email = 'lgpd-' . bin2hex(random_bytes(4)) . '@example.invalid';
+$password = 'Lgpd#Teste2026';
+$pdo->prepare("INSERT INTO users (first_name, last_name, email, password, status, email_verified_at) VALUES ('Titular', 'LGPD', ?, ?, 'active', NOW())")->execute([$email, password_hash($password, PASSWORD_DEFAULT)]);
+$userId = (int) $pdo->lastInsertId();
+$context = FinanceContext::forUser($userId);
+$finance = new Finance($context);
+$account = $finance->createAccount(['name' => 'Conta LGPD', 'type' => 'checking', 'opening_balance' => '100,00']);
+(new RecurringFinance($context))->create(['name' => 'Streaming LGPD', 'amount' => '29,90', 'next_due_date' => date('Y-m-d', strtotime('+5 days')), 'account_id' => $account], $userId);
+$h = new H();
+$check($h->login($email, $password), 'Titular entra');
+$get = static function (H $h, string $url): string { $r = $h->req('GET', $url); return ($r['code'] === 302 && $r['location'] ? $h->req('GET', $r['location']) : $r)['body']; };
+$receber = $get($h, '/p/receber');
+$h->req('POST', '/minha-conta/financeiro/lancamento', ['csrf_token' => $h->csrf($receber), 'kind' => 'income', 'source' => 'entry', 'mes' => date('Y-m'), 'back' => 'receber', 'description' => 'Salário LGPD', 'amount' => '500,00', 'due_date' => date('Y-m-d'), 'account_id' => $account, 'idempotency_key' => bin2hex(random_bytes(16))]);
+$entry = (int) $pdo->query("SELECT id FROM finance_entries WHERE financial_context_id=$context AND description='Salário LGPD'")->fetchColumn();
+$h->req('POST', '/minha-conta/financeiro/recebimento-baixa', ['csrf_token' => $h->csrf($get($h, '/p/receber')), 'back' => 'receber', 'id' => $entry, 'amount' => '200,00', 'received_at' => date('Y-m-d'), 'account_id' => $account, 'payment_method' => 'pix', 'idempotency_key' => bin2hex(random_bytes(16))]);
+$profile = $get($h, '/p/perfil?aba=privacidade');
+$check(str_contains($profile, 'action="/minha-conta/perfil/exportar-dados"') && str_contains($profile, 'action="/minha-conta/perfil/excluir-conta"'), 'Meu perfil tem a aba Privacidade com baixar e excluir');
+$wrong = $h->req('POST', '/minha-conta/perfil/exportar-dados', ['csrf_token' => $h->csrf($profile), 'password' => 'errada']);
+$check($wrong['code'] === 303, 'Senha errada não gera arquivo');
+$export = $h->req('POST', '/minha-conta/perfil/exportar-dados', ['csrf_token' => $h->csrf($get($h, '/p/perfil?aba=privacidade')), 'password' => $password]);
+$json = json_decode($export['body'], true);
+$check($export['code'] === 200 && str_starts_with((string) $export['type'], 'application/json') && is_array($json), 'Download em JSON');
+$flat = $export['body'];
+$check(str_contains($flat, 'Salário LGPD') && str_contains($flat, 'Streaming LGPD') && str_contains($flat, 'Conta LGPD') && isset($json['tabelas']['finance_entry_settlements']), 'Arquivo traz contas, lançamentos, baixas e assinaturas');
+$check(!array_key_exists('password', $json['perfil'] ?? ['password' => 1]) && !str_contains($flat, '$2y$') && !str_contains($flat, '"token_hash"'), 'Arquivo não traz senha nem hashes');
+$check(!str_contains($flat, 'missao-alfa'), 'Arquivo não traz dados de empresas');
+$profile = $get($h, '/p/perfil?aba=privacidade');
+$h->req('POST', '/minha-conta/perfil/excluir-conta', ['csrf_token' => $h->csrf($profile), 'password' => $password, 'confirmation' => 'apagar']);
+$check((int) $pdo->query("SELECT COUNT(*) FROM users WHERE id=$userId")->fetchColumn() === 1, 'Sem digitar EXCLUIR, nada é excluído');
+$h->req('POST', '/minha-conta/perfil/excluir-conta', ['csrf_token' => $h->csrf($get($h, '/p/perfil?aba=privacidade')), 'password' => 'errada', 'confirmation' => 'EXCLUIR']);
+$check((int) $pdo->query("SELECT COUNT(*) FROM users WHERE id=$userId")->fetchColumn() === 1, 'Com senha errada, nada é excluído');
+$done = $h->req('POST', '/minha-conta/perfil/excluir-conta', ['csrf_token' => $h->csrf($get($h, '/p/perfil?aba=privacidade')), 'password' => $password, 'confirmation' => 'excluir']);
+$left = 0; foreach (['finance_entries', 'finance_accounts', 'finance_recurring_items', 'finance_entry_settlements'] as $t) $left += (int) $pdo->query("SELECT COUNT(*) FROM $t WHERE financial_context_id=$context")->fetchColumn();
+$check($done['code'] === 303 && str_starts_with((string) $done['location'], '/entrar') && (int) $pdo->query("SELECT COUNT(*) FROM users WHERE id=$userId")->fetchColumn() === 0 && $left === 0, 'Exclusão remove a conta e toda a área pessoal, inclusive com assinatura');
+$check($h->req('GET', '/p')['code'] === 302 && !(new H())->login($email, $password), 'Sessão encerrada e não dá mais para entrar');
+// Proprietário de empresa: a tela explica por que não pode excluir, e o servidor recusa.
+$owner = new H(); $owner->login('pj-dono@example.invalid', 'PjMissao#2026');
+$ownerPage = $get($owner, '/p/perfil?aba=privacidade');
+$check(str_contains($ownerPage, 'proprietário de uma empresa') && !str_contains($ownerPage, 'action="/minha-conta/perfil/excluir-conta"'), 'Proprietário de empresa vê o motivo, sem o formulário');
+$owner->req('POST', '/minha-conta/perfil/excluir-conta', ['csrf_token' => $owner->csrf($ownerPage), 'password' => 'PjMissao#2026', 'confirmation' => 'EXCLUIR']);
+$check((int) $pdo->query("SELECT COUNT(*) FROM users WHERE email='pj-dono@example.invalid'")->fetchColumn() === 1, 'Servidor também recusa a exclusão do proprietário');
+echo "$ok OK, $fail falha(s)\n";
+exit($fail ? 1 : 0);
