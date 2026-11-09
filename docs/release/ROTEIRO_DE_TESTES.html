@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Realizze 2.0 RC1 · Roteiro de testes</title>
+<style>
+@page { size: A4; margin: 16mm 15mm 18mm; }
+* { box-sizing: border-box; }
+body { font: 10.5pt/1.5 "Helvetica Neue", Arial, sans-serif; color: #17241d; margin: 0; }
+h1 { font-size: 22pt; margin: 0 0 4px; color: #0b5d38; }
+h2 { font-size: 14pt; color: #0b5d38; border-bottom: 2px solid #d6e9de; padding-bottom: 4px; margin: 22px 0 8px; page-break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 14px 0 4px; page-break-after: avoid; }
+p { margin: 4px 0 8px; }
+.lead { color: #4c6f5d; font-size: 11pt; }
+.cover { border-left: 6px solid #079550; padding: 6px 0 6px 14px; margin-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9.5pt; page-break-inside: auto; }
+tr { page-break-inside: avoid; }
+th { text-align: left; background: #eaf5ee; color: #0b5d38; font-weight: 600; }
+th, td { border: 1px solid #d6e2db; padding: 5px 7px; vertical-align: top; }
+.ok { color: #0b6b3a; font-weight: 600; }
+.warn { color: #8a5200; font-weight: 600; }
+.no { color: #a52222; font-weight: 600; }
+ol, ul { margin: 4px 0 10px 18px; padding: 0; }
+li { margin: 2px 0; }
+.box { background: #f4f9f6; border: 1px solid #d6e9de; border-radius: 6px; padding: 8px 12px; margin: 8px 0 12px; }
+.box.warn-box { background: #fff7e8; border-color: #f0d9a8; }
+code { font-family: Menlo, Consolas, monospace; font-size: 9pt; background: #f1f4f2; padding: 1px 4px; border-radius: 3px; }
+.small { font-size: 9pt; color: #4c6f5d; }
+.check td:first-child { width: 22px; text-align: center; }
+.pb { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>Realizze 2.0 · RC1</h1>
+  <p class="lead">O que funciona, o que ainda não funciona e o roteiro para testar tudo, passo a passo.</p>
+  <p class="small">Versão de 09/11/2026 · branch <code>release/rc1-main</code> (dev-claude + trabalho do Codex na main) · App: <code>https://app.realizze.lab</code></p>
+</div>
+
+<h2>1. Antes de testar</h2>
+<ol>
+  <li>No Terminal, rode <code>bash "/Volumes/MAC HD/Docker/xampp/www/realizze/levar-para-main.sh"</code>. Ele atualiza a <code>main</code> e a <code>dev-claude</code>, pergunta antes de aplicar as migrations 014 a 022 no <code>realizze_dev</code> (fazendo backup antes), publica CSS/JS, confere se o App responde e pergunta antes de enviar ao GitHub.</li>
+  <li>Sem as migrations, estas telas mostram um aviso em vez de funcionar: Faturas, Conciliação, Centros de custo, Obrigações, Ordens de serviço, logotipo da empresa, DRE por grupo, enquadramento e troca de e-mail.</li>
+  <li>Use uma conta sua de teste. Para testar papéis da empresa, convide um segundo e-mail seu.</li>
+  <li>Para cada problema, anote: <b>tela</b>, <b>o que fez</b>, <b>o que esperava</b>, <b>o que aconteceu</b> e, se puder, um print. Há um modelo no fim.</li>
+</ol>
+<div class="box warn-box"><b>Atenção:</b> o <code>.env</code> local usa e-mail real (SES). Cadastro, convite e troca de e-mail enviam mensagens de verdade. A fila de e-mails (<code>process-mail-queue</code>) não roda sozinha no ambiente local: e-mails que entram na fila, como convites de equipe, só saem quando ela é processada.</div>
+
+<h2>2. Resumo: o que funciona</h2>
+<table>
+<tr><th>Área</th><th>Situação</th><th>Observação</th></tr>
+<tr><td>Cadastro, login, recuperação de senha, 2FA</td><td class="ok">Funciona</td><td>Senha de no mínimo 12 caracteres; confirmação por e-mail obrigatória.</td></tr>
+<tr><td>PF: Receber, Pagar, baixa parcial, estorno de baixa</td><td class="ok">Funciona</td><td>Estorno é novo: devolve o valor à conta e reabre o lançamento.</td></tr>
+<tr><td>PF: Movimentações e transferências</td><td class="ok">Funciona</td><td>Cada baixa aparece na data e no valor dela.</td></tr>
+<tr><td>PF: Contas e cartões, Faturas</td><td class="ok">Funciona</td><td>Faturas depende das migrations 014/015.</td></tr>
+<tr><td>PF: Importar extrato (CSV/OFX) e lançar</td><td class="ok">Funciona</td><td>Novo. Em Contas e cartões &gt; Conciliação bancária.</td></tr>
+<tr><td>PF: Recorrências, Metas, Planejamento, Sair das Dívidas</td><td class="ok">Funciona</td><td>Recorrências e aportes programados geram lançamentos só com o agendador ligado.</td></tr>
+<tr><td>PF: Relatórios, Categorias</td><td class="ok">Funciona</td><td>Categorias: criar e excluir (editar nome e cor ainda não existe).</td></tr>
+<tr><td>Meu perfil: dados, senha, 2FA, sessões, privacidade</td><td class="ok">Funciona</td><td>Novo: baixar meus dados, excluir a conta e trocar o e-mail (022).</td></tr>
+<tr><td>PJ: criar empresa, trocar de empresa, CNPJ</td><td class="ok">Funciona</td><td>Aceita CNPJ numérico e o novo alfanumérico.</td></tr>
+<tr><td>PJ: Dashboard, Receber, Pagar, Fluxo de caixa, DRE, Relatórios</td><td class="ok">Funciona</td><td>DRE é gerencial, não substitui a contabilidade.</td></tr>
+<tr><td>PJ: Clientes, Fornecedores, Centros de custo</td><td class="ok">Funciona</td><td>Centros de custo dependem da 014.</td></tr>
+<tr><td>PJ: Conciliação, Cartões e faturas</td><td class="ok">Funciona</td><td>Dependem da 014/015.</td></tr>
+<tr><td>PJ: Obrigações, Ordens de serviço</td><td class="ok">Funciona</td><td>Dependem da 018/019. Obrigações é agenda manual: não calcula imposto.</td></tr>
+<tr><td>PJ: Equipe, convites, papéis, Permissões, Segurança, Auditoria</td><td class="ok">Funciona</td><td>Convites dependem da 016 e da fila de e-mail.</td></tr>
+<tr><td>PJ: Configurações da empresa, logotipo, enquadramento</td><td class="ok">Funciona</td><td>Logotipo depende da 017; enquadramento, da 021 (só informativo).</td></tr>
+<tr><td>Exportações CSV e impressão em PDF</td><td class="ok">Funciona</td><td>PDF é a impressão do navegador.</td></tr>
+</table>
+
+<h3>O que ainda não funciona ou é limitado</h3>
+<table>
+<tr><th>Item</th><th>Situação</th></tr>
+<tr><td>Integração bancária (Open Finance)</td><td class="no">Não existe. A tela Integrações é só informativa.</td></tr>
+<tr><td>Assistente Financeiro (<code>/p/assistente</code>)</td><td class="warn">Prévia fora do menu. Aguarda sua decisão.</td></tr>
+<tr><td>NFS-e, cálculo de DAS, limite do MEI</td><td class="no">Não existe. Depende de validação por contador.</td></tr>
+<tr><td>Editar nome e cor de categoria</td><td class="warn">Não existe (só criar e excluir).</td></tr>
+<tr><td>Tema escuro</td><td class="warn">O botão mostra "próxima etapa".</td></tr>
+<tr><td>E-mails automáticos, recorrências e aportes programados</td><td class="warn">Precisam do agendador (cron) ligado; no ambiente local não roda sozinho.</td></tr>
+<tr><td>Planos, preços e cobrança</td><td class="warn">Sem definição; o site diz "serão divulgados".</td></tr>
+</table>
+
+<h2 class="pb">3. Roteiro de testes · Acesso</h2>
+<table class="check">
+<tr><th>✓</th><th>Faça</th><th>Resultado esperado</th></tr>
+<tr><td>☐</td><td>Em <code>/cadastrar</code>, crie conta com nome, e-mail, celular, senha de 12+ caracteres e aceite os termos.</td><td>Mensagem para confirmar o e-mail; o e-mail chega com o link.</td></tr>
+<tr><td>☐</td><td>Abra o link de confirmação e entre em <code>/entrar</code>.</td><td>Abre a Visão Geral da PF com o quadro "Primeiros passos 0 de 5".</td></tr>
+<tr><td>☐</td><td>Saia e use "Esqueci minha senha" em <code>/recuperar-senha</code>.</td><td>Mensagem neutra; o e-mail traz link que vale 30 minutos; a nova senha funciona.</td></tr>
+<tr><td>☐</td><td>Em Meu perfil &gt; Segurança, ative o 2FA com um app autenticador, saia e entre de novo.</td><td>Pede o código de 6 dígitos depois da senha.</td></tr>
+<tr><td>☐</td><td>No celular, abra o menu (☰), navegue e feche.</td><td>Menu abre por cima, rola, fecha ao tocar num item.</td></tr>
+</table>
+<h3>Deve dar erro (é o certo)</h3>
+<ul>
+  <li>Senha com menos de 12 caracteres ou confirmação diferente: o cadastro não acontece.</li>
+  <li>Entrar antes de confirmar o e-mail: "Não foi possível entrar".</li>
+  <li>Cadastrar de novo com o mesmo e-mail: resposta neutra, sem dizer que o e-mail existe.</li>
+  <li>Errar a senha várias vezes seguidas: o login fica bloqueado por um tempo.</li>
+  <li>Código de 2FA errado: não entra.</li>
+</ul>
+
+<h2>4. Roteiro de testes · Pessoa Física</h2>
+<table class="check">
+<tr><th>✓</th><th>Faça</th><th>Resultado esperado</th></tr>
+<tr><td>☐</td><td>Contas e cartões &gt; Contas e Cartões: cadastre uma conta corrente com saldo inicial de R$ 1.000,00.</td><td>Conta aparece com R$ 1.000,00; "Primeiros passos" marca o passo.</td></tr>
+<tr><td>☐</td><td>Cadastre um cartão de crédito com limite, dia de fechamento e de vencimento.</td><td>Cartão aparece com limite disponível.</td></tr>
+<tr><td>☐</td><td>Análise &gt; Categorias: crie a categoria de despesa "Mercado".</td><td>Aparece na lista; some o passo de categorias.</td></tr>
+<tr><td>☐</td><td>Pagar &gt; Nova despesa: R$ 300,00, vencimento hoje, categoria Mercado.</td><td>Aparece "Em aberto"; o saldo da conta não muda.</td></tr>
+<tr><td>☐</td><td>Na despesa, clique Pagar e pague R$ 100,00.</td><td>Fica "Parcial · saldo R$ 200,00"; a conta cai para R$ 900,00; Movimentações mostra R$ 100,00 com "Baixa parcial".</td></tr>
+<tr><td>☐</td><td>Pague os R$ 200,00 restantes e depois clique "Estornar".</td><td>Volta a "Parcial · saldo R$ 200,00"; a conta volta para R$ 900,00.</td></tr>
+<tr><td>☐</td><td>Receber &gt; Nova receita: R$ 500,00; registre o recebimento de R$ 500,00.</td><td>"Recebido"; a conta sobe R$ 500,00.</td></tr>
+<tr><td>☐</td><td>Em Detalhes da receita, use "Estornar" na baixa.</td><td>Volta a pendente; o histórico mostra "Baixa estornada".</td></tr>
+<tr><td>☐</td><td>Movimentações &gt; Transferir entre contas (precisa de duas contas).</td><td>Sai de uma, entra na outra; não conta como receita nem despesa.</td></tr>
+<tr><td>☐</td><td>Lance uma compra no cartão e abra Faturas.</td><td>A compra entra na fatura certa pelo dia de fechamento.</td></tr>
+<tr><td>☐</td><td>Contas e cartões &gt; Conciliação bancária: importe um CSV (colunas Data;Descrição;Valor) e clique "Lançar despesa" numa linha negativa.</td><td>Cria a despesa já paga na data do extrato e a linha fica "Conciliada"; reenviar não duplica.</td></tr>
+<tr><td>☐</td><td>Planejamento &gt; Metas: crie uma meta e guarde dinheiro nela.</td><td>"Disponível" das contas diminui pelo valor reservado.</td></tr>
+<tr><td>☐</td><td>Planejamento: defina um orçamento para Mercado.</td><td>Mostra quanto do orçamento foi usado.</td></tr>
+<tr><td>☐</td><td>Relatórios: escolha o período e exporte CSV; use Imprimir para gerar PDF.</td><td>O CSV abre no Excel com acentos; os números batem com Pagar e Receber.</td></tr>
+<tr><td>☐</td><td>Use os filtros (botão Filtros) em Receber, Pagar e Movimentações.</td><td>Etiquetas mostram o filtro ativo; "Limpar" volta ao normal.</td></tr>
+</table>
+<h3>Deve dar erro (é o certo)</h3>
+<ul>
+  <li>Pagar mais do que o saldo em aberto: recusado.</li>
+  <li>Transferir para a mesma conta: recusado.</li>
+  <li>Arquivar conta com saldo ou lançamento em aberto: recusado, com explicação.</li>
+  <li>Estornar um pagamento feito com dinheiro de uma meta: pede para estornar em Metas.</li>
+  <li>Lançar linha do extrato com categoria do tipo errado (despesa numa receita): recusado.</li>
+</ul>
+
+<h2 class="pb">5. Roteiro de testes · Pessoa Jurídica</h2>
+<table class="check">
+<tr><th>✓</th><th>Faça</th><th>Resultado esperado</th></tr>
+<tr><td>☐</td><td>No seletor de contexto (topo do menu), "Cadastrar empresa" com nome e CNPJ (pode testar <code>00.000.000/E08G-12</code>, exemplo oficial alfanumérico).</td><td>Abre o Dashboard da empresa, com menu escuro e logo da empresa.</td></tr>
+<tr><td>☐</td><td>Administração &gt; Configurações: preencha nome fantasia, e-mail, telefone e enquadramento (ex.: MEI); envie um logotipo JPG/PNG.</td><td>"Dados da empresa salvos"; logotipo aparece; alteração aparece em "Últimas alterações".</td></tr>
+<tr><td>☐</td><td>Cadastros &gt; Clientes: cadastre um cliente PJ com CNPJ e um PF com CPF.</td><td>Aparecem com documento mascarado; as abas Ativos e Inativos contam certo.</td></tr>
+<tr><td>☐</td><td>Financeiro &gt; Receber e cobranças: lance uma receita para o cliente e receba metade.</td><td>Fica parcial; Fluxo de caixa mostra a metade no dia recebido.</td></tr>
+<tr><td>☐</td><td>Financeiro &gt; Pagar: despesa com fornecedor e centro de custo; filtre por fornecedor.</td><td>Filtro mostra só a despesa, com etiqueta.</td></tr>
+<tr><td>☐</td><td>Gestão &gt; Obrigações: crie uma obrigação vencida e uma futura; use as abas e o filtro por tipo.</td><td>Aba "Vencidas (1)"; filtros funcionam; concluir e reabrir funcionam.</td></tr>
+<tr><td>☐</td><td>Gestão &gt; Ordens de serviço: OS com dois itens e desconto; gere a cobrança.</td><td>Total certo; a cobrança aparece em Receber; buscar pelo número da OS encontra.</td></tr>
+<tr><td>☐</td><td>Gestão &gt; DRE e Relatórios: troque o período e exporte.</td><td>Valores batem com Receber e Pagar; CSV sai com BOM e cabeçalho.</td></tr>
+<tr><td>☐</td><td>Financeiro &gt; Conciliação: importe CSV ou OFX; concilie uma sugestão e lance outra linha.</td><td>Sugestões só da mesma conta, mesmo valor, até 7 dias; paginação de 50 em 50.</td></tr>
+<tr><td>☐</td><td>Administração &gt; Equipe: convide seu segundo e-mail como Visualizador; aceite pelo link.</td><td>O convidado vê a empresa, mas sem botões de lançar, editar ou excluir.</td></tr>
+<tr><td>☐</td><td>Com o convidado, tente abrir DRE, Auditoria e Relatórios (troque o papel para Operacional).</td><td>O que o papel não pode não aparece no menu e abre como "acesso negado".</td></tr>
+<tr><td>☐</td><td>Administração &gt; Auditoria: filtre por ação.</td><td>Mostra convite, mudança de papel e alteração de dados.</td></tr>
+<tr><td>☐</td><td>Troque de empresa e de volta para a PF.</td><td>Dados de uma empresa nunca aparecem em outra nem na PF.</td></tr>
+</table>
+<h3>Deve dar erro (é o certo)</h3>
+<ul>
+  <li>CNPJ com dígito verificador errado (ex.: <code>11.222.333/0001-82</code>): "CNPJ inválido".</li>
+  <li>Visualizador tentando lançar, exportar ou convidar: botão não aparece; se forçar, "acesso negado".</li>
+  <li>Abrir o endereço de uma empresa da qual você não faz parte: "página não encontrada".</li>
+  <li>Aceitar convite com outro e-mail logado: recusado.</li>
+  <li>Logotipo maior que o limite ou em formato não aceito: recusado.</li>
+</ul>
+
+<h2>6. Meu perfil e privacidade</h2>
+<table class="check">
+<tr><th>✓</th><th>Faça</th><th>Resultado esperado</th></tr>
+<tr><td>☐</td><td>Meu perfil &gt; Segurança &gt; Trocar e-mail de acesso: informe um e-mail novo e a senha.</td><td>O link chega no e-mail novo; abrir mostra "Confirmar novo e-mail"; depois de confirmar, entra só com o novo e as outras sessões caem.</td></tr>
+<tr><td>☐</td><td>Meu perfil &gt; Privacidade &gt; Baixar meus dados (com a senha).</td><td>Baixa um JSON com perfil e dados da PF, sem senha.</td></tr>
+<tr><td>☐</td><td>Com uma conta que não é dona de empresa: Excluir minha conta (senha + EXCLUIR).</td><td>Conta apagada; volta para o login com aviso; não entra mais.</td></tr>
+<tr><td>☐</td><td>Com a conta dona de empresa, abra Privacidade.</td><td>Explica por que não pode excluir (empresa no seu nome), sem botão de excluir.</td></tr>
+</table>
+
+<h2>7. Páginas (41 no menu)</h2>
+<p class="small">Todas abriram sem erro em computador, tablet e celular na varredura de 07 e 08/11. "Precisa de migration" = só funciona depois do passo 3 do script.</p>
+<table>
+<tr><th>PF (15)</th><th>PJ (26)</th></tr>
+<tr><td>Visão Geral · Receber · Pagar · Movimentações · Contas e Cartões · Faturas* · Conciliação bancária* · Assinaturas e recorrências · Metas · Planejamento · Sair das Dívidas · Relatórios · Categorias · Notificações · Integrações (informativa) · Configurações (Meu perfil)</td>
+<td>Dashboard · Receber e cobranças · Pagar · Movimentações · Recorrências · Fluxo de caixa · Bancos e contas · Cartões e faturas* · Conciliação* · Clientes · Fornecedores · Categorias · Centros de custo* · Relatórios · DRE gerencial · Planejamento · Metas · Obrigações* · Ordens de serviço* · Equipe* · Permissões · Configurações* · Segurança · Auditoria · Integrações · Notificações · Ajuda e chamados</td></tr>
+</table>
+<p class="small">* Precisa de migration (014 a 022).</p>
+
+<h2>8. Modelo de retorno</h2>
+<div class="box">
+<b>Tela:</b> (ex.: PJ &gt; Pagar)<br>
+<b>O que fiz:</b> (passo a passo)<br>
+<b>O que esperava:</b><br>
+<b>O que aconteceu:</b><br>
+<b>Computador ou celular / navegador:</b><br>
+<b>Print:</b> (se tiver)
+</div>
+<p class="small">Testes automatizados que passaram nesta versão: 72 testes de serviço e 24 fluxos completos pelo navegador e pelo servidor (cadastro, permissões, isolamento entre empresas, baixas, estornos, faturas, conciliação, exportações, LGPD e troca de e-mail), todos num banco isolado de teste.</p>
+
+</body>
+</html>
