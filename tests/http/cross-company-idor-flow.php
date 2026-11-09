@@ -38,6 +38,7 @@ $posts = [
     ['/minha-conta/contatos/atualizar', ['id' => $contact, 'person_type' => 'company', 'legal_name' => 'IDOR', 'is_customer' => '1', 'back' => 'clientes']],
     ['/minha-conta/contatos/status', ['id' => $contact, 'status' => 'inactive', 'back' => 'clientes']],
     ['/minha-conta/financeiro/conciliacao-revisar', ['line_id' => $line, 'to' => 'ignored', 'back' => 'conciliacao']],
+    ['/minha-conta/financeiro/conciliacao-lancar', ['line_id' => $line, 'back' => 'conciliacao']],
 ];
 $codes = [];
 foreach ($posts as [$path, $data]) { $codes[] = basename($path) . '=' . $o->req('POST', $path, $base + $data)['code']; }

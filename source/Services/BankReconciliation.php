@@ -120,6 +120,46 @@ final class BankReconciliation
         }catch(\Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();@unlink($path);throw $e;}
     }
 
+    /**
+     * Lança a linha do extrato como receita (valor positivo) ou despesa (negativo), já paga na data do extrato,
+     * e concilia a linha com o lançamento novo. Só vale para linha pendente: reenviar não cria outro lançamento.
+     */
+    public function createEntry(mixed $lineId, mixed $categoryId, int $userId): int
+    {
+        $line=filter_var($lineId,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($line===false)throw new InvalidArgumentException('Linha inválida.');
+        $this->pdo->beginTransaction();
+        try{
+            $find=$this->pdo->prepare("SELECT * FROM finance_reconciliation_lines WHERE id=? AND financial_context_id=? FOR UPDATE");
+            $find->execute([$line,$this->contextId]);
+            $row=$find->fetch(PDO::FETCH_ASSOC);
+            if($row===false)throw new InvalidArgumentException('Linha não encontrada.');
+            if($row['status']!=='pending'||$row['matched_entry_id']!==null)throw new InvalidArgumentException('Esta linha já foi revisada.');
+            $amount=(int)$row['amount_cents'];
+            if($amount===0)throw new InvalidArgumentException('Linha sem valor.');
+            $kind=$amount>0?'income':'expense';
+            $category=null;
+            $wanted=filter_var($categoryId,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+            if($wanted!==false){
+                $c=$this->pdo->prepare('SELECT id FROM finance_categories WHERE id=? AND financial_context_id=? AND kind=?');
+                $c->execute([$wanted,$this->contextId,$kind]);
+                $category=$c->fetchColumn();
+                if($category===false)throw new InvalidArgumentException('Escolha uma categoria de '.($kind==='income'?'receita':'despesa').'.');
+                $category=(int)$category;
+            }
+            $this->pdo->prepare("INSERT INTO finance_entries (financial_context_id,account_id,category_id,kind,description,amount_cents,due_date,paid_at,status,created_by) VALUES (?,?,?,?,?,?,?,?,'received',?)")
+                ->execute([$this->contextId,(int)$row['account_id'],$category,$kind,mb_substr((string)$row['description'],0,160),abs($amount),$row['occurred_on'],$row['occurred_on'],$userId]);
+            $entry=(int)$this->pdo->lastInsertId();
+            $this->pdo->prepare("UPDATE finance_reconciliation_lines SET status='matched',matched_entry_id=?,reviewed_by=?,reviewed_at=NOW() WHERE id=? AND financial_context_id=?")
+                ->execute([$entry,$userId,$line,$this->contextId]);
+            $this->pdo->commit();
+            return $entry;
+        }catch(\Throwable $exception){
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $exception;
+        }
+    }
+
     public function review(mixed $lineId,mixed $entryId,string $status,int $userId): void
     {
         $line=filter_var($lineId,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);

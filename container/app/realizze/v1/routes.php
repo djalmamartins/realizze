@@ -79,8 +79,8 @@ return [
                     return;
                 }
             }
-            // Faturas atendem PF e PJ; os demais itens desta lista são exclusivos da empresa.
-            if (((in_array($section, $organizationSections, true) && $section !== 'faturas') || $section === 'contato-detalhe') && $organization === null) {
+            // Faturas e conciliação (importar extrato) atendem PF e PJ; os demais itens desta lista são exclusivos da empresa.
+            if (((in_array($section, $organizationSections, true) && !in_array($section, ['faturas', 'conciliacao'], true)) || $section === 'contato-detalhe') && $organization === null) {
                 $renderError(404);
                 return;
             }
@@ -334,7 +334,7 @@ return [
             }, 'app.finance.' . $action);
         }
 
-        foreach (['card_purchase' => 'cartao-compra', 'card_pay' => 'cartao-pagar-fatura', 'card_reverse' => 'cartao-estornar-pagamento', 'cost_center' => 'centro-de-custo', 'reconciliation_import' => 'conciliacao-importar', 'reconciliation_review' => 'conciliacao-revisar'] as $action => $slug) {
+        foreach (['card_purchase' => 'cartao-compra', 'card_pay' => 'cartao-pagar-fatura', 'card_reverse' => 'cartao-estornar-pagamento', 'cost_center' => 'centro-de-custo', 'reconciliation_import' => 'conciliacao-importar', 'reconciliation_review' => 'conciliacao-revisar', 'reconciliation_create' => 'conciliacao-lancar'] as $action => $slug) {
             $router->post('/minha-conta/financeiro/' . $slug, static function () use ($requirePreview, $action): void {
                 if (!$requirePreview() || !\Moves\Services\AccessPolicy::requireAccess('app')) return;
                 (new \Moves\App\CommercialFinanceActions())->handle($action);

@@ -57,7 +57,7 @@ Nenhuma tela quebra. Os problemas que importam são outros: saldo errado com bai
 
 - [ ] **PF-13. Conferir o App em celular real e com cache normal.** Até hoje só houve emulação no Chrome com cache desligado. **Djalma:** precisa de aparelho real.
 - [x] **PF-14. Filtros e busca em Movimentações.** Hoje há só tipo e período. **Conferido em 08/11:** já existem busca, conta, tipo e período com etiquetas (modal de filtros padrão).
-- [ ] **PF-15. Importar lançamentos por CSV/OFX.** Depende da conciliação (PJ-08), usar o mesmo importador.
+- [x] **PF-15. Importar lançamentos por CSV/OFX.** Depende da conciliação (PJ-08), usar o mesmo importador. **Feito em 09/11:** Conciliação bancária liberada na PF (menu Contas e cartões), importa CSV/OFX e cada linha pode virar receita ou despesa paga na data do extrato, já conciliada (`BankReconciliation::createEntry`, rota `conciliacao-lancar`). Teste `pf-statement-import-flow`.
 - [ ] **PF-16. Decisão: Assistente Financeiro.** `/p/assistente` está no menu sem funcionar, e `AiProvider` não tem provedor. Decidir entre ligar um provedor ou tirar do menu até lá.
 - [ ] **PF-17. Decisão: Open Finance.** Integrações mostra o catálogo sem conexão. Depende de provedor homologado. Contrato C19.
 

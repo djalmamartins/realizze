@@ -11,10 +11,11 @@ $start=$validDate($_GET['inicio']??null)?$_GET['inicio']:'';
 $end=$validDate($_GET['fim']??null)?$_GET['fim']:'';
 $search=is_string($_GET['busca']??null)?trim(mb_substr($_GET['busca'],0,120)):'';
 $scope=['account_id'=>$accountFilter,'start'=>$start,'end'=>$end,'search'=>$search];
-$lines=$accounts=$suggestions=[];$page=$pages=1;$counts=array_fill_keys(array_keys($statusLabels),0);$error=null;
+$lines=$accounts=$suggestions=[];$categoriesByKind=['income'=>[],'expense'=>[]];$page=$pages=1;$counts=array_fill_keys(array_keys($statusLabels),0);$error=null;
 try{
     $context=(int)FinanceContext::currentId();$service=new BankReconciliation($context);
     $accounts=array_values(array_filter((new Finance($context))->accounts(),static fn($a)=>$a['type']!=='credit_card'));
+    $finance=new Finance($context);$categoriesByKind=['income'=>$finance->categories('income'),'expense'=>$finance->categories('expense')];
     $counts=$service->counts($scope);
     // 50 linhas por página; o total vem da contagem com os mesmos filtros.
     $perPage=50;$total=$status===''?array_sum($counts):(int)($counts[$status]??0);
@@ -71,7 +72,7 @@ $kinds=['income'=>'Receita','expense'=>'Despesa','transfer'=>'Transferência'];
       <footer><a class="filter-clear" href="<?= $e($filterClearUrl) ?>">Limpar filtros</a><button type="button" data-finance-close>Cancelar</button><button type="submit" class="primary">Aplicar</button></footer>
     </form>
   </dialog>
-  <?php if($counts['pending']>0): ?><p class="muted reconcile-hint">Sugerimos lançamentos da mesma conta, com o mesmo valor e até 7 dias de diferença. Sem sugestão, lance a receita ou despesa em Receber ou Pagar e volte, ou ignore a linha.</p><?php endif; ?>
+  <?php if($counts['pending']>0): ?><p class="muted reconcile-hint">Sugerimos lançamentos da mesma conta, com o mesmo valor e até 7 dias de diferença. Sem sugestão, use “Lançar” para criar a receita ou despesa já paga na data do extrato, ou ignore a linha.</p><?php endif; ?>
   <?php if($lines===[]): ?>
   <div class="finance-empty"><h3><?= $filters===[]?'Nenhuma linha para revisar':'Nenhuma linha com estes filtros' ?></h3><p>Importe um CSV com as colunas Data, Descrição e Valor, ou o arquivo OFX do banco.</p></div>
   <?php else: ?>
@@ -88,6 +89,7 @@ $kinds=['income'=>'Receita','expense'=>'Despesa','transfer'=>'Transferência'];
     <td class="finance-actions"><div class="reconcile-actions">
       <?php if($line['status']==='pending'): ?>
         <?php if($options!==[]): ?><form method="post" action="/minha-conta/financeiro/conciliacao-revisar" class="reconcile-match"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="conciliacao"><input type="hidden" name="line_id" value="<?= $id ?>"><input type="hidden" name="status" value="matched"><label><span class="sr-only">Lançamento</span><select name="entry_id"><?php foreach($options as $o): ?><option value="<?= (int)$o['id'] ?>"><?= $e($kinds[$o['kind']]??'').': '.$e($o['description']).' · '.$e($date($o['paid_at']?:$o['due_date'])) ?></option><?php endforeach; ?></select></label><button type="submit">Conciliar</button></form><?php endif; ?>
+        <?php $lineKind=(int)$line['amount_cents']>0?'income':'expense'; ?><form method="post" action="/minha-conta/financeiro/conciliacao-lancar" class="reconcile-match"><input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>"><input type="hidden" name="back" value="conciliacao"><input type="hidden" name="line_id" value="<?= $id ?>"><label><span class="sr-only">Categoria</span><select name="category_id"><option value="">Sem categoria</option><?php foreach($categoriesByKind[$lineKind] as $c): ?><option value="<?= (int)$c['id'] ?>"><?= $e($c['name']) ?></option><?php endforeach; ?></select></label><button type="submit" title="Cria <?= $lineKind==='income'?'uma receita recebida':'uma despesa paga' ?> na data do extrato e concilia a linha">Lançar <?= $lineKind==='income'?'receita':'despesa' ?></button></form>
         <?= $review($id,'ignored','Ignorar') ?>
       <?php else: ?>
         <?= $review($id,'pending','Desfazer') ?>

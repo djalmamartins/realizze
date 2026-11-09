@@ -36,7 +36,7 @@ $check = static function (string $label, H $h, string $start, array $mustHave, a
 $slug = getenv('REALIZZE_TEST_ORG') ?: 'missao-alfa-ltda';
 $owner = new H();
 if (!$owner->login('pj-dono@example.invalid', 'PjMissao#2026')) { fwrite(STDERR, "login do dono falhou\n"); exit(1); }
-$check('PF dono', $owner, '/p', ['/p/receber', '/p/pagar', '/p/movimentacoes', '/p/cartoes', '/p/faturas', '/p/categorias', '/p/relatorios', '/p/perfil', '/p/notificacoes'], ["/e/$slug/dre", '/p/configuracoes']);
+$check('PF dono', $owner, '/p', ['/p/receber', '/p/pagar', '/p/movimentacoes', '/p/cartoes', '/p/faturas', '/p/conciliacao', '/p/categorias', '/p/relatorios', '/p/perfil', '/p/notificacoes'], ["/e/$slug/dre", '/p/configuracoes']);
 $check('PJ dono', $owner, "/e/$slug", ["/e/$slug/dre", "/e/$slug/faturas", "/e/$slug/conciliacao", "/e/$slug/ordens-de-servico", "/e/$slug/obrigacoes", "/e/$slug/auditoria", "/e/$slug/permissoes"], ['/p/sair-das-dividas']);
 
 $operational = new H();

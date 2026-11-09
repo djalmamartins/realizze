@@ -96,7 +96,7 @@ $items['notificacoes'] = ['list-filter', 'Notificações', $baseUrl . '/notifica
 $items['suporte'] = ['message-circle', 'Ajuda e chamados', '/suporte'];
 $items += $activeOrganization !== null
     ? ['equipe' => ['building','Equipe e Permissões',$baseUrl . '/equipe'], 'empresa' => ['settings','Configurações da Empresa',$baseUrl . '/empresa']]
-    : ['faturas' => ['credit-card','Faturas',$baseUrl . '/faturas'], 'configuracoes' => ['settings','Configurações',$baseUrl . '/perfil']];
+    : ['faturas' => ['credit-card','Faturas',$baseUrl . '/faturas'], 'conciliacao' => ['list-filter','Conciliação bancária',$baseUrl . '/conciliacao'], 'configuracoes' => ['settings','Configurações',$baseUrl . '/perfil']];
 // Menu único em áreas para PF e PJ. Um grupo sem título fica aberto, logo abaixo do Dashboard.
 // "Em breve" aponta para uma página que diz o que falta, sem dados simulados.
 $pendingSections = [];
@@ -123,7 +123,7 @@ if ($activeOrganization !== null) {
 } else {
     $navGroups = [
         ['', '', ['receber', 'pagar', 'movimentacoes']],
-        ['Contas e cartões', 'credit-card', ['contas', 'faturas']],
+        ['Contas e cartões', 'credit-card', ['contas', 'faturas', 'conciliacao']],
         ['Planejamento', 'target', ['recorrencias', 'metas', 'planejamento', 'sair-das-dividas']],
         ['Análise', 'chart-no-axes-column', ['relatorios', 'categorias']],
         ['Conta', 'settings', ['notificacoes', 'integracoes', 'configuracoes', 'suporte']],
